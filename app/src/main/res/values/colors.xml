@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="likhtar_background">#FF0A0D0F</color>
+    <!-- Колір картки likhtar_logo.png — фон adaptive-іконки. -->
+    <color name="ic_launcher_background">#FFF7F6F7</color>
+</resources>

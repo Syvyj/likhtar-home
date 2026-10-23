@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_open_with">Otwórz za pomocą</string>
+    <string name="drop_title">Wyślij na TV z telefonu</string>
+    <string name="drop_no_network">Dekoder nie jest w sieci domowej — kod QR nie ma dokąd prowadzić.</string>
+    <string name="drop_step1">1. Skieruj aparat telefonu na kod</string>
+    <string name="drop_step2">2. Wybierz plik lub wklej link</string>
+    <string name="drop_waiting">Czekam na telefon…</string>
+    <string name="drop_connected">Telefon połączony — wybierz na nim plik</string>
+    <string name="drop_receiving">Odbieram „%1$s” — %2$d%% z %3$s</string>
+    <string name="drop_received">Odebrano „%1$s”</string>
+    <string name="drop_watch">Oglądaj</string>
+    <string name="drop_install">Zainstaluj</string>
+    <string name="drop_saved">Zapisano w %1$s</string>
+    <string name="drop_open_link">Otwórz</string>
+    <string name="drop_close">Zamknij</string>
+    <string name="home_key_service_label">LIKHTAR: przycisk „Home”</string>
+    <string name="home_key_service_description">Przycisk „Home” na pilocie otwiera LIKHTAR. Usługa widzi tylko naciśnięcia „Home” i niczego nie czyta z ekranu.</string>
+    <string name="assistant_listening">Słucham. Pytaj o cokolwiek: pogodę, fakt, „otwórz TV na żywo”</string>
+    <string name="assistant_thinking">Myślę…</string>
+    <string name="assistant_again">Zapytaj ponownie</string>
+    <string name="assistant_offline">Serwer LIKHTAR teraz nie odpowiada.</string>
+    <string name="assistant_home_failed">Inteligentny dom nie odpowiedział.</string>
+    <string name="assistant_app_missing">Nie znalazłem aplikacji „%1$s”.</string>
+    <string name="assistant_name">Likhtaryk</string>
+    <string name="assistant_listening_short">Słucham</string>
+    <string name="assistant_back_hint">Back — zamknij</string>
+    <string name="assistant_reminder">🔔 Przypomnienie: %1$s</string>
+    <string name="assistant_not_found">Nie znalazłem „%1$s”.</string>
+    <string name="assistant_bookmarked">„%1$s” jest na liście do obejrzenia.</string>
+    <string name="assistant_no_time">Nie zrozumiałem, o której przypomnieć.</string>
+    <string name="assistant_service_off">Włącz usługę przycisków pilota w Ustawieniach — bez niej tego nie potrafię.</string>
+</resources>

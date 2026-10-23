@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="catalog_watch_in">Дивитися в %1$s</string>
+    <string name="catalog_open_in">Відкрити в %1$s</string>
+    <string name="catalog_available_on">Є в %1$s</string>
+    <string name="catalog_search_in">Шукати в %1$s</string>
+    <string name="catalog_open_app">Відкрити %1$s</string>
+
+    <string name="catalog_new_episode">Нова серія</string>
+    <string name="catalog_minutes_left">лишилось %1$d хв</string>
+    <string name="catalog_airs_on">вийде %1$s</string>
+
+    <string name="catalog_minutes">%1$d хв</string>
+    <string name="catalog_sources_short">%1$d дж.</string>
+
+    <string name="catalog_msg_no_tmdb_key">Каталог вимкнено: вкажіть ключ TMDB у «Налаштування → Підключення».</string>
+    <string name="catalog_msg_no_curated_rows">Курованих рядків немає — перезапустіть tools/import_likhtar_rows.js.</string>
+    <string name="catalog_msg_tmdb_no_rows">TMDB не віддав жодного рядка — перевірте ключ і мережу.</string>
+    <string name="catalog_msg_no_server_address">Адреса сервера не задана.</string>
+    <string name="catalog_msg_server_no_reply">Сервер не відповів.</string>
+    <string name="catalog_subtitle_channel">Телеканал</string>
+    <string name="catalog_msg_network_empty">У цього мовника поки немає тайтлів із джерелами.</string>
+    <string name="catalog_msg_network_failed">Телеканал не завантажився.</string>
+    <string name="catalog_ukrainian_title">Суто українське</string>
+    <string name="catalog_subtitle_catalog">Каталог</string>
+    <string name="catalog_msg_no_ukrainian">Українського каталогу зараз немає.</string>
+    <string name="catalog_msg_no_collection">Такої добірки немає.</string>
+    <string name="catalog_msg_tmdb_nothing_for">TMDB не віддав нічого для «%1$s».</string>
+    <string name="catalog_genre">Жанр</string>
+    <string name="catalog_subtitle_curation">Курація Ліхтаря</string>
+    <string name="catalog_msg_page_empty">Сторінка «%1$s» поки порожня.</string>
+    <string name="catalog_subtitle_cinema">Кінозал</string>
+    <string name="catalog_msg_no_chronology">Такої хронології немає в курації.</string>
+    <string name="catalog_chronology_timeline">Хронологія подій</string>
+    <string name="catalog_universe_series">Серіали всесвіту</string>
+    <string name="catalog_starter_movies">Популярні фільми тижня</string>
+    <string name="catalog_starter_tv">Популярні серіали тижня</string>
+    <string name="catalog_open_new_on">Нове на %1$s</string>
+    <string name="catalog_open_new_movies">Нові фільми</string>
+    <string name="catalog_open_new_series">Нові серіали</string>
+    <string name="catalog_open_popular_movies">Популярні фільми</string>
+    <string name="catalog_open_popular_series">Популярні серіали</string>
+    <string name="catalog_open_in_cinemas">Зараз у кіно</string>
+    <string name="catalog_open_top_rated">Найкраще за оцінкою</string>
+    <string name="catalog_open_reality">Реаліті-шоу</string>
+    <string name="catalog_open_talk">Ток-шоу</string>
+    <string name="catalog_open_docuseries">Документальні серіали</string>
+    <string name="catalog_open_documentaries">Документальні фільми</string>
+    <string name="catalog_collections">Колекції</string>
+    <string name="catalog_msg_chronology_empty">TMDB не знайшов жодної позиції цієї хронології.</string>
+    <string name="catalog_msg_unknown_franchise">Невідома франшиза.</string>
+    <string name="catalog_msg_franchise_failed">TMDB не віддав дані про франшизу.</string>
+    <string name="catalog_franchise">Франшиза</string>
+    <string name="catalog_franchise_subtitle">Усі частини в порядку виходу</string>
+    <string name="catalog_franchise_parts">Частин: %1$d</string>
+    <string name="catalog_msg_franchise_empty">У цій франшизі TMDB не має частин.</string>
+
+    <string name="catalog_page_films">Фільми</string>
+    <string name="catalog_page_series">Серіали</string>
+    <string name="catalog_page_for_you">Для вас</string>
+    <string name="catalog_page_anime">Аніме</string>
+    <string name="catalog_page_upcoming">Анонси</string>
+
+    <string name="catalog_part_this_week">Цього тижня</string>
+    <string name="catalog_part_last_week">Минулого тижня</string>
+    <string name="catalog_part_earlier">Раніше</string>
+    <string name="catalog_part_month_end">До кінця місяця</string>
+    <string name="catalog_part_later">Пізніше</string>
+
+    <string name="catalog_status_no_server">Немає адреси сервера</string>
+    <string name="catalog_server_no_reply">Сервер не відповів</string>
+    <string name="catalog_status_bad_reply">Відповідь не розібралась</string>
+    <string name="catalog_status_connected_empty">Підключено, але сервіс нічого не показує</string>
+    <string name="catalog_status_connected_count">Підключено · у «Продовжити» %1$d</string>
+
+    <string name="catalog_recap_no_server">Сервер Ліхтаря не налаштований</string>
+    <string name="catalog_recap_no_reply">Сервер не відповів — спробуйте ще раз</string>
+    <string name="catalog_recap_failed">Переказ не вийшов</string>
+    <string name="catalog_recap_season">Переказ %1$d сезону</string>
+    <string name="catalog_trailer">Трейлер</string>
+    <string name="catalog_video">Ролик</string>
+
+    <string name="catalog_play_no_server">Сервер не налаштований</string>
+    <string name="catalog_play_no_sources">У цієї озвучки немає джерел</string>
+    <string name="catalog_play_source_no_reply">Джерело не відповіло</string>
+    <string name="catalog_stream">Потік</string>
+    <string name="catalog_msg_offline">Каталог зараз недоступний — немає зв\'язку з сервером Ліхтаря.</string>
+    <string name="catalog_recap_no_ai">Підключіть AI в Налаштуваннях → Підключення, щоб отримати переказ сезону</string>
+    <string name="catalog_recap_no_episodes">У TMDB немає описів серій цього сезону — переказувати нема з чого</string>
+</resources>

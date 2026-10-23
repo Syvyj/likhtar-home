@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_tile_live_tv">Live TV</string>
+    <string name="home_ua_arrived_title">Now in Ukrainian: %1$s</string>
+    <string name="home_ua_arrived_waiting_since">you\'ve been waiting since %1$s</string>
+    <string name="home_ua_arrived_waited">you were waiting for this</string>
+    <string name="home_torch_title">Likhtaryk</string>
+    <string name="home_torch_subtitle">Your movie advisor</string>
+    <string name="home_settings">Settings</string>
+    <string name="home_recent_channels">Recent channels</string>
+    <string name="home_recent_channels_empty">Channels you watch will appear here</string>
+    <string name="home_channel_pinned">Pinned</string>
+    <string name="home_recent_searches">Recent searches</string>
+    <string name="home_new_search">New search</string>
+    <string name="home_smart_now">Home right now</string>
+    <string name="home_smart_empty">Connect Home Assistant in Settings</string>
+    <string name="home_device_on">On</string>
+    <string name="home_device_off">Off</string>
+    <string name="home_device_unavailable">No connection</string>
+    <string name="home_continue_watching">Continue watching</string>
+    <string name="home_continue_watching_empty">Things you haven\'t finished will appear here</string>
+    <string name="home_continue_reality">Continue reality</string>
+    <string name="home_continue_reality_empty">Shows you\'ve started will appear here</string>
+    <string name="home_all_history">All history</string>
+    <string name="home_your_apps">Your apps</string>
+    <string name="home_your_apps_empty">Installed apps will appear here</string>
+    <string name="home_weather_loading">Weather is loading…</string>
+    <string name="home_weather_attribution">Data: Open-Meteo</string>
+    <string name="home_weather_feels_like">Feels like %1$s</string>
+    <string name="home_weather_wind">Wind</string>
+    <string name="home_weather_gusts">Gusts</string>
+    <string name="home_weather_humidity">Humidity</string>
+    <string name="home_weather_clouds">Cloud cover</string>
+    <string name="home_weather_pressure">Pressure</string>
+    <string name="home_weather_uv_index">UV index</string>
+    <string name="home_weather_sunrise">Sunrise</string>
+    <string name="home_weather_sunset">Sunset</string>
+    <string name="home_weather_mps">%1$s m/s</string>
+    <string name="home_weather_hpa">%1$s hPa</string>
+    <string name="home_weather_hourly">Next 24 hours</string>
+    <string name="home_weather_days">Coming days</string>
+    <string name="home_weather_day_wind">wind %1$s m/s</string>
+    <string name="home_weather_day_uv">UV %1$s</string>
+    <string name="home_weather_week">Week</string>
+    <string name="home_weather_today">Today</string>
+    <string name="home_weather_day_hours">%1$s by the hour</string>
+    <string name="home_weather_umbrella_take">Take an umbrella</string>
+    <string name="home_weather_umbrella_maybe">Umbrella, just in case</string>
+    <string name="home_weather_umbrella_no">No umbrella needed</string>
+    <string name="home_weather_rain_at">Rain likely at %1$s — %2$d %%</string>
+    <string name="home_weather_rain_little">Barely any rain: up to %1$d %%</string>
+    <string name="home_weather_dry">Dry all day</string>
+    <string name="home_torch_suggests">Likhtaryk suggests</string>
+    <string name="home_ask_ukrainian">New in Ukrainian</string>
+    <string name="home_open_torch">Likhtaryk</string>
+    <string-array name="home_asks">
+        <item>Something light for tonight</item>
+        <item>A two-hour detective story</item>
+        <item>A comedy for the whole family</item>
+        <item>A thriller that keeps you guessing</item>
+        <item>Something cosy and calm</item>
+        <item>A documentary worth watching</item>
+        <item>A sci-fi film for tonight</item>
+        <item>A short series for the weekend</item>
+        <item>A classic you have not seen</item>
+        <item>Something with a twist ending</item>
+    </string-array>
+    <string name="home_support">Support the author</string>
+</resources>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="catalog_watch_in">Oglądaj w %1$s</string>
+    <string name="catalog_open_in">Otwórz w %1$s</string>
+    <string name="catalog_available_on">Dostępne w %1$s</string>
+    <string name="catalog_search_in">Szukaj w %1$s</string>
+    <string name="catalog_open_app">Otwórz %1$s</string>
+
+    <string name="catalog_new_episode">Nowy odcinek</string>
+    <string name="catalog_minutes_left">zostało %1$d min</string>
+    <string name="catalog_airs_on">premiera %1$s</string>
+
+    <string name="catalog_minutes">%1$d min</string>
+    <string name="catalog_sources_short">%1$d źr.</string>
+
+    <string name="catalog_msg_no_tmdb_key">Katalog wyłączony: podaj klucz TMDB w „Ustawienia → Połączenia”.</string>
+    <string name="catalog_msg_no_curated_rows">Brak wybranych rzędów — uruchom ponownie tools/import_likhtar_rows.js.</string>
+    <string name="catalog_msg_tmdb_no_rows">TMDB nie zwrócił żadnego rzędu — sprawdź klucz i sieć.</string>
+    <string name="catalog_msg_no_server_address">Nie ustawiono adresu serwera.</string>
+    <string name="catalog_msg_server_no_reply">Serwer nie odpowiedział.</string>
+    <string name="catalog_subtitle_channel">Kanał TV</string>
+    <string name="catalog_msg_network_empty">Ten nadawca nie ma jeszcze tytułów ze źródłami.</string>
+    <string name="catalog_msg_network_failed">Nie udało się wczytać kanału.</string>
+    <string name="catalog_ukrainian_title">Czysto ukraińskie</string>
+    <string name="catalog_subtitle_catalog">Katalog</string>
+    <string name="catalog_msg_no_ukrainian">Katalog ukraiński jest teraz niedostępny.</string>
+    <string name="catalog_msg_no_collection">Nie ma takiej kolekcji.</string>
+    <string name="catalog_msg_tmdb_nothing_for">TMDB nic nie zwrócił dla „%1$s”.</string>
+    <string name="catalog_genre">Gatunek</string>
+    <string name="catalog_subtitle_curation">Wybór Likhtara</string>
+    <string name="catalog_msg_page_empty">Strona „%1$s” jest na razie pusta.</string>
+    <string name="catalog_subtitle_cinema">Kino</string>
+    <string name="catalog_msg_no_chronology">Tej chronologii nie ma w kuracji.</string>
+    <string name="catalog_chronology_timeline">Chronologia wydarzeń</string>
+    <string name="catalog_universe_series">Seriale uniwersum</string>
+    <string name="catalog_starter_movies">Popularne filmy tygodnia</string>
+    <string name="catalog_starter_tv">Popularne seriale tygodnia</string>
+    <string name="catalog_open_new_on">Nowości w %1$s</string>
+    <string name="catalog_open_new_movies">Nowe filmy</string>
+    <string name="catalog_open_new_series">Nowe seriale</string>
+    <string name="catalog_open_popular_movies">Popularne filmy</string>
+    <string name="catalog_open_popular_series">Popularne seriale</string>
+    <string name="catalog_open_in_cinemas">Teraz w kinach</string>
+    <string name="catalog_open_top_rated">Najwyżej oceniane</string>
+    <string name="catalog_open_reality">Reality show</string>
+    <string name="catalog_open_talk">Talk-show</string>
+    <string name="catalog_open_docuseries">Seriale dokumentalne</string>
+    <string name="catalog_open_documentaries">Filmy dokumentalne</string>
+    <string name="catalog_collections">Kolekcje</string>
+    <string name="catalog_msg_chronology_empty">TMDB nie znalazł żadnej pozycji z tej chronologii.</string>
+    <string name="catalog_msg_unknown_franchise">Nieznana franczyza.</string>
+    <string name="catalog_msg_franchise_failed">TMDB nie zwrócił danych o franczyzie.</string>
+    <string name="catalog_franchise">Franczyza</string>
+    <string name="catalog_franchise_subtitle">Wszystkie części w kolejności premier</string>
+    <string name="catalog_franchise_parts">Części: %1$d</string>
+    <string name="catalog_msg_franchise_empty">TMDB nie ma części tej franczyzy.</string>
+
+    <string name="catalog_page_films">Filmy</string>
+    <string name="catalog_page_series">Seriale</string>
+    <string name="catalog_page_for_you">Dla ciebie</string>
+    <string name="catalog_page_anime">Anime</string>
+    <string name="catalog_page_upcoming">Zapowiedzi</string>
+
+    <string name="catalog_part_this_week">W tym tygodniu</string>
+    <string name="catalog_part_last_week">W zeszłym tygodniu</string>
+    <string name="catalog_part_earlier">Wcześniej</string>
+    <string name="catalog_part_month_end">Do końca miesiąca</string>
+    <string name="catalog_part_later">Później</string>
+
+    <string name="catalog_status_no_server">Brak adresu serwera</string>
+    <string name="catalog_server_no_reply">Serwer nie odpowiedział</string>
+    <string name="catalog_status_bad_reply">Nie udało się odczytać odpowiedzi</string>
+    <string name="catalog_status_connected_empty">Połączono, ale serwis nic nie pokazuje</string>
+    <string name="catalog_status_connected_count">Połączono · %1$d w „Kontynuuj”</string>
+
+    <string name="catalog_recap_no_server">Serwer Likhtar nie jest skonfigurowany</string>
+    <string name="catalog_recap_no_reply">Serwer nie odpowiedział — spróbuj ponownie</string>
+    <string name="catalog_recap_failed">Nie udało się przygotować streszczenia</string>
+    <string name="catalog_recap_season">Streszczenie sezonu %1$d</string>
+    <string name="catalog_trailer">Zwiastun</string>
+    <string name="catalog_video">Wideo</string>
+
+    <string name="catalog_play_no_server">Serwer nie jest skonfigurowany</string>
+    <string name="catalog_play_no_sources">Ten dubbing nie ma źródeł</string>
+    <string name="catalog_play_source_no_reply">Źródło nie odpowiedziało</string>
+    <string name="catalog_stream">Strumień</string>
+    <string name="catalog_msg_offline">Katalog jest teraz niedostępny — brak połączenia z serwerem Likhtar.</string>
+    <string name="catalog_recap_no_ai">Połącz AI w Ustawieniach → Połączenia, aby dostać streszczenie sezonu</string>
+    <string name="catalog_recap_no_episodes">TMDB nie ma opisów odcinków tego sezonu — nie ma czego streszczać</string>
+</resources>

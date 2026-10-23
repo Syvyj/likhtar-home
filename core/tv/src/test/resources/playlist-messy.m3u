@@ -1,0 +1,14 @@
+#EXTM3U
+#PLAYLIST:Провайдер
+#EXTINF:-1 tvg-id="1plus1" tvg-logo="https://cdn.example.com/logo/1plus1.png" group-title="  Українське ТБ  ",1+1 HD
+http://provider.example.com/live/1plus1.ts
+#EXTINF:-1 tvg-logo="https://cdn.example.com/logo/1plus1-backup.png" group-title="Українське ТБ",1+1
+http://provider.example.com/backup/1plus1.ts
+#EXTINF:-1 tvg-id="ictv.ua" group-title="",ICTV
+#EXTGRP:Українське ТБ
+http://provider.example.com/live/ictv.ts
+#EXTINF:-1 tvg-name="IСТV" group-title="Українське ТБ"
+http://provider.example.com/backup/ictv.ts
+#EXTINF:-1 tvg-id="2plus2" group-title="Спорт",2+2, повний день
+http://provider.example.com/live/2plus2.ts
+#EXTINF:-1 tvg-id="stb.ua" tvg-logo="" group-title="Розваги",СТБ

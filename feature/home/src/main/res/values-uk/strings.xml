@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_tile_live_tv">ТБ Ефір</string>
+    <string name="home_ua_arrived_title">Вийшла українською: %1$s</string>
+    <string name="home_ua_arrived_waiting_since">ви чекали з %1$s</string>
+    <string name="home_ua_arrived_waited">ви на неї чекали</string>
+    <string name="home_torch_title">Ліхтарик</string>
+    <string name="home_torch_subtitle">Ваш радник по кіно</string>
+    <string name="home_settings">Налаштування</string>
+    <string name="home_recent_channels">Останні канали</string>
+    <string name="home_recent_channels_empty">Тут будуть канали, які ви вмикали</string>
+    <string name="home_channel_pinned">Закріплено</string>
+    <string name="home_recent_searches">Останні запити</string>
+    <string name="home_new_search">Новий пошук</string>
+    <string name="home_smart_now">Дім зараз</string>
+    <string name="home_smart_empty">Підключіть Home Assistant у налаштуваннях</string>
+    <string name="home_device_on">Увімкнено</string>
+    <string name="home_device_off">Вимкнено</string>
+    <string name="home_device_unavailable">Немає звʼязку</string>
+    <string name="home_continue_watching">Продовжити перегляд</string>
+    <string name="home_continue_watching_empty">Тут буде те, що ви не додивилися</string>
+    <string name="home_continue_reality">Продовжити реаліті</string>
+    <string name="home_continue_reality_empty">Тут будуть шоу, які ви почали дивитись</string>
+    <string name="home_all_history">Вся історія</string>
+    <string name="home_your_apps">Ваші застосунки</string>
+    <string name="home_your_apps_empty">Встановлені застосунки з\'являться тут</string>
+    <string name="home_weather_loading">Погода ще завантажується…</string>
+    <string name="home_weather_attribution">Дані: Open-Meteo</string>
+    <string name="home_weather_feels_like">Відчувається як %1$s</string>
+    <string name="home_weather_wind">Вітер</string>
+    <string name="home_weather_gusts">Пориви</string>
+    <string name="home_weather_humidity">Вологість</string>
+    <string name="home_weather_clouds">Хмарність</string>
+    <string name="home_weather_pressure">Тиск</string>
+    <string name="home_weather_uv_index">УФ-індекс</string>
+    <string name="home_weather_sunrise">Схід</string>
+    <string name="home_weather_sunset">Захід</string>
+    <string name="home_weather_mps">%1$s м/с</string>
+    <string name="home_weather_hpa">%1$s гПа</string>
+    <string name="home_weather_hourly">Доба по годинах</string>
+    <string name="home_weather_days">Найближчі дні</string>
+    <string name="home_weather_day_wind">вітер %1$s м/с</string>
+    <string name="home_weather_day_uv">УФ %1$s</string>
+    <string name="home_weather_week">Тиждень</string>
+    <string name="home_weather_today">Сьогодні</string>
+    <string name="home_weather_day_hours">%1$s по годинах</string>
+    <string name="home_weather_umbrella_take">Візьміть парасольку</string>
+    <string name="home_weather_umbrella_maybe">Парасолька — про всяк випадок</string>
+    <string name="home_weather_umbrella_no">Парасолька не знадобиться</string>
+    <string name="home_weather_rain_at">Дощ імовірний о %1$s — %2$d %%</string>
+    <string name="home_weather_rain_little">Дощу майже не буде: до %1$d %%</string>
+    <string name="home_weather_dry">Сухо весь день</string>
+    <string name="home_torch_suggests">Ліхтарик підкаже</string>
+    <string name="home_ask_ukrainian">Нове українською</string>
+    <string name="home_open_torch">Ліхтарик</string>
+    <string-array name="home_asks">
+        <item>Щось легке на вечір</item>
+        <item>Детектив години на дві</item>
+        <item>Комедія для всієї родини</item>
+        <item>Трилер, що тримає до кінця</item>
+        <item>Щось затишне й спокійне</item>
+        <item>Документалка, варта уваги</item>
+        <item>Фантастика на вечір</item>
+        <item>Короткий серіал на вихідні</item>
+        <item>Класика, яку ще не бачив</item>
+        <item>Щось із несподіваним фіналом</item>
+    </string-array>
+    <string name="home_support">Підтримати автора</string>
+</resources>

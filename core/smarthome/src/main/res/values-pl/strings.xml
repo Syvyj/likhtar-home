@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="smarthome_scene">Scena</string>
+    <string name="smarthome_on">Włączone</string>
+    <string name="smarthome_off">Wyłączone</string>
+    <plurals name="smarthome_devices">
+        <item quantity="one">%1$d urządzenie</item>
+        <item quantity="few">%1$d urządzenia</item>
+        <item quantity="many">%1$d urządzeń</item>
+        <item quantity="other">%1$d urządzenia</item>
+    </plurals>
+    <string name="smarthome_command_done">Polecenie wykonane</string>
+    <string name="smarthome_not_configured">Home Assistant nie jest skonfigurowany</string>
+    <string name="smarthome_no_connection">Brak połączenia</string>
+    <string name="smarthome_not_controllable">Nie można sterować: %1$s</string>
+    <string name="smarthome_error_token">Token odrzucony (401/403). Utwórz nowy long-lived access token.</string>
+    <string name="smarthome_error_not_found">Ten adres nie wygląda na Home Assistant (404). Do sterowania głosem potrzebny jest włączony Assist.</string>
+    <string name="smarthome_error_code">Home Assistant odpowiedział kodem %1$d.</string>
+    <string name="smarthome_filter_replace">%1$d %% — czas wymienić</string>
+    <string name="smarthome_printer">Drukarka 3D</string>
+    <string name="smarthome_printer_offline">Offline</string>
+    <string name="smarthome_printer_printing">Drukuje</string>
+    <string name="smarthome_printer_paused">Pauza</string>
+    <string name="smarthome_printer_preparing">Przygotowanie</string>
+    <string name="smarthome_printer_finished">Gotowe</string>
+    <string name="smarthome_printer_failed">Błąd druku</string>
+    <string name="smarthome_printer_idle">Nie drukuje</string>
+    <string name="smarthome_remaining">jeszcze %1$s</string>
+    <string name="smarthome_nozzle">dysza %1$d °C</string>
+    <string name="smarthome_bed">stół %1$d °C</string>
+    <string name="smarthome_hours">%1$d godz.</string>
+    <string name="smarthome_minutes">%1$d min</string>
+    <string name="smarthome_auth_no_refresh">HA nie wydał tokenu odświeżania</string>
+    <string name="smarthome_auth_http">HA odpowiedział %1$d %2$s</string>
+    <string name="smarthome_brand">Likhtar</string>
+    <string name="smarthome_link_tagline">ekran główny telewizora</string>
+    <string name="smarthome_link_title">Połącz Home Assistant</string>
+    <string name="smarthome_link_intro">Podaj adres swojego Home Assistant. Potem otworzy się jego zwykłe logowanie — hasło wpisujesz tam, telewizor go nie widzi.</string>
+    <string name="smarthome_link_sign_in">Zaloguj się do Home Assistant</string>
+    <string name="smarthome_link_bad_url">Adres powinien wyglądać jak http://192.168.0.10:8123</string>
+    <string name="smarthome_link_failed_title">Nie udało się</string>
+    <string name="smarthome_link_expired">Link wygasł.</string>
+    <string name="smarthome_link_retry">Otwórz kod QR na telewizorze ponownie.</string>
+    <string name="smarthome_link_done_title">Gotowe</string>
+    <string name="smarthome_link_done">Likhtar połączono z Home Assistant. Wróć do telewizora.</string>
+    <string name="smarthome_link_code_rejected">HA nie przyjął kodu</string>
+</resources>

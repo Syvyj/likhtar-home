@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_guide_failed">Nie udało się wczytać programu TV: %1$s</string>
+    <string name="tv_no_connection">brak połączenia</string>
+    <string name="tv_guide_no_match">Program TV wczytany, ale żaden kanał nie pasuje do wybranych krajów.</string>
+    <string name="tv_category_news">Wiadomości</string>
+    <string name="tv_category_general">Ogólne</string>
+    <string name="tv_category_movies">Filmy</string>
+    <string name="tv_category_series">Seriale</string>
+    <string name="tv_category_sports">Sport</string>
+    <string name="tv_category_kids">Dzieci</string>
+    <string name="tv_category_music">Muzyka</string>
+    <string name="tv_category_documentary">Dokumentalne</string>
+    <string name="tv_category_entertainment">Rozrywka</string>
+    <string name="tv_category_culture">Kultura</string>
+    <string name="tv_category_science">Nauka</string>
+    <string name="tv_category_business">Biznes</string>
+    <string name="tv_category_weather">Pogoda</string>
+    <string name="tv_guide_cache_failed">Nie zapisano pamięci podręcznej programu TV</string>
+</resources>

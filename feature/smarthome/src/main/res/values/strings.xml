@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fsmarthome_read_only">%1$s — shows status only</string>
+    <string name="fsmarthome_confirm_on">Press OK again to turn on “%1$s”</string>
+    <string name="fsmarthome_command_sent">%1$s: command sent</string>
+    <string name="fsmarthome_command_send_failed">Couldn\'t send the command</string>
+    <string name="fsmarthome_voice_not_heard">Didn\'t catch the command. Try again.</string>
+    <string name="fsmarthome_voice_running">“%1$s” — running…</string>
+    <string name="fsmarthome_command_failed">Command failed</string>
+    <string name="fsmarthome_voice_unavailable">This device has no speech recognition. Use the microphone button on the remote or Google Assistant.</string>
+    <string name="fsmarthome_checking">Checking connection…</string>
+    <string name="fsmarthome_ping_ok">Home Assistant replied: %1$s</string>
+    <string name="fsmarthome_no_connection">No connection</string>
+    <string name="fsmarthome_link_title">Connect Home Assistant</string>
+    <string name="fsmarthome_link_line_scan">Point your phone camera at the code. The page has your HA address and a sign-in button.</string>
+    <string name="fsmarthome_link_line_password">You enter the password in the usual Home Assistant sign-in — the TV never sees it.</string>
+    <string name="fsmarthome_link_opened">The phone opened the page — sign in to HA…</string>
+    <string name="fsmarthome_link_done">Connected ✓</string>
+    <string name="fsmarthome_link_failed">Didn\'t work: %1$s</string>
+    <string name="fsmarthome_voice">By voice</string>
+    <string name="fsmarthome_voice_prompt">Say a command for your home</string>
+    <string name="fsmarthome_connecting">Connecting…</string>
+    <string name="fsmarthome_on_count">%1$d on</string>
+    <string name="fsmarthome_setup_phone">The easiest way is from your phone: point the camera at the QR, sign in to your Home Assistant and tap “Allow”. The password is entered on the phone, the TV never sees it.</string>
+    <string name="fsmarthome_setup_manual">Or manually: “Settings → Smart home” — address and long-lived token (HA: profile → Security), or the file `homeassistant.json` (url, token) here:\n%1$s</string>
+    <string name="fsmarthome_connect_phone">Connect from phone</string>
+    <string name="fsmarthome_test_connection">Test connection</string>
+    <string name="fsmarthome_no_devices">Connected, but no controllable devices were found.</string>
+    <string name="fsmarthome_room_other">Other</string>
+    <string name="fsmarthome_room_devices">Devices</string>
+    <string name="fsmarthome_reading_air">air</string>
+    <string name="fsmarthome_reading_humidity">humidity</string>
+    <string name="fsmarthome_unit_ugm3">µg/m³</string>
+</resources>

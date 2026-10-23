@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="model_section_home">Start</string>
+    <string name="model_section_search">Likhtaryk</string>
+    <string name="model_section_cinema">Kino</string>
+    <string name="model_section_live_tv">Telewizja</string>
+    <string name="model_section_reality">Reality</string>
+    <string name="model_section_smart_home">Smart dom</string>
+    <string name="model_section_apps">Aplikacje</string>
+    <string name="model_section_settings">Ustawienia</string>
+    <string name="model_category_media">Filmy i wideo</string>
+    <string name="model_category_games">Gry</string>
+    <string name="model_category_tools">Narzędzia</string>
+    <string name="model_category_other">Inne</string>
+</resources>

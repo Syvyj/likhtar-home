@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B222A">
+<title>Ліхтарик</title>
+<style>
+  :root { --bg:#1B222A; --card:#242D37; --line:#34404C; --text:#F2EDE4; --muted:#9AA5B1; --teal:#38C6C0; --warm:#F6E7C8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.35 system-ui,-apple-system,Roboto,sans-serif; }
+  header { position:sticky; top:0; z-index:2; background:linear-gradient(var(--bg) 80%, transparent); padding:14px 16px 18px; }
+  h1 { margin:0 0 2px; font-size:22px; }
+  h1 span { color:var(--teal); }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  .field { display:flex; gap:8px; }
+  input { flex:1; min-width:0; background:var(--card); color:var(--text); border:1.5px solid var(--teal); border-radius:14px;
+          padding:13px 14px; font-size:17px; outline:none; box-shadow:0 0 0 4px rgba(56,198,192,.12); }
+  input::placeholder { color:var(--muted); }
+  button { font:inherit; border:0; border-radius:12px; cursor:pointer; }
+  .clear { background:var(--card); color:var(--text); border:1px solid var(--line); padding:0 14px; }
+  main { padding:0 16px 40px; }
+  h2 { font-size:15px; color:var(--muted); font-weight:600; margin:18px 0 8px; text-transform:uppercase; letter-spacing:.04em; }
+  .item { display:flex; gap:12px; align-items:center; background:var(--card); border-radius:14px; padding:8px; margin-bottom:8px; }
+  .item img { width:54px; height:80px; object-fit:cover; border-radius:8px; background:var(--line); flex:none; }
+  .meta { flex:1; min-width:0; }
+  .t { font-weight:600; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .n { color:var(--muted); font-size:13px; margin-top:2px; }
+  .acts { display:flex; flex-direction:column; gap:6px; flex:none; }
+  .play { background:var(--warm); color:#1B222A; padding:9px 12px; font-weight:600; }
+  .mark { background:transparent; color:var(--teal); border:1px solid var(--line); padding:7px 12px; font-size:18px; }
+  .toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--warm); color:#1B222A; padding:10px 16px;
+           border-radius:12px; font-weight:600; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.on { opacity:1; }
+  .empty { color:var(--muted); padding:24px 0; text-align:center; }
+  .thought { white-space:pre-line; background:var(--card); border:1px solid rgba(56,198,192,.35); border-radius:14px; padding:12px 14px; margin-top:4px; color:var(--text); }
+  .thought b { color:var(--teal); display:block; margin-bottom:4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Ліхтар<span>ик</span></h1>
+  <div class="sub">Пишіть тут і тисніть «Пошук» — шукає на телевізорі. Назвою, описом («фільм про синіх інопланетян») чи проханням («порадь комедію на вечір»).</div>
+  <div class="field">
+    <input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Назва, опис чи «порадь…»">
+    <button class="clear" id="mic" aria-label="Голосом">🎙</button>
+    <button class="clear" id="clear" aria-label="Стерти">✕</button>
+  </div>
+</header>
+<main id="list"><div class="empty">З'єднуюсь із телевізором…</div></main>
+<div class="toast" id="toast"></div>
+<script>
+const q = document.getElementById('q'), list = document.getElementById('list'), toast = document.getElementById('toast');
+let typing = 0, last = '';
+
+function say(text) {
+  toast.textContent = text; toast.classList.add('on');
+  clearTimeout(say.t); say.t = setTimeout(() => toast.classList.remove('on'), 1800);
+}
+
+async function send(cmd) {
+  try {
+    const r = await fetch('cmd', { method: 'POST', body: JSON.stringify(cmd) });
+    render(await r.json());
+  } catch (e) { say('Телевізор не відповідає'); }
+}
+
+q.addEventListener('input', () => {
+  clearTimeout(typing);
+  typing = setTimeout(() => send({ type: 'type', text: q.value }), 350);
+});
+q.addEventListener('keydown', e => { if (e.key === 'Enter') { q.blur(); send({ type: 'query', text: q.value }); } });
+// Голос: розпізнавання браузера, коли він його дає (зазвичай лише https — сторінка ж
+// з приставки по http); інакше — поле з клавіатурою, де є свій мікрофон диктування.
+const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+document.getElementById('mic').onclick = () => {
+  const dictate = () => { q.focus(); say('Натисніть 🎙 на клавіатурі телефону й говоріть'); };
+  if (!Speech || !window.isSecureContext) { dictate(); return; }
+  const rec = new Speech();
+  rec.lang = 'uk-UA'; rec.interimResults = true;
+  rec.onresult = e => { q.value = Array.from(e.results).map(r => r[0].transcript).join(''); };
+  rec.onend = () => { if (q.value) send({ type: 'query', text: q.value }); };
+  rec.onerror = dictate;
+  say('Слухаю…'); rec.start();
+};
+document.getElementById('clear').onclick = () => { q.value = ''; send({ type: 'query', text: '' }); q.focus(); };
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+
+function render(s) {
+  const key = JSON.stringify(s);
+  if (key === last) return;
+  last = key;
+  if (document.activeElement !== q && q.value !== s.query) q.value = s.query;
+  list.replaceChildren();
+  if (s.thought) { const t = el('div', 'thought', s.thought); t.prepend(el('b', '', '✦ Ліхтарик думає')); list.append(t); }
+  if (!s.sections.length) { list.append(el('div', 'empty', s.query ? 'Шукаю…' : 'Тут буде історія, закладки й поради.')); return; }
+  for (const sec of s.sections) {
+    list.append(el('h2', '', sec.title));
+    for (const it of sec.items) {
+      const row = el('div', 'item');
+      const img = el('img'); img.loading = 'lazy'; img.alt = ''; if (it.image) img.src = it.image;
+      const meta = el('div', 'meta'); meta.append(el('div', 't', it.title));
+      if (it.note) meta.append(el('div', 'n', it.note));
+      const acts = el('div', 'acts');
+      const play = el('button', 'play', 'На ТВ ▶');
+      play.onclick = () => { send({ type: 'open', id: it.id }); say('Відкриваю на телевізорі'); };
+      acts.append(play);
+      if (it.bookmarked !== null) {
+        const mark = el('button', 'mark', it.bookmarked ? '★' : '☆');
+        mark.setAttribute('aria-label', it.bookmarked ? 'Прибрати із закладок' : 'У закладки');
+        mark.onclick = () => { send({ type: 'bookmark', id: it.id }); say(it.bookmarked ? 'Прибрано із закладок' : 'Додано в закладки'); };
+        acts.append(mark);
+      }
+      row.append(img, meta, acts);
+      list.append(row);
+    }
+  }
+}
+
+async function poll() {
+  try { const r = await fetch('state', { cache: 'no-store' }); render(await r.json()); } catch (e) {}
+  setTimeout(poll, 1500);
+}
+poll();
+</script>
+</body>
+</html>

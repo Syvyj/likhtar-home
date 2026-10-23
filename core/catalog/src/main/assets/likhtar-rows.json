@@ -1,0 +1,2250 @@
+{
+  "version": 2,
+  "rows": [
+    {
+      "title": "Нові українські фільми",
+      "source": "Українською",
+      "path": "discover/movie",
+      "params": {
+        "with_origin_country": "UA",
+        "sort_by": "primary_release_date.desc",
+        "primary_release_date.lte": "{current_date}",
+        "vote_count.gte": "5"
+      }
+    },
+    {
+      "title": "Нові українські серіали",
+      "source": "Українською",
+      "path": "discover/tv",
+      "params": {
+        "with_origin_country": "UA",
+        "sort_by": "first_air_date.desc",
+        "first_air_date.lte": "{current_date}",
+        "vote_count.gte": "5"
+      }
+    }
+  ],
+  "studios": [
+    {
+      "id": "netflix",
+      "title": "Netflix",
+      "rows": [
+        {
+          "title": "Нові фільми",
+          "source": "Netflix",
+          "path": "discover/movie",
+          "params": {
+            "with_watch_providers": "8",
+            "watch_region": "UA",
+            "sort_by": "primary_release_date.desc",
+            "primary_release_date.lte": "{current_date}",
+            "vote_count.gte": "5"
+          }
+        },
+        {
+          "title": "Нові серіали",
+          "source": "Netflix",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "213",
+            "sort_by": "first_air_date.desc",
+            "first_air_date.lte": "{current_date}",
+            "vote_count.gte": "5"
+          }
+        },
+        {
+          "title": "В тренді на Netflix",
+          "source": "Netflix",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "213",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Екшн та Блокбастери",
+          "source": "Netflix",
+          "path": "discover/movie",
+          "params": {
+            "with_companies": "213",
+            "with_genres": "28,12",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Фантастичні світи",
+          "source": "Netflix",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "213",
+            "with_genres": "10765",
+            "sort_by": "vote_average.desc",
+            "vote_count.gte": "200"
+          }
+        },
+        {
+          "title": "Реаліті-шоу: Хіти",
+          "source": "Netflix",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "213",
+            "with_genres": "10764",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Кримінальні драми",
+          "source": "Netflix",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "213",
+            "with_genres": "80",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "K-Dramas (Корейські серіали)",
+          "source": "Netflix",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "213",
+            "with_original_language": "ko",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Аніме колекція",
+          "source": "Netflix",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "213",
+            "with_genres": "16",
+            "with_keywords": "210024",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Документальне кіно",
+          "source": "Netflix",
+          "path": "discover/movie",
+          "params": {
+            "with_companies": "213",
+            "with_genres": "99",
+            "sort_by": "release_date.desc"
+          }
+        },
+        {
+          "title": "Вибір критиків (Високий рейтинг)",
+          "source": "Netflix",
+          "path": "discover/movie",
+          "params": {
+            "with_companies": "213",
+            "vote_average.gte": "7.5",
+            "vote_count.gte": "300",
+            "sort_by": "vote_average.desc"
+          }
+        }
+      ],
+      "page": [
+        {
+          "title": "Головне на Netflix",
+          "layout": "featured",
+          "items": [
+            "t:66732",
+            "t:119051",
+            "t:93405",
+            "t:249042",
+            "t:91239",
+            "t:94605",
+            "t:71912",
+            "t:108545"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 2,
+          "title": "top"
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:66732",
+            "t:119051",
+            "t:93405"
+          ]
+        },
+        {
+          "title": "Серіали, про які говорять",
+          "layout": "posters",
+          "items": [
+            "t:249042",
+            "t:87739",
+            "t:42009",
+            "t:70523",
+            "t:69740",
+            "t:63351",
+            "t:60574",
+            "t:71446",
+            "t:65494"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 1
+        },
+        {
+          "title": "Фентезі й анімація Netflix",
+          "items": [
+            "t:94605",
+            "t:71912",
+            "t:111110",
+            "t:86831",
+            "t:108545"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:249042",
+            "t:94605",
+            "t:65494"
+          ]
+        },
+        {
+          "title": "Фільми Netflix",
+          "layout": "posters",
+          "items": [
+            "m:803796",
+            "m:661374",
+            "m:545609",
+            "m:398978",
+            "m:512195",
+            "m:725201"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "id": "apple",
+      "title": "Apple TV+",
+      "rows": [
+        {
+          "title": "Нові фільми",
+          "source": "Apple TV+",
+          "path": "discover/movie",
+          "params": {
+            "with_watch_providers": "350",
+            "watch_region": "UA",
+            "sort_by": "primary_release_date.desc",
+            "primary_release_date.lte": "{current_date}",
+            "vote_count.gte": "5"
+          }
+        },
+        {
+          "title": "Нові серіали",
+          "source": "Apple TV+",
+          "path": "discover/tv",
+          "params": {
+            "with_watch_providers": "350",
+            "watch_region": "UA",
+            "sort_by": "first_air_date.desc",
+            "first_air_date.lte": "{current_date}",
+            "vote_count.gte": "5"
+          }
+        },
+        {
+          "title": "Хіти Apple TV+",
+          "source": "Apple TV+",
+          "path": "discover/tv",
+          "params": {
+            "with_watch_providers": "350",
+            "watch_region": "UA",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Apple Original Films",
+          "source": "Apple TV+",
+          "path": "discover/movie",
+          "params": {
+            "with_watch_providers": "350",
+            "watch_region": "UA",
+            "sort_by": "release_date.desc",
+            "vote_count.gte": "10"
+          }
+        },
+        {
+          "title": "Фантастика Apple",
+          "source": "Apple TV+",
+          "path": "discover/tv",
+          "params": {
+            "with_watch_providers": "350",
+            "watch_region": "UA",
+            "with_genres": "10765",
+            "sort_by": "vote_average.desc",
+            "vote_count.gte": "200"
+          }
+        },
+        {
+          "title": "Комедії та Feel-good",
+          "source": "Apple TV+",
+          "path": "discover/tv",
+          "params": {
+            "with_watch_providers": "350",
+            "watch_region": "UA",
+            "with_genres": "35",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Трилери та Детективи",
+          "source": "Apple TV+",
+          "path": "discover/tv",
+          "params": {
+            "with_watch_providers": "350",
+            "watch_region": "UA",
+            "with_genres": "9648,80",
+            "sort_by": "popularity.desc"
+          }
+        }
+      ],
+      "page": [
+        {
+          "title": "Головне на Apple TV+",
+          "layout": "featured",
+          "items": [
+            "t:95396",
+            "t:225171",
+            "t:125988",
+            "t:95480",
+            "t:97546",
+            "t:247767",
+            "t:93740"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 2,
+          "title": "top"
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:95396",
+            "t:125988",
+            "t:225171"
+          ]
+        },
+        {
+          "title": "Фантастика Apple",
+          "items": [
+            "t:93740",
+            "t:87917",
+            "t:125988",
+            "t:202411",
+            "t:225171"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 1
+        },
+        {
+          "title": "Трилери й шпигуни",
+          "layout": "posters",
+          "items": [
+            "t:95480",
+            "t:156933",
+            "t:130853",
+            "t:46518"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:95480",
+            "t:97546",
+            "t:93740"
+          ]
+        },
+        {
+          "title": "Комедії, що гріють",
+          "items": [
+            "t:97546",
+            "t:136311",
+            "t:247767",
+            "t:90282"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "id": "hbo",
+      "title": "HBO",
+      "rows": [
+        {
+          "title": "Нові фільми WB/HBO",
+          "source": "HBO",
+          "path": "discover/movie",
+          "params": {
+            "with_companies": "174|49",
+            "sort_by": "primary_release_date.desc",
+            "primary_release_date.lte": "{current_date}",
+            "vote_count.gte": "10"
+          }
+        },
+        {
+          "title": "Нові серіали HBO/Max",
+          "source": "HBO",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "49|3186",
+            "sort_by": "first_air_date.desc",
+            "first_air_date.lte": "{current_date}",
+            "vote_count.gte": "5"
+          }
+        },
+        {
+          "title": "HBO: Головні хіти",
+          "source": "HBO",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "49",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Max Originals",
+          "source": "HBO",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "3186",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Блокбастери Warner Bros.",
+          "source": "HBO",
+          "path": "discover/movie",
+          "params": {
+            "with_companies": "174",
+            "sort_by": "revenue.desc",
+            "vote_count.gte": "1000"
+          }
+        },
+        {
+          "title": "Золота колекція HBO (Найвищий рейтинг)",
+          "source": "HBO",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "49",
+            "sort_by": "vote_average.desc",
+            "vote_count.gte": "500",
+            "vote_average.gte": "8.0"
+          }
+        },
+        {
+          "title": "Епічні світи (Фентезі)",
+          "source": "HBO",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "49|3186",
+            "with_genres": "10765",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Преміальні драми",
+          "source": "HBO",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "49",
+            "with_genres": "18",
+            "without_genres": "10765",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Доросла анімація (Adult Swim)",
+          "source": "HBO",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "3186|80",
+            "with_genres": "16",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Всесвіт DC (Фільми)",
+          "source": "HBO",
+          "path": "discover/movie",
+          "params": {
+            "with_companies": "174",
+            "with_keywords": "9715",
+            "sort_by": "release_date.desc"
+          }
+        }
+      ],
+      "page": [
+        {
+          "title": "Головне на HBO / Max",
+          "layout": "featured",
+          "items": [
+            "t:94997",
+            "t:100088",
+            "t:194764",
+            "t:224372",
+            "t:111803",
+            "t:85552",
+            "t:250307",
+            "t:90228"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 2,
+          "title": "top"
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:94997",
+            "t:1399",
+            "t:100088"
+          ]
+        },
+        {
+          "title": "Вестерос",
+          "items": [
+            "t:1399",
+            "t:94997",
+            "t:224372"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 0
+        },
+        {
+          "title": "Всесвіт DC на Max",
+          "items": [
+            "t:194764",
+            "t:110492",
+            "m:414906"
+          ]
+        },
+        {
+          "title": "Легенди HBO",
+          "layout": "posters",
+          "items": [
+            "t:1398",
+            "t:1438",
+            "t:4613",
+            "t:87108",
+            "t:76331",
+            "t:46648",
+            "t:63247",
+            "t:111803"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:87108",
+            "t:76331",
+            "t:194764",
+            "t:1398"
+          ]
+        },
+        {
+          "title": "Світи Warner Bros.",
+          "layout": "worlds",
+          "items": [
+            "u:wizarding",
+            "u:middleearth",
+            "c:726871",
+            "c:2344",
+            "c:263",
+            "c:8945"
+          ]
+        },
+        {
+          "title": "Дюна",
+          "items": [
+            "m:438631",
+            "m:693134",
+            "t:90228"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "amazon",
+      "title": "Prime Video",
+      "rows": [
+        {
+          "title": "В тренді на Prime Video",
+          "source": "Prime Video",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "1024",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Нові фільми",
+          "source": "Prime Video",
+          "path": "discover/movie",
+          "params": {
+            "with_watch_providers": "119",
+            "watch_region": "UA",
+            "sort_by": "primary_release_date.desc",
+            "primary_release_date.lte": "{current_date}",
+            "vote_count.gte": "5"
+          }
+        },
+        {
+          "title": "Нові серіали",
+          "source": "Prime Video",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "1024",
+            "sort_by": "first_air_date.desc",
+            "first_air_date.lte": "{current_date}",
+            "vote_count.gte": "5"
+          }
+        },
+        {
+          "title": "Жорсткий екшн та Антигерої",
+          "source": "Prime Video",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "1024",
+            "with_genres": "10765,10759",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Блокбастери MGM та Amazon",
+          "source": "Prime Video",
+          "path": "discover/movie",
+          "params": {
+            "with_companies": "1024|21",
+            "sort_by": "revenue.desc"
+          }
+        },
+        {
+          "title": "Комедії",
+          "source": "Prime Video",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "1024",
+            "with_genres": "35",
+            "sort_by": "vote_average.desc"
+          }
+        },
+        {
+          "title": "Найвищий рейтинг IMDb",
+          "source": "Prime Video",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "1024",
+            "vote_average.gte": "8.0",
+            "vote_count.gte": "500",
+            "sort_by": "vote_average.desc"
+          }
+        }
+      ],
+      "page": [
+        {
+          "title": "Головне на Prime Video",
+          "layout": "featured",
+          "items": [
+            "t:84773",
+            "t:76479",
+            "t:108978",
+            "t:106379",
+            "t:95557",
+            "t:120911",
+            "t:71914",
+            "t:205715"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 0,
+          "title": "top"
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:84773",
+            "t:106379",
+            "t:76479"
+          ]
+        },
+        {
+          "title": "Середзем'я",
+          "items": [
+            "t:84773",
+            "m:120",
+            "m:121",
+            "m:122",
+            "m:49051",
+            "m:57158",
+            "m:122917",
+            "m:839033"
+          ]
+        },
+        {
+          "title": "Світи й франшизи",
+          "layout": "worlds",
+          "items": [
+            "u:middleearth",
+            "c:119",
+            "c:121938"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 1
+        },
+        {
+          "title": "Всесвіт «Хлопаків»",
+          "items": [
+            "t:76479",
+            "t:205715"
+          ]
+        },
+        {
+          "title": "Екшн-серіали Prime",
+          "layout": "posters",
+          "items": [
+            "t:108978",
+            "t:73375",
+            "t:120911",
+            "t:114922",
+            "t:118642"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:108978",
+            "t:95557",
+            "t:71914"
+          ]
+        },
+        {
+          "title": "Фантастика й фентезі Prime",
+          "items": [
+            "t:106379",
+            "t:63639",
+            "t:71914",
+            "t:71915",
+            "t:95557",
+            "t:94954"
+          ]
+        },
+        {
+          "title": "Фільми Amazon MGM",
+          "layout": "posters",
+          "items": [
+            "m:930564",
+            "m:359410",
+            "m:588228",
+            "m:845781"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "disney",
+      "title": "Disney+",
+      "rows": [
+        {
+          "title": "Нові фільми на Disney+",
+          "source": "Disney+",
+          "path": "discover/movie",
+          "params": {
+            "with_watch_providers": "337",
+            "watch_region": "UA",
+            "sort_by": "primary_release_date.desc",
+            "primary_release_date.lte": "{current_date}",
+            "vote_count.gte": "5"
+          }
+        },
+        {
+          "title": "Нові серіали на Disney+",
+          "source": "Disney+",
+          "path": "discover/tv",
+          "params": {
+            "with_watch_providers": "337",
+            "watch_region": "UA",
+            "sort_by": "first_air_date.desc",
+            "first_air_date.lte": "{current_date}",
+            "vote_count.gte": "5"
+          }
+        },
+        {
+          "title": "Marvel: Кіновсесвіт (MCU)",
+          "source": "Disney+",
+          "path": "discover/movie",
+          "params": {
+            "with_companies": "420",
+            "sort_by": "release_date.desc",
+            "vote_count.gte": "200"
+          }
+        },
+        {
+          "title": "Marvel: Серіали",
+          "source": "Disney+",
+          "path": "discover/tv",
+          "params": {
+            "with_companies": "420",
+            "with_networks": "2739",
+            "sort_by": "first_air_date.desc"
+          }
+        },
+        {
+          "title": "Зоряні Війни: Фільми",
+          "source": "Disney+",
+          "path": "discover/movie",
+          "params": {
+            "with_companies": "1",
+            "sort_by": "release_date.asc"
+          }
+        },
+        {
+          "title": "Зоряні Війни: Мандалорець та інші",
+          "source": "Disney+",
+          "path": "discover/tv",
+          "params": {
+            "with_companies": "1",
+            "with_keywords": "1930",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Класика Disney",
+          "source": "Disney+",
+          "path": "discover/movie",
+          "params": {
+            "with_companies": "6125",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Pixar: Нескінченність і далі",
+          "source": "Disney+",
+          "path": "discover/movie",
+          "params": {
+            "with_companies": "3",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "FX: Дорослі хіти (The Bear, Shogun)",
+          "source": "Disney+",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "88",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Сімпсони та анімація FOX",
+          "source": "Disney+",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "19",
+            "with_genres": "16",
+            "sort_by": "popularity.desc"
+          }
+        }
+      ],
+      "page": [
+        {
+          "title": "Головне на Disney+",
+          "layout": "featured",
+          "items": [
+            "t:83867",
+            "t:126308",
+            "t:136315",
+            "t:103540",
+            "t:202555",
+            "m:1084242",
+            "m:533535",
+            "t:82856"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:126308",
+            "t:83867",
+            "t:136315"
+          ]
+        },
+        {
+          "title": "Світи Disney+",
+          "layout": "worlds",
+          "items": [
+            "u:mcu",
+            "u:starwars",
+            "u:alien",
+            "u:planet_apes",
+            "c:10194",
+            "c:468222",
+            "c:87118",
+            "c:137697"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 2
+        },
+        {
+          "layout": "server",
+          "index": 4
+        },
+        {
+          "layout": "server",
+          "index": 5
+        },
+        {
+          "layout": "server",
+          "index": 6
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "m:1022789",
+            "m:1241982",
+            "m:1084242"
+          ]
+        },
+        {
+          "title": "FX і Hulu на Disney+",
+          "layout": "posters",
+          "items": [
+            "t:136315",
+            "t:126308",
+            "t:107113",
+            "t:95215",
+            "t:122066"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 0
+        },
+        {
+          "layout": "server",
+          "index": 1
+        }
+      ]
+    },
+    {
+      "id": "paramount",
+      "title": "Paramount+",
+      "rows": [
+        {
+          "title": "Блокбастери Paramount Pictures",
+          "source": "Paramount+",
+          "path": "discover/movie",
+          "params": {
+            "with_companies": "4",
+            "sort_by": "revenue.desc"
+          }
+        },
+        {
+          "title": "Paramount+ Originals",
+          "source": "Paramount+",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "4330",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Всесвіт Йеллоустоун",
+          "source": "Paramount+",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "318|4330",
+            "with_genres": "37,18",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Star Trek: Остання межа",
+          "source": "Paramount+",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "4330",
+            "with_keywords": "159223",
+            "sort_by": "first_air_date.desc"
+          }
+        },
+        {
+          "title": "Nickelodeon: Для дітей",
+          "source": "Paramount+",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "13",
+            "sort_by": "popularity.desc"
+          }
+        }
+      ],
+      "page": [
+        {
+          "title": "Головне на Paramount+",
+          "layout": "featured",
+          "items": [
+            "t:73586",
+            "t:157741",
+            "t:153312",
+            "t:52814",
+            "t:103516",
+            "t:113962",
+            "t:259909"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:73586",
+            "t:157741",
+            "m:361743"
+          ]
+        },
+        {
+          "title": "Всесвіт Єллоустоуна",
+          "items": [
+            "t:73586",
+            "t:157744",
+            "t:153312",
+            "t:157741",
+            "t:97951",
+            "t:113962"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 0
+        },
+        {
+          "title": "Світи Paramount",
+          "layout": "worlds",
+          "items": [
+            "c:87359",
+            "c:8650",
+            "c:115575",
+            "c:720879"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "m:575265",
+            "m:361743",
+            "m:558449"
+          ]
+        },
+        {
+          "title": "Фантастика й жахи Paramount+",
+          "layout": "posters",
+          "items": [
+            "t:52814",
+            "t:103516",
+            "t:86848",
+            "t:259909"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 1
+        },
+        {
+          "layout": "server",
+          "index": 3
+        }
+      ]
+    },
+    {
+      "id": "sky_showtime",
+      "title": "Sky Showtime",
+      "rows": [
+        {
+          "title": "Нові фільми Sky Showtime",
+          "source": "Sky Showtime",
+          "path": "discover/movie",
+          "params": {
+            "with_watch_providers": "1773",
+            "watch_region": "PL",
+            "sort_by": "primary_release_date.desc",
+            "primary_release_date.lte": "{current_date}",
+            "vote_count.gte": "5"
+          }
+        },
+        {
+          "title": "Серіали Sky Showtime",
+          "source": "Sky Showtime",
+          "path": "discover/tv",
+          "params": {
+            "with_watch_providers": "1773",
+            "watch_region": "PL",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Бойовики та Трилери",
+          "source": "Sky Showtime",
+          "path": "discover/movie",
+          "params": {
+            "with_watch_providers": "1773",
+            "watch_region": "PL",
+            "with_genres": "28,53",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Комедії для всіх",
+          "source": "Sky Showtime",
+          "path": "discover/movie",
+          "params": {
+            "with_watch_providers": "1773",
+            "watch_region": "PL",
+            "with_genres": "35",
+            "sort_by": "popularity.desc"
+          }
+        }
+      ],
+      "page": [
+        {
+          "title": "Головне на SkyShowtime",
+          "layout": "featured",
+          "items": [
+            "t:73586",
+            "t:259909",
+            "t:157741",
+            "t:120998",
+            "t:117488",
+            "t:222766",
+            "t:219937"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:117488",
+            "t:222766",
+            "t:259909"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 1
+        },
+        {
+          "title": "Світи Universal і Paramount",
+          "layout": "worlds",
+          "items": [
+            "c:9485",
+            "c:328",
+            "c:87359",
+            "c:86066",
+            "c:77816",
+            "c:89137"
+          ]
+        },
+        {
+          "title": "Детективи й трилери",
+          "layout": "posters",
+          "items": [
+            "t:120998",
+            "t:222766",
+            "t:219937",
+            "t:259909",
+            "t:237748",
+            "t:93870"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 0
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:73586",
+            "t:2316",
+            "t:133748"
+          ]
+        },
+        {
+          "title": "Комедії й серіали NBC",
+          "items": [
+            "t:2316",
+            "t:133748",
+            "t:120998"
+          ]
+        },
+        {
+          "layout": "server",
+          "index": 2
+        },
+        {
+          "layout": "server",
+          "index": 3
+        }
+      ]
+    },
+    {
+      "id": "educational_and_reality",
+      "title": "Пізнавальне",
+      "rows": [
+        {
+          "title": "Нові випуски: Discovery, NatGeo, BBC",
+          "source": "Пізнавальне",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "64|91|43|2696|4|65",
+            "sort_by": "first_air_date.desc",
+            "first_air_date.lte": "{current_date}",
+            "vote_count.gte": "0"
+          }
+        },
+        {
+          "title": "Discovery Channel: Хіти",
+          "source": "Пізнавальне",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "64",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "National Geographic: Світ навколо",
+          "source": "Пізнавальне",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "43",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Animal Planet: Тварини",
+          "source": "Пізнавальне",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "91",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "BBC Earth: Природа (Високий рейтинг)",
+          "source": "Пізнавальне",
+          "path": "discover/tv",
+          "params": {
+            "with_networks": "4",
+            "with_genres": "99",
+            "sort_by": "vote_average.desc",
+            "vote_count.gte": "50"
+          }
+        },
+        {
+          "title": "Кулінарні битви та Шеф-кухарі",
+          "source": "Пізнавальне",
+          "path": "discover/tv",
+          "params": {
+            "with_genres": "10764",
+            "with_keywords": "222083",
+            "without_keywords": "10636,5481",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Голос, Танці та Шоу талантів",
+          "source": "Пізнавальне",
+          "path": "discover/tv",
+          "params": {
+            "with_genres": "10764",
+            "with_keywords": "4542|4568|2643",
+            "without_keywords": "5481,9714",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Шоу про виживання",
+          "source": "Пізнавальне",
+          "path": "discover/tv",
+          "params": {
+            "with_genres": "10764",
+            "with_keywords": "5481|10348",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Наука, Техніка та Експерименти",
+          "source": "Пізнавальне",
+          "path": "discover/tv",
+          "params": {
+            "with_genres": "99",
+            "with_keywords": "12554|4924",
+            "sort_by": "popularity.desc"
+          }
+        },
+        {
+          "title": "Подорожі та Туризм",
+          "source": "Пізнавальне",
+          "path": "discover/tv",
+          "params": {
+            "with_genres": "99,10764",
+            "with_keywords": "9714",
+            "sort_by": "vote_average.desc",
+            "vote_count.gte": "20"
+          }
+        },
+        {
+          "title": "True Crime: Реальні розслідування",
+          "source": "Пізнавальне",
+          "path": "discover/tv",
+          "params": {
+            "with_genres": "99",
+            "with_keywords": "10714|9840",
+            "sort_by": "popularity.desc"
+          }
+        }
+      ]
+    }
+  ],
+  "moods": [
+    {
+      "title": "До сліз / Катарсис",
+      "genres": [
+        "18"
+      ]
+    },
+    {
+      "title": "Чистий позитив",
+      "genres": [
+        "35"
+      ]
+    },
+    {
+      "title": "Смачний перегляд",
+      "genres": [
+        "16",
+        "10751",
+        "99"
+      ]
+    },
+    {
+      "title": "Адреналін",
+      "genres": [
+        "28"
+      ]
+    },
+    {
+      "title": "Метелики в животі",
+      "genres": [
+        "10749"
+      ]
+    },
+    {
+      "title": "На межі / Напруга",
+      "genres": [
+        "53",
+        "80"
+      ]
+    },
+    {
+      "title": "Пошук пригод",
+      "genres": [
+        "12"
+      ]
+    },
+    {
+      "title": "Разом веселіше",
+      "genres": [
+        "35",
+        "27"
+      ]
+    },
+    {
+      "title": "Малим і дорослим",
+      "genres": [
+        "10751",
+        "14"
+      ]
+    },
+    {
+      "title": "На твій смак",
+      "genres": []
+    }
+  ],
+  "chronologies": [
+    {
+      "key": "mcu",
+      "page": [
+        {
+          "title": "Нове й популярне",
+          "layout": "featured",
+          "items": [
+            "m:617126",
+            "t:202555",
+            "m:986056",
+            "m:822119",
+            "t:114471",
+            "m:533535",
+            "t:138501",
+            "t:138502"
+          ]
+        },
+        {
+          "title": "Сага Нескінченності",
+          "items": [
+            "m:1726",
+            "m:1724",
+            "m:10138",
+            "m:10195",
+            "m:1771",
+            "m:24428",
+            "m:68721",
+            "m:76338",
+            "m:100402",
+            "m:118340",
+            "m:99861",
+            "m:102899",
+            "m:271110",
+            "m:284052",
+            "m:283995",
+            "m:315635",
+            "m:284053",
+            "m:284054",
+            "m:299536",
+            "m:363088",
+            "m:299537",
+            "m:299534",
+            "m:429617"
+          ]
+        },
+        {
+          "title": "Сага Мультивсесвіту",
+          "items": [
+            "t:85271",
+            "t:88396",
+            "t:84958",
+            "m:497698",
+            "t:91363",
+            "m:566525",
+            "m:524434",
+            "t:88329",
+            "m:634649",
+            "t:92749",
+            "m:453395",
+            "t:92782",
+            "m:616037",
+            "t:92783",
+            "m:505642",
+            "m:640146",
+            "t:114472",
+            "m:447365",
+            "m:609681",
+            "t:122226",
+            "t:138501",
+            "m:533535",
+            "m:822119",
+            "t:202555",
+            "m:986056",
+            "t:114471",
+            "m:617126"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "m:299536",
+            "m:24428",
+            "m:271110"
+          ]
+        },
+        {
+          "title": "Хронологія подій",
+          "layout": "chronology"
+        },
+        {
+          "title": "Вулиці Нью-Йорка",
+          "items": [
+            "t:61889",
+            "t:38472",
+            "t:62126",
+            "t:62127",
+            "t:62285",
+            "t:67178",
+            "t:122226",
+            "t:202555"
+          ]
+        },
+        {
+          "title": "Історії походження",
+          "items": [
+            "m:1726",
+            "m:1724",
+            "m:10195",
+            "m:1771",
+            "m:118340",
+            "m:102899",
+            "m:284052",
+            "m:284054",
+            "m:299537",
+            "m:566525",
+            "m:524434",
+            "t:92749",
+            "t:92782",
+            "t:114471"
+          ]
+        },
+        {
+          "title": "Ваканда",
+          "items": [
+            "m:284054",
+            "m:505642",
+            "t:241388",
+            "t:114471"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "m:299534",
+            "m:634649",
+            "m:533535"
+          ]
+        },
+        {
+          "title": "Анімація Marvel",
+          "items": [
+            "t:138502",
+            "t:91363",
+            "t:138503",
+            "t:241388",
+            "t:138505",
+            "t:232125"
+          ]
+        },
+        {
+          "title": "Агенти Щ.И.Т. і перші серіали",
+          "items": [
+            "t:1403",
+            "t:61889",
+            "t:38472",
+            "t:62126",
+            "t:67178"
+          ]
+        },
+        {
+          "title": "Колекції",
+          "layout": "collections"
+        }
+      ],
+      "tv": "with_keywords=180547",
+      "collections": [
+        86311,
+        131292,
+        131295,
+        131296,
+        284433,
+        531241,
+        422834,
+        529892,
+        618529
+      ],
+      "logo": "/2VLCNzMOGayRGdiSGyaOD0MzA3Y.png",
+      "title": "Marvel: у хронології подій",
+      "items": [
+        {
+          "title": "Captain America: The First Avenger",
+          "year": 2011
+        },
+        {
+          "title": "Captain Marvel",
+          "year": 2019
+        },
+        {
+          "title": "Iron Man",
+          "year": 2008
+        },
+        {
+          "title": "Iron Man 2",
+          "year": 2010
+        },
+        {
+          "title": "The Incredible Hulk",
+          "year": 2008
+        },
+        {
+          "title": "Thor",
+          "year": 2011
+        },
+        {
+          "title": "The Avengers",
+          "year": 2012
+        },
+        {
+          "title": "Iron Man 3",
+          "year": 2013
+        },
+        {
+          "title": "Thor: The Dark World",
+          "year": 2013
+        },
+        {
+          "title": "Captain America: The Winter Soldier",
+          "year": 2014
+        },
+        {
+          "title": "Guardians of the Galaxy",
+          "year": 2014
+        },
+        {
+          "title": "Guardians of the Galaxy Vol. 2",
+          "year": 2017
+        },
+        {
+          "title": "Avengers: Age of Ultron",
+          "year": 2015
+        },
+        {
+          "title": "Ant-Man",
+          "year": 2015
+        },
+        {
+          "title": "Captain America: Civil War",
+          "year": 2016
+        },
+        {
+          "title": "Black Widow",
+          "year": 2021
+        },
+        {
+          "title": "Black Panther",
+          "year": 2018
+        },
+        {
+          "title": "Doctor Strange",
+          "year": 2016
+        },
+        {
+          "title": "Spider-Man: Homecoming",
+          "year": 2017
+        },
+        {
+          "title": "Ant-Man and the Wasp",
+          "year": 2018
+        },
+        {
+          "title": "Thor: Ragnarok",
+          "year": 2017
+        },
+        {
+          "title": "Avengers: Infinity War",
+          "year": 2018
+        },
+        {
+          "title": "Avengers: Endgame",
+          "year": 2019
+        },
+        {
+          "title": "Spider-Man: Far From Home",
+          "year": 2019
+        },
+        {
+          "title": "Shang-Chi and the Legend of the Ten Rings",
+          "year": 2021
+        },
+        {
+          "title": "Eternals",
+          "year": 2021
+        },
+        {
+          "title": "Spider-Man: No Way Home",
+          "year": 2021
+        },
+        {
+          "title": "Doctor Strange in the Multiverse of Madness",
+          "year": 2022
+        },
+        {
+          "title": "Thor: Love and Thunder",
+          "year": 2022
+        },
+        {
+          "title": "Black Panther: Wakanda Forever",
+          "year": 2022
+        },
+        {
+          "title": "Ant-Man and the Wasp: Quantumania",
+          "year": 2023
+        },
+        {
+          "title": "Guardians of the Galaxy Vol. 3",
+          "year": 2023
+        },
+        {
+          "title": "The Marvels",
+          "year": 2023
+        },
+        {
+          "title": "Deadpool & Wolverine",
+          "year": 2024
+        }
+      ]
+    },
+    {
+      "key": "starwars",
+      "page": [
+        {
+          "title": "Нове й популярне",
+          "layout": "featured",
+          "items": [
+            "t:83867",
+            "t:202879",
+            "t:114479",
+            "t:114461",
+            "t:82856",
+            "t:92830",
+            "t:115036"
+          ]
+        },
+        {
+          "title": "Сага Скайвокерів",
+          "items": [
+            "m:1893",
+            "m:1894",
+            "m:1895",
+            "m:11",
+            "m:1891",
+            "m:1892",
+            "m:140607",
+            "m:181808",
+            "m:181812"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "t:82856",
+            "t:83867",
+            "t:114461"
+          ]
+        },
+        {
+          "title": "Серіали",
+          "items": [
+            "t:82856",
+            "t:83867",
+            "t:114461",
+            "t:115036",
+            "t:92830",
+            "t:114479",
+            "t:202879",
+            "t:4194",
+            "t:60554",
+            "t:105971",
+            "t:203085"
+          ]
+        },
+        {
+          "title": "Окремі історії",
+          "items": [
+            "m:330459",
+            "m:348350"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "m:330459",
+            "m:11",
+            "m:1891"
+          ]
+        },
+        {
+          "title": "Анімація",
+          "items": [
+            "t:4194",
+            "t:60554",
+            "t:105971",
+            "t:203085"
+          ]
+        },
+        {
+          "title": "Хронологія подій",
+          "layout": "chronology"
+        },
+        {
+          "title": "Колекції",
+          "layout": "collections"
+        }
+      ],
+      "tv": "with_companies=1",
+      "collections": [
+        10
+      ],
+      "logo": "/vswPivs3yuUsk5aW6DbnyeNQ4GX.png",
+      "title": "Зоряні війни: за хронологією",
+      "items": [
+        {
+          "title": "Star Wars: Episode I - The Phantom Menace",
+          "year": 1999
+        },
+        {
+          "title": "Star Wars: Episode II - Attack of the Clones",
+          "year": 2002
+        },
+        {
+          "title": "Star Wars: Episode III - Revenge of the Sith",
+          "year": 2005
+        },
+        {
+          "title": "Solo: A Star Wars Story",
+          "year": 2018
+        },
+        {
+          "title": "Rogue One: A Star Wars Story",
+          "year": 2016
+        },
+        {
+          "title": "Star Wars",
+          "year": 1977
+        },
+        {
+          "title": "The Empire Strikes Back",
+          "year": 1980
+        },
+        {
+          "title": "Return of the Jedi",
+          "year": 1983
+        },
+        {
+          "title": "Star Wars: The Force Awakens",
+          "year": 2015
+        },
+        {
+          "title": "Star Wars: The Last Jedi",
+          "year": 2017
+        },
+        {
+          "title": "Star Wars: The Rise of Skywalker",
+          "year": 2019
+        }
+      ]
+    },
+    {
+      "key": "middleearth",
+      "collections": [
+        119,
+        121938
+      ],
+      "logo": "/dMAXhf7jVsc8Qsx26wsoOmoQh3r.png",
+      "title": "Середзем'я: від «Гобіта» до «Персня»",
+      "items": [
+        {
+          "title": "The Hobbit: An Unexpected Journey",
+          "year": 2012
+        },
+        {
+          "title": "The Hobbit: The Desolation of Smaug",
+          "year": 2013
+        },
+        {
+          "title": "The Hobbit: The Battle of the Five Armies",
+          "year": 2014
+        },
+        {
+          "title": "The Lord of the Rings: The Fellowship of the Ring",
+          "year": 2001
+        },
+        {
+          "title": "The Lord of the Rings: The Two Towers",
+          "year": 2002
+        },
+        {
+          "title": "The Lord of the Rings: The Return of the King",
+          "year": 2003
+        }
+      ],
+      "page": [
+        {
+          "title": "Нове й популярне",
+          "layout": "featured",
+          "items": [
+            "m:839033",
+            "t:84773",
+            "m:120",
+            "m:49051"
+          ]
+        },
+        {
+          "title": "Володар перснів",
+          "items": [
+            "m:120",
+            "m:121",
+            "m:122"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "m:122",
+            "m:120",
+            "m:121"
+          ]
+        },
+        {
+          "title": "Гобіт",
+          "items": [
+            "m:49051",
+            "m:57158",
+            "m:122917"
+          ]
+        },
+        {
+          "title": "Серіали й анімація",
+          "items": [
+            "t:84773",
+            "m:839033"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "m:122917",
+            "m:49051",
+            "t:84773"
+          ]
+        },
+        {
+          "title": "Хронологія подій",
+          "layout": "chronology"
+        },
+        {
+          "title": "Колекції",
+          "layout": "collections"
+        }
+      ]
+    },
+    {
+      "key": "planet_apes",
+      "collections": [
+        173710,
+        1709
+      ],
+      "logo": "/13KoNbLM9HvuE8Jt5a6Sp90QX7R.png",
+      "title": "Планета мавп: перезапуск за подіями",
+      "items": [
+        {
+          "title": "Rise of the Planet of the Apes",
+          "year": 2011
+        },
+        {
+          "title": "Dawn of the Planet of the Apes",
+          "year": 2014
+        },
+        {
+          "title": "War for the Planet of the Apes",
+          "year": 2017
+        },
+        {
+          "title": "Kingdom of the Planet of the Apes",
+          "year": 2024
+        }
+      ],
+      "page": [
+        {
+          "title": "Нове й популярне",
+          "layout": "featured",
+          "items": [
+            "m:653346",
+            "m:281338",
+            "m:119450",
+            "m:61791"
+          ]
+        },
+        {
+          "title": "Нова трилогія Цезаря",
+          "items": [
+            "m:61791",
+            "m:119450",
+            "m:281338",
+            "m:653346"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "m:281338",
+            "m:119450",
+            "m:653346"
+          ]
+        },
+        {
+          "title": "Класика 1968–1973",
+          "items": [
+            "m:871",
+            "m:1685",
+            "m:1705",
+            "m:1688"
+          ]
+        },
+        {
+          "title": "Версія Тіма Бертона",
+          "items": [
+            "m:869"
+          ]
+        },
+        {
+          "title": "Хронологія подій",
+          "layout": "chronology"
+        },
+        {
+          "title": "Колекції",
+          "layout": "collections"
+        }
+      ]
+    },
+    {
+      "key": "alien",
+      "collections": [
+        8091,
+        115762,
+        399
+      ],
+      "logo": "/hRnm6r4cCcQIRKUfEHgdbIhlhlB.png",
+      "title": "Чужий: за хронологією подій",
+      "items": [
+        {
+          "title": "Prometheus",
+          "year": 2012
+        },
+        {
+          "title": "Alien: Covenant",
+          "year": 2017
+        },
+        {
+          "title": "Alien",
+          "year": 1979
+        },
+        {
+          "title": "Alien: Romulus",
+          "year": 2024
+        },
+        {
+          "title": "Aliens",
+          "year": 1986
+        },
+        {
+          "title": "Alien 3",
+          "year": 1992
+        },
+        {
+          "title": "Alien: Resurrection",
+          "year": 1997
+        }
+      ],
+      "page": [
+        {
+          "title": "Нове й популярне",
+          "layout": "featured",
+          "items": [
+            "t:157239",
+            "m:945961",
+            "m:126889",
+            "m:70981"
+          ]
+        },
+        {
+          "title": "Класична квадрологія",
+          "items": [
+            "m:348",
+            "m:679",
+            "m:8077",
+            "m:8078"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "m:679",
+            "m:348",
+            "m:945961"
+          ]
+        },
+        {
+          "title": "Передісторія Рідлі Скотта",
+          "items": [
+            "m:70981",
+            "m:126889"
+          ]
+        },
+        {
+          "title": "Чужий проти Хижака",
+          "items": [
+            "m:395",
+            "m:440"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "m:106",
+            "m:766507",
+            "m:1242898"
+          ]
+        },
+        {
+          "title": "Хижак",
+          "items": [
+            "m:106",
+            "m:169",
+            "m:34851",
+            "m:346910",
+            "m:766507",
+            "m:1376434",
+            "m:1242898"
+          ]
+        },
+        {
+          "title": "Хронологія подій",
+          "layout": "chronology"
+        },
+        {
+          "title": "Колекції",
+          "layout": "collections"
+        }
+      ]
+    },
+    {
+      "key": "wizarding",
+      "logo": "/n7Pj4doQ1yfElCiGTGFTvzoQkpf.png",
+      "collections": [
+        1241,
+        435259
+      ],
+      "title": "Чарівний світ",
+      "items": [
+        {
+          "title": "Fantastic Beasts and Where to Find Them",
+          "year": 2016
+        },
+        {
+          "title": "Fantastic Beasts: The Crimes of Grindelwald",
+          "year": 2018
+        },
+        {
+          "title": "Fantastic Beasts: The Secrets of Dumbledore",
+          "year": 2022
+        },
+        {
+          "title": "Harry Potter and the Philosopher's Stone",
+          "year": 2001
+        },
+        {
+          "title": "Harry Potter and the Chamber of Secrets",
+          "year": 2002
+        },
+        {
+          "title": "Harry Potter and the Prisoner of Azkaban",
+          "year": 2004
+        },
+        {
+          "title": "Harry Potter and the Goblet of Fire",
+          "year": 2005
+        },
+        {
+          "title": "Harry Potter and the Order of the Phoenix",
+          "year": 2007
+        },
+        {
+          "title": "Harry Potter and the Half-Blood Prince",
+          "year": 2009
+        },
+        {
+          "title": "Harry Potter and the Deathly Hallows: Part 1",
+          "year": 2010
+        },
+        {
+          "title": "Harry Potter and the Deathly Hallows: Part 2",
+          "year": 2011
+        }
+      ],
+      "page": [
+        {
+          "title": "Нове й популярне",
+          "layout": "featured",
+          "items": [
+            "m:671",
+            "m:12445",
+            "m:259316",
+            "m:673"
+          ]
+        },
+        {
+          "title": "Гаррі Поттер",
+          "items": [
+            "m:671",
+            "m:672",
+            "m:673",
+            "m:674",
+            "m:675",
+            "m:767",
+            "m:12444",
+            "m:12445"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "m:12445",
+            "m:673",
+            "m:674"
+          ]
+        },
+        {
+          "title": "Фантастичні звірі",
+          "items": [
+            "m:259316",
+            "m:338952",
+            "m:338953"
+          ]
+        },
+        {
+          "layout": "spotlight",
+          "items": [
+            "m:259316",
+            "m:338953"
+          ]
+        },
+        {
+          "title": "Хронологія подій",
+          "layout": "chronology"
+        },
+        {
+          "title": "Колекції",
+          "layout": "collections"
+        }
+      ]
+    }
+  ]
+}

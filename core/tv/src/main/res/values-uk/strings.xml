@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_guide_failed">Телепрограма не завантажилася: %1$s</string>
+    <string name="tv_no_connection">немає з\'єднання</string>
+    <string name="tv_guide_no_match">Телепрограма завантажилася, але жоден канал не збігся з обраними країнами.</string>
+    <string name="tv_category_news">Новини</string>
+    <string name="tv_category_general">Загальні</string>
+    <string name="tv_category_movies">Кіно</string>
+    <string name="tv_category_series">Серіали</string>
+    <string name="tv_category_sports">Спорт</string>
+    <string name="tv_category_kids">Дитячі</string>
+    <string name="tv_category_music">Музика</string>
+    <string name="tv_category_documentary">Документальні</string>
+    <string name="tv_category_entertainment">Розваги</string>
+    <string name="tv_category_culture">Культура</string>
+    <string name="tv_category_science">Наука</string>
+    <string name="tv_category_business">Бізнес</string>
+    <string name="tv_category_weather">Погода</string>
+    <string name="tv_guide_cache_failed">Кеш телепрограми не записався</string>
+</resources>

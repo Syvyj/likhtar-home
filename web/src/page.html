@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[[Likhtar Home — your TV, minus the storefront||Likhtar Home — ваш телевізор без реклами й зайвого шуму]]</title>
+<meta name="description" content="[[A free, open-source home screen for Android TV and Google TV. No ads, no tracking, no account. Pick a mood, press OK.||Безкоштовний домашній екран з відкритим кодом для Android TV і Google TV. Без реклами, стеження й акаунта. Обрали настрій — натиснули OK.]]">
+<link rel="canonical" href="{{url}}">
+<link rel="alternate" hreflang="en" href="https://likhtar.syvyj.dev/">
+<link rel="alternate" hreflang="uk" href="https://likhtar.syvyj.dev/uk/">
+<meta property="og:title" content="Likhtar Home">
+<meta property="og:description" content="[[Your TV, minus the storefront.||Ваш телевізор. Без реклами й зайвого шуму.]]">
+<meta property="og:image" content="https://likhtar.syvyj.dev/assets/hero-tent.webp">
+<meta property="og:url" content="{{url}}">
+<meta name="theme-color" content="#13110E">
+<link rel="icon" href="{{root}}assets/icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="{{root}}assets/icon-32.png">
+<link rel="apple-touch-icon" href="{{root}}assets/icon-180.png">
+<link rel="preload" href="{{root}}fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{root}}style.css?v={{ver}}">
+<script>document.documentElement.classList.add("js")</script>
+</head>
+<body>
+<a class="skip" href="#main">[[Skip to content||Перейти до змісту]]</a>
+
+<header class="nav" id="top">
+  <a class="brand" href="{{home}}" aria-label="Likhtar Home">
+    <img src="{{root}}assets/lantern-light.webp" alt="" width="12" height="23">
+    <span>Likhtar Home</span>
+  </a>
+  <nav aria-label="[[Main||Головне]]">
+    <a href="#tour">[[Tour||Екскурсія]]</a>
+    <a href="#ai">AI</a>
+    <a href="#safe">[[Safety||Безпека]]</a>
+    <a href="#support">[[Support||Підтримати]]</a>
+  </nav>
+  <div class="nav-tools">
+    <button class="sound" type="button" aria-pressed="false" data-sound-toggle>
+      <span class="sound-on">[[Sound on||Звук увімк.]]</span><span class="sound-off">[[Sound off||Звук вимк.]]</span>
+    </button>
+    <a class="lang" href="{{other}}" hreflang="{{other_lang}}" lang="{{other_lang}}">[[UA||EN]]</a>
+    <a class="btn btn-small" href="{{download}}">[[Download||Завантажити]]</a>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero" aria-labelledby="hero-title">
+  <picture class="hero-scene">
+    <source media="(max-width: 760px)" srcset="{{root}}assets/hero-tent-960.webp">
+    <img src="{{root}}assets/hero-tent.webp" alt="[[A lantern glowing on a wooden crate inside a tent, a misty lake at dusk outside||Ліхтар світить на дерев'яній скрині в наметі, за входом — туманне озеро в сутінках]]" width="1672" height="941" fetchpriority="high">
+  </picture>
+  <div class="hero-light" aria-hidden="true"></div>
+  <div class="hero-copy">
+    <p class="eyebrow">[[A home screen for any TV or box with Android TV or Google TV||Домашній екран для будь-якого телевізора чи приставки з Android TV або Google TV]]</p>
+    <h1 id="hero-title" class="split">[[Your TV, minus the <em>storefront.</em>||Ваш телевізор. <em>Без реклами й зайвого шуму.</em>]]</h1>
+    <p class="lead">[[Turn on the TV, pick a mood, press OK. No sponsored banners, no tracking, no account — just tonight's film, your channels and your home.||Увімкніть телевізор, оберіть настрій і натисніть OK. Фільми, канали й застосунки — в одному спокійному домашньому екрані.]]</p>
+    <div class="cta">
+      <a class="btn" href="{{download}}" data-chime>[[Download the APK||Завантажити APK]]</a>
+      <a class="btn btn-ghost" href="{{repo}}">[[Source on GitHub||Код на GitHub]]</a>
+    </div>
+    <ul class="facts" aria-label="[[At a glance||Коротко]]">
+      <li>[[TVs & boxes||Телевізори й приставки]]</li><li>Android 7.0+</li><li>6.4 [[MB||МБ]]</li><li>GPL-3.0</li><li>[[No root||Без root]]</li><li>[[No computer||Без комп'ютера]]</li>
+    </ul>
+  </div>
+  <button class="lantern-hit" type="button" aria-label="[[Light the lantern||Засвітити ліхтар]]" data-lantern></button>
+</section>
+
+<section class="name" aria-label="[[About the name||Про назву]]">
+  <p>[[<b>Likhtar</b> means <em>lantern</em> in Ukrainian. It helps you find something worth watching, then lets the film take the spotlight.||Ліхтар допомагає знайти дорогу й не вимагає уваги до себе. Так само <b>Likhtar</b> допомагає вибрати, що подивитися, а потім поступається місцем фільму.]]</p>
+</section>
+
+<section class="product" aria-labelledby="product-title">
+  <div class="section-head">
+    <p class="eyebrow">[[A first look||Перший погляд]]</p>
+    <h2 id="product-title" class="split">[[See Likhtar <em>in action.</em>||Подивіться, як виглядає <em>Likhtar.</em>]]</h2>
+  </div>
+  <div class="product-row">
+    <figure class="frame">
+      <img src="{{root}}assets/01-home.webp" alt="[[Likhtar Home: the home screen with clock, weather and dock||Likhtar Home: Головна з годинником, погодою й доком]]" width="1440" height="810" loading="lazy" decoding="async">
+      <figcaption><b>[[Home||Головна]]</b>[[Your wallpaper, the time and the weather, with every section in the dock.||Ваші шпалери, годинник і погода, а всі розділи — в доці.]]</figcaption>
+    </figure>
+    <figure class="frame">
+      <img src="{{root}}assets/02-cinema-hero.webp" alt="[[Cinema: a full-screen spotlight on a new release||Кінозал: новинка на весь екран]]" width="1440" height="810" loading="lazy" decoding="async">
+      <figcaption><b>[[Cinema||Кінозал]]</b>[[What's new and trending where you live, and every service on its own page.||Новинки й тренди у вашій країні, кожен сервіс — на своїй сторінці.]]</figcaption>
+    </figure>
+    <figure class="frame">
+      <img src="{{root}}assets/06-likhtaryk.webp" alt="[[Likhtaryk: format and mood picks with a row of suggestions||Ліхтарик: формат, настрій і ряд порад]]" width="1440" height="810" loading="lazy" decoding="async">
+      <figcaption><b>[[Likhtaryk||Ліхтарик]]</b>[[Pick a format and a mood — get a selection of films and series for tonight.||Оберіть формат і настрій — отримайте добірку фільмів і серіалів на вечір.]]</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="compare" id="compare" aria-labelledby="compare-title">
+  <div class="section-head">
+    <p class="eyebrow">[[Before and after||До і після]]</p>
+    <h2 id="compare-title" class="split">[[Same TV. <em>Different evening.</em>||Той самий телевізор. <em>Інший вечір.</em>]]</h2>
+    <p class="lead">[[On a TV with Google TV built in or on a set-top box — anything running Android TV or Google TV, Android 7.0 and newer.||На телевізорі з вбудованим Google TV чи на приставці — на всьому, що працює на Android TV або Google TV, від Android 7.0.]]</p>
+  </div>
+  <div class="compare-pin">
+    <div class="compare-stage">
+      <figure class="shot shot-before">
+        <img src="{{root}}assets/00-stock-google-tv.webp" alt="[[Stock Google TV home: a sponsored banner fills the screen||Стоковий Google TV: екран займає спонсорський банер]]" width="1440" height="810" loading="lazy" decoding="async">
+        <figcaption><b class="tag">[[Stock Google TV||Стоковий Google TV]]</b><span class="long">[[ — a sponsored banner first||, де спершу спонсорський банер]]</span></figcaption>
+      </figure>
+      <figure class="shot shot-after">
+        <img src="{{root}}assets/01-home.webp" alt="[[Likhtar Home: wallpaper, clock and a calm dock||Likhtar Home: шпалери, годинник і спокійний док]]" width="1440" height="810" loading="lazy" decoding="async">
+        <figcaption><b class="tag">Likhtar Home</b><span class="long">[[ — your wallpaper, the time and your sections||: ваші шпалери, годинник і розділи]]</span></figcaption>
+      </figure>
+      <div class="compare-edge" aria-hidden="true"></div>
+    </div>
+  </div>
+</section>
+
+<section class="tour" id="tour" aria-labelledby="tour-title">
+  <div class="section-head">
+    <p class="eyebrow">[[Take the remote||Візьміть пульт]]</p>
+    <h2 id="tour-title" class="split">[[Built for <em>the remote.</em>||Усе починається <em>з пульта.</em>]]</h2>
+    <p class="hint"><kbd>←</kbd> <kbd>→</kbd> [[Try it with the arrow keys.||Спробуйте керувати стрілками.]]</p>
+  </div>
+  <div class="channels" role="tablist" aria-label="[[Sections||Розділи]]">
+    <button role="tab" type="button" aria-selected="true" data-shot="06-likhtaryk" data-text="[[Pick a format and a mood — get a selection of films and series for tonight, without what you've already seen.||Оберіть формат і настрій — отримайте добірку фільмів і серіалів на вечір, без того, що вже бачили.]]">[[Likhtaryk||Ліхтарик]]</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="02-cinema-hero" data-text="[[What's new and trending in your country, genres, and a page for every streaming service.||Новинки й тренди у вашій країні, жанри й сторінка кожного стрімінгу.]]">[[Cinema||Кінозал]]</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="08-title" data-text="[[Where to watch it, episodes, trailers, similar titles and the whole franchise in order.||Де дивитися, серії, трейлери, схоже й уся франшиза по порядку.]]">[[Title page||Сторінка фільму]]</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="09-live-tv" data-text="[[Your provider's playlist as a channel grid, with logos, groups and what's on now.||Плейлист вашого провайдера — сіткою каналів із логотипами, групами й тим, що йде зараз.]]">[[Live TV||ТВ Ефір]]</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="10-reality" data-text="[[The shows everyone talks about, on one shelf instead of five apps.||Шоу, про які всі говорять, — на одній полиці, а не в п'яти застосунках.]]">[[Reality||Реаліті]]</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="16-smart-home" data-text="[[Your Home Assistant rooms on the big screen — lights, blinds, the kettle, by remote or by voice.||Кімнати вашого Home Assistant на великому екрані — світло, жалюзі, чайник — пультом чи голосом.]]">[[Smart home||Розумний дім]]</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="17-send-from-phone" data-text="[[Scan a QR and drop a film, a photo, an APK or a link onto the TV — no app, no cable, no cloud.||Скануєте QR і кидаєте на телевізор фільм, фото, APK чи посилання — без застосунку, кабелю й хмари.]]">[[From your phone||З телефона]]</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="11-apps" data-text="[[Your apps, grouped for you, with what's new inside each service right on the tile.||Ваші застосунки — вже розкладені, а що нового в кожному сервісі — видно на плитці.]]">[[Apps||Застосунки]]</button>
+  </div>
+  <div class="tv">
+    <div class="tv-screen">
+      <img data-tv src="{{root}}assets/06-likhtaryk.webp" alt="" width="1440" height="810" loading="lazy" decoding="async">
+      <div class="tv-glare" aria-hidden="true"></div>
+    </div>
+    <p class="tv-caption" aria-live="polite" data-tv-caption></p>
+  </div>
+  <noscript><p class="tv-caption">[[Pick a format and a mood — get a selection of films and series for tonight.||Оберіть формат і настрій — отримайте добірку фільмів і серіалів на вечір.]]</p></noscript>
+</section>
+
+<section class="ai" id="ai" aria-labelledby="ai-title">
+  <div class="ai-copy">
+    <p class="eyebrow">[[Bring your own AI · optional||Свій AI · за бажанням]]</p>
+    <h2 id="ai-title" class="split">[[Ask for a film <em>in your own words.</em>||Попросіть фільм <em>своїми словами.</em>]]</h2>
+    <p class="lead">[[An AI film advisor that works in any country, needs no Google account and runs on the model you choose — in your language, on any TV or box with Android TV.||AI-порадник, що працює в будь-якій країні, без акаунта Google і на моделі, яку обрали ви, — вашою мовою, на будь-якому телевізорі чи приставці з Android TV.]]</p>
+    <ul class="ticks">
+      <li><b>[[Your key, your model.||Ваш ключ — ваша модель.]]</b> Claude, OpenAI, Gemini, OpenRouter — [[or a model on your own computer with Ollama or LM Studio, free and private.||або модель на вашому комп'ютері через Ollama чи LM Studio — безкоштовно й приватно.]]</li>
+      <li><b>[[Straight to the provider.||Просто до провайдера.]]</b> [[Your request goes directly to the AI provider you choose. Likhtar's server doesn't receive it.||Запит іде з телевізора до вибраного AI-сервісу. Сервер Likhtar його не отримує.]]</li>
+      <li><b>[[We check every title.||Перевіряємо кожну назву.]]</b> [[Each suggestion is matched against TMDB by title and year before it's shown.||Кожну пораду звіряємо з TMDB за назвою й роком, перш ніж показати.]]</li>
+      <li><b>[[Season recaps.||Переказ сезону.]]</b> [[A short retelling of the last season, from the episode summaries.||Короткий переказ минулого сезону за описами серій.]]</li>
+    </ul>
+  </div>
+  <div class="chat" aria-label="[[An example conversation||Приклад розмови]]">
+    <p class="bubble you">[[something like Interstellar, but lighter||щось як Інтерстеллар, але легше]]</p>
+    <p class="bubble lamp"><span class="who">[[Likhtaryk||Ліхтарик]]</span>[[You want space and wonder without the heartbreak — <b>The Martian</b>: survival, science and a lot of jokes.||Хочеться космосу й дива без розбитого серця — <b>«Марсіянин»</b>: виживання, наука й чимало жартів.]]</p>
+    <p class="bubble lamp alt">[[Also: <i>Guardians of the Galaxy</i>, <i>Arrival</i>, <i>Contact</i>||Ще: <i>«Вартові Галактики»</i>, <i>«Прибуття»</i>, <i>«Контакт»</i>]]</p>
+    <p class="chat-note">[[Without an AI, mood picks and search still work.||Без AI поради за настроєм і пошук однаково працюють.]]</p>
+  </div>
+</section>
+
+<section class="safe" id="safe" aria-labelledby="safe-title">
+  <div class="section-head">
+    <p class="eyebrow">[[Safe to try, easy to undo||Безпечно спробувати, легко повернути]]</p>
+    <h2 id="safe-title" class="split">[[Try it without losing <em>the screen you know.</em>||Спробуйте без ризику втратити <em>звичний екран.</em>]]</h2>
+  </div>
+  <ol class="steps">
+    <li><span class="step-n">01</span><h3>[[Install and look around||Встановіть і роздивіться]]</h3><p>[[Open it like any app. Nothing on the TV changes until you ask.||Відкрийте як звичайний застосунок. Доки не попросите, на телевізорі нічого не зміниться.]]</p></li>
+    <li><span class="step-n">02</span><h3>[[Make it your home screen||Зробіть домашнім екраном]]</h3><p>[[One confirmation on the TV. The stock launcher is disabled, not removed — and your Wi‑Fi is checked first.||Одне підтвердження на телевізорі. Стоковий лаунчер вимикається, а не видаляється, — і спершу перевіряється ваш Wi‑Fi.]]</p></li>
+    <li><span class="step-n">03</span><h3>[[Changed your mind?||Передумали?]]</h3><p>[[<i>Settings → Remote and startup → Bring back the stock home screen.</i> And if Likhtar ever crashes three times in five minutes, it hands the home screen back by itself.||<i>Налаштування → Пульт і запуск → Повернути стоковий домашній екран.</i> А якщо Likhtar упаде тричі за п'ять хвилин, він сам поверне домашній екран.]]</p></li>
+  </ol>
+</section>
+
+<section class="privacy" aria-labelledby="privacy-title">
+  <h2 id="privacy-title" class="split">[[Your data <em>stays yours.</em>||Ваші дані <em>залишаються вашими.</em>]]</h2>
+  <div class="privacy-grid">
+    <p><b>[[Stays on your TV||Лишається на телевізорі]]</b>[[History, lists, profiles, PINs and settings.||Історія, списки, профілі, PIN-коди й налаштування.]]</p>
+    <p><b>[[Stored encrypted||Зберігається зашифрованим]]</b>[[Keys, tokens, passwords and playlist addresses — with a key that never leaves the device.||Ключі, токени, паролі й адреси плейлистів — ключем, що не залишає пристрій.]]</p>
+    <p><b>[[No ads, no analytics||Без реклами й аналітики]]</b>[[No account, no sign-in, nothing sold. Film data comes through a small read-only gateway that keeps no request log.||Без акаунта й входу, нічого не продається. Дані про фільми йдуть через невеликий шлюз лише для читання, що не веде журналу запитів.]]</p>
+  </div>
+</section>
+
+<section class="grew" aria-labelledby="grew-title">
+  <div class="section-head">
+    <p class="eyebrow">[[How it grew||Як воно росло]]</p>
+    <h2 id="grew-title" class="split">[[From a plugin <em>to a home screen.</em>||Від плагіна <em>до домашнього екрана.</em>]]</h2>
+  </div>
+  <ol class="timeline">
+    <li><time>[[Jan 2026||Січ 2026]]</time><p>[[A small plugin that gathered studio collections into a media app's sidebar.||Невеликий плагін, що збирав добірки студій у бічне меню медіазастосунку.]]</p></li>
+    <li><time>[[Mar 2026||Бер 2026]]</time><p>[[<b>Likhtar</b> appears — a custom home page with banners and title logos, Ukrainian first.||З'являється <b>Likhtar</b> — власна головна сторінка з банерами й логотипами назв, українське — першим.]]</p></li>
+    <li><time>[[Aug 5||5 серп]]</time><p>[[<b>Likhtaryk</b>, the film advisor, is born — on a local model at home.||Народжується <b>Ліхтарик</b>, порадник фільмів, — на локальній моделі вдома.]]</p></li>
+    <li><time>[[Aug 11||11 серп]]</time><p>[[The plugin hits the walls of someone else's app. The native launcher begins.||Плагін упирається в стіни чужого застосунку. Починається нативний лаунчер.]]</p></li>
+    <li><time>[[Sep||Вер]]</time><p>[[Reality, title pages, franchises, a focus system rebuilt for the remote.||Реаліті, сторінки фільмів, франшизи, фокус, переписаний під пульт.]]</p></li>
+    <li><time>[[Oct||Жовт]]</time><p>[[A public build without a home server, settings from your phone, bring your own AI.||Публічна збірка без домашнього сервера, налаштування з телефона, свій AI.]]</p></li>
+  </ol>
+  <p class="grew-note">[[Where it began is still public: <a href="https://github.com/Syvyj/studios_4lampa">the original plugin on GitHub</a>. The launcher's repository starts fresh with its first public release.||Звідки все почалося, досі відкрито: <a href="https://github.com/Syvyj/studios_4lampa">перший плагін на GitHub</a>. Репозиторій лаунчера починається з першого публічного випуску.]]</p>
+</section>
+
+<section class="support" id="support" aria-labelledby="support-title">
+  <img class="support-lantern" src="{{root}}assets/lantern-light.webp" alt="" width="300" height="575" loading="lazy">
+  <div>
+    <h2 id="support-title" class="split">[[Support <em>Likhtar.</em>||Підтримати <em>Likhtar.</em>]]</h2>
+    <p class="lead">[[Likhtar is free and will stay free. If it made your evenings a little easier, you can chip in.||Likhtar безкоштовний і таким лишиться. Якщо він зробив ваші вечори трохи простішими — можна підтримати.]]</p>
+    <div class="gives">
+      {{donate}}
+    </div>
+  </div>
+</section>
+
+<section class="final" aria-labelledby="final-title">
+  <h2 id="final-title" class="split">[[Tonight, <em>just press OK.</em>||Сьогодні — <em>просто натисніть OK.</em>]]</h2>
+  <div class="cta">
+    <a class="btn" href="{{download}}" data-chime>[[Download the APK||Завантажити APK]]</a>
+    <a class="btn btn-ghost" href="{{repo}}#install">[[How to install||Як встановити]]</a>
+  </div>
+  <p class="small">[[Android TV and Google TV, Android 7.0 or newer. Install with Downloader, a USB stick or <code>adb install</code>.||Android TV і Google TV, Android 7.0 або новіший. Встановлення — через Downloader, флешку чи <code>adb install</code>.]]</p>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div>
+    <p class="brand"><img src="{{root}}assets/lantern-light.webp" alt="" width="10" height="19"> Likhtar Home</p>
+    <p class="small">[[Free software under GPL-3.0. Made in Ukraine, for living rooms everywhere.||Вільна програма за GPL-3.0. Зроблено в Україні — для віталень усього світу.]]</p>
+  </div>
+  <div class="small footer-links">
+    <a href="{{repo}}">GitHub</a>
+    <a href="{{repo}}/blob/main/docs/privacy-policy.md">[[Privacy||Приватність]]</a>
+    <a href="{{repo}}/releases">[[Releases||Випуски]]</a>
+    <a href="#top">[[Back to top||Нагору]]</a>
+  </div>
+  <p class="small tmdb">[[Film and TV data and images: TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB. Where-to-watch data: JustWatch, via TMDB. Google TV is a trademark of Google LLC; the stock screenshot is shown for comparison.||Дані й зображення фільмів: TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB. Дані «де дивитися»: JustWatch, через TMDB. Google TV — торговельна марка Google LLC; знімок стокового екрана наведено для порівняння.]]</p>
+</footer>
+
+<script src="{{root}}vendor/gsap.min.js" defer></script>
+<script src="{{root}}vendor/ScrollTrigger.min.js" defer></script>
+<script src="{{root}}vendor/lenis.min.js" defer></script>
+<script src="{{root}}sound.js?v={{ver}}" defer></script>
+<script src="{{root}}motion.js?v={{ver}}" defer></script>
+</body>
+</html>

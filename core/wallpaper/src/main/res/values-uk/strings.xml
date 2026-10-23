@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wallpaper_provider_plain">Без шпалер</string>
+    <string name="wallpaper_provider_bundled">Вбудовані фони</string>
+    <string name="wallpaper_provider_manifest">Віддалений набір</string>
+    <string name="wallpaper_provider_bing">Фото дня Bing</string>
+    <string name="wallpaper_provider_themed">Теми</string>
+    <string name="wallpaper_provider_mix">Мікс усіх джерел</string>
+    <string name="wallpaper_theme_nature">Природа</string>
+    <string name="wallpaper_theme_animals">Тварини</string>
+    <string name="wallpaper_theme_cities">Міста</string>
+    <string name="wallpaper_theme_space">Космос</string>
+    <string name="wallpaper_theme_mix">Мікс</string>
+</resources>

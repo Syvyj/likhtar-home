@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">LIKHTAR HOME</string>
+    <string name="app_open_with">Open with</string>
+    <string name="home_key_service_label">LIKHTAR: Home button</string>
+    <string name="home_key_service_description">The remote\'s Home button opens LIKHTAR. The service only sees Home presses and reads nothing from the screen.</string>
+    <string name="assistant_listening">Listening. Ask anything: the weather, a fact, “open Live TV”</string>
+    <string name="assistant_thinking">Thinking…</string>
+    <string name="assistant_again">Ask again</string>
+    <string name="assistant_offline">The LIKHTAR server is not responding right now.</string>
+    <string name="assistant_home_failed">The smart home did not respond.</string>
+    <string name="assistant_app_missing">Couldn\'t find the app “%1$s”.</string>
+    <string name="assistant_name">Likhtaryk</string>
+    <string name="assistant_listening_short">Listening</string>
+    <string name="assistant_back_hint">Back — close</string>
+    <string name="assistant_reminder">🔔 Reminder: %1$s</string>
+    <string name="assistant_not_found">Couldn\'t find “%1$s”.</string>
+    <string name="assistant_bookmarked">“%1$s” is in your watchlist.</string>
+    <string name="assistant_no_time">Didn\'t catch when to remind you.</string>
+    <string name="assistant_service_off">Turn on the remote buttons service in Settings — I can\'t do this without it.</string>
+    <string name="drop_title">Send to TV from your phone</string>
+    <string name="drop_no_network">The box is not on your home network — there is nowhere to show the QR code.</string>
+    <string name="drop_step1">1. Point the phone camera at the code</string>
+    <string name="drop_step2">2. Pick a file or paste a link</string>
+    <string name="drop_waiting">Waiting for the phone…</string>
+    <string name="drop_connected">Phone connected — pick a file on it</string>
+    <string name="drop_receiving">Receiving “%1$s” — %2$d%% of %3$s</string>
+    <string name="drop_received">Received “%1$s”</string>
+    <string name="drop_watch">Watch</string>
+    <string name="drop_install">Install</string>
+    <string name="drop_saved">Saved to %1$s</string>
+    <string name="drop_open_link">Open</string>
+    <string name="drop_close">Close</string>
+</resources>

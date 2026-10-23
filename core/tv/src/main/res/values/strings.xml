@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_guide_failed">TV guide failed to load: %1$s</string>
+    <string name="tv_no_connection">no connection</string>
+    <string name="tv_guide_no_match">TV guide loaded, but no channel matched the selected countries.</string>
+    <string name="tv_category_news">News</string>
+    <string name="tv_category_general">General</string>
+    <string name="tv_category_movies">Movies</string>
+    <string name="tv_category_series">Series</string>
+    <string name="tv_category_sports">Sports</string>
+    <string name="tv_category_kids">Kids</string>
+    <string name="tv_category_music">Music</string>
+    <string name="tv_category_documentary">Documentary</string>
+    <string name="tv_category_entertainment">Entertainment</string>
+    <string name="tv_category_culture">Culture</string>
+    <string name="tv_category_science">Science</string>
+    <string name="tv_category_business">Business</string>
+    <string name="tv_category_weather">Weather</string>
+    <string name="tv_guide_cache_failed">TV guide cache wasn\'t saved</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wallpaper_provider_plain">No wallpaper</string>
+    <string name="wallpaper_provider_bundled">Built-in backgrounds</string>
+    <string name="wallpaper_provider_manifest">Remote set</string>
+    <string name="wallpaper_provider_bing">Bing photo of the day</string>
+    <string name="wallpaper_provider_themed">Themes</string>
+    <string name="wallpaper_provider_mix">Mix of all sources</string>
+    <string name="wallpaper_theme_nature">Nature</string>
+    <string name="wallpaper_theme_animals">Animals</string>
+    <string name="wallpaper_theme_cities">Cities</string>
+    <string name="wallpaper_theme_space">Space</string>
+    <string name="wallpaper_theme_mix">Mix</string>
+</resources>

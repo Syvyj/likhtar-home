@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Watch option buttons; %1$s is a service or app name -->
+    <string name="catalog_watch_in">Watch on %1$s</string>
+    <string name="catalog_open_in">Open in %1$s</string>
+    <string name="catalog_available_on">On %1$s</string>
+    <string name="catalog_search_in">Search in %1$s</string>
+    <string name="catalog_open_app">Open %1$s</string>
+
+    <!-- Continue watching -->
+    <string name="catalog_new_episode">New episode</string>
+    <string name="catalog_minutes_left">%1$d min left</string>
+    <!-- %1$s is a short date, e.g. “8 Oct” -->
+    <string name="catalog_airs_on">airs %1$s</string>
+
+    <!-- Advisor card meta -->
+    <string name="catalog_minutes">%1$d min</string>
+    <string name="catalog_sources_short">%1$d src</string>
+
+    <!-- Catalog pages -->
+    <string name="catalog_msg_no_tmdb_key">Catalog is off: add a TMDB key in “Settings → Connections”.</string>
+    <string name="catalog_msg_no_curated_rows">No curated rows — rerun tools/import_likhtar_rows.js.</string>
+    <string name="catalog_msg_tmdb_no_rows">TMDB returned no rows — check the key and the network.</string>
+    <string name="catalog_msg_no_server_address">Server address is not set.</string>
+    <string name="catalog_msg_server_no_reply">The server didn\'t respond.</string>
+    <string name="catalog_subtitle_channel">TV channel</string>
+    <string name="catalog_msg_network_empty">This broadcaster has no titles with sources yet.</string>
+    <string name="catalog_msg_network_failed">The channel didn\'t load.</string>
+    <string name="catalog_ukrainian_title">Purely Ukrainian</string>
+    <string name="catalog_subtitle_catalog">Catalog</string>
+    <string name="catalog_msg_no_ukrainian">The Ukrainian catalog is unavailable right now.</string>
+    <string name="catalog_msg_no_collection">No such collection.</string>
+    <string name="catalog_msg_tmdb_nothing_for">TMDB returned nothing for “%1$s”.</string>
+    <string name="catalog_genre">Genre</string>
+    <string name="catalog_subtitle_curation">Likhtar picks</string>
+    <string name="catalog_msg_page_empty">Page “%1$s” is empty for now.</string>
+    <string name="catalog_subtitle_cinema">Cinema</string>
+    <string name="catalog_msg_no_chronology">This timeline isn\'t in the curation.</string>
+    <string name="catalog_chronology_timeline">Timeline</string>
+    <string name="catalog_universe_series">Series in this universe</string>
+    <string name="catalog_starter_movies">Popular movies this week</string>
+    <string name="catalog_starter_tv">Popular series this week</string>
+    <string name="catalog_open_new_on">New on %1$s</string>
+    <string name="catalog_open_new_movies">New movies</string>
+    <string name="catalog_open_new_series">New series</string>
+    <string name="catalog_open_popular_movies">Popular movies</string>
+    <string name="catalog_open_popular_series">Popular series</string>
+    <string name="catalog_open_in_cinemas">In cinemas now</string>
+    <string name="catalog_open_top_rated">Top rated</string>
+    <string name="catalog_open_reality">Reality shows</string>
+    <string name="catalog_open_talk">Talk shows</string>
+    <string name="catalog_open_docuseries">Docuseries</string>
+    <string name="catalog_open_documentaries">Documentaries</string>
+    <string name="catalog_collections">Collections</string>
+    <string name="catalog_msg_chronology_empty">TMDB found nothing from this timeline.</string>
+    <string name="catalog_msg_unknown_franchise">Unknown franchise.</string>
+    <string name="catalog_msg_franchise_failed">TMDB returned no franchise data.</string>
+    <string name="catalog_franchise">Franchise</string>
+    <string name="catalog_franchise_subtitle">All parts in release order</string>
+    <string name="catalog_franchise_parts">Parts: %1$d</string>
+    <string name="catalog_msg_franchise_empty">TMDB has no parts for this franchise.</string>
+
+    <!-- Server pages of the Cinema section -->
+    <string name="catalog_page_films">Movies</string>
+    <string name="catalog_page_series">Series</string>
+    <string name="catalog_page_for_you">For you</string>
+    <string name="catalog_page_anime">Anime</string>
+    <string name="catalog_page_upcoming">Coming soon</string>
+
+    <!-- “Open all” page parts -->
+    <string name="catalog_part_this_week">This week</string>
+    <string name="catalog_part_last_week">Last week</string>
+    <string name="catalog_part_earlier">Earlier</string>
+    <string name="catalog_part_month_end">Later this month</string>
+    <string name="catalog_part_later">Later</string>
+
+    <!-- MEGOGO connection status in Settings -->
+    <string name="catalog_status_no_server">No server address</string>
+    <string name="catalog_server_no_reply">The server didn\'t respond</string>
+    <string name="catalog_status_bad_reply">Couldn\'t read the response</string>
+    <string name="catalog_status_connected_empty">Connected, but the service shows nothing</string>
+    <string name="catalog_status_connected_count">Connected · %1$d in “Continue”</string>
+
+    <!-- Season recap and videos -->
+    <string name="catalog_recap_no_server">Likhtar server isn\'t set up</string>
+    <string name="catalog_recap_no_reply">The server didn\'t respond — try again</string>
+    <string name="catalog_recap_failed">Couldn\'t make a recap</string>
+    <string name="catalog_recap_season">Season %1$d recap</string>
+    <string name="catalog_trailer">Trailer</string>
+    <string name="catalog_video">Video</string>
+
+    <!-- Playback -->
+    <string name="catalog_play_no_server">Server isn\'t set up</string>
+    <string name="catalog_play_no_sources">This dub has no sources</string>
+    <string name="catalog_play_source_no_reply">The source didn\'t respond</string>
+    <string name="catalog_stream">Stream</string>
+    <string name="catalog_msg_offline">The catalog is unavailable right now — no connection to the Likhtar server.</string>
+    <string name="catalog_recap_no_ai">Connect AI in Settings → Connections to get a season recap</string>
+    <string name="catalog_recap_no_episodes">TMDB has no episode summaries for this season — nothing to retell</string>
+</resources>

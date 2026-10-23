@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fsmarthome_read_only">%1$s — tylko pokazuje stan</string>
+    <string name="fsmarthome_confirm_on">Naciśnij OK jeszcze raz, aby włączyć „%1$s”</string>
+    <string name="fsmarthome_command_sent">%1$s: polecenie wysłane</string>
+    <string name="fsmarthome_command_send_failed">Nie udało się wysłać polecenia</string>
+    <string name="fsmarthome_voice_not_heard">Nie usłyszałem polecenia. Spróbuj ponownie.</string>
+    <string name="fsmarthome_voice_running">„%1$s” — wykonuję…</string>
+    <string name="fsmarthome_command_failed">Polecenie nie zostało wykonane</string>
+    <string name="fsmarthome_voice_unavailable">To urządzenie nie ma rozpoznawania mowy. Użyj przycisku mikrofonu na pilocie lub Asystenta Google.</string>
+    <string name="fsmarthome_checking">Sprawdzam połączenie…</string>
+    <string name="fsmarthome_ping_ok">Home Assistant odpowiedział: %1$s</string>
+    <string name="fsmarthome_no_connection">Brak połączenia</string>
+    <string name="fsmarthome_link_title">Połącz Home Assistant</string>
+    <string name="fsmarthome_link_line_scan">Skieruj aparat telefonu na kod. Na stronie jest adres Twojego HA i przycisk logowania.</string>
+    <string name="fsmarthome_link_line_password">Hasło wpisujesz w zwykłym logowaniu Home Assistant — telewizor go nie widzi.</string>
+    <string name="fsmarthome_link_opened">Telefon otworzył stronę — zaloguj się do HA…</string>
+    <string name="fsmarthome_link_done">Połączono ✓</string>
+    <string name="fsmarthome_link_failed">Nie udało się: %1$s</string>
+    <string name="fsmarthome_voice">Głosem</string>
+    <string name="fsmarthome_voice_prompt">Powiedz polecenie dla domu</string>
+    <string name="fsmarthome_connecting">Łączę…</string>
+    <string name="fsmarthome_on_count">włączone: %1$d</string>
+    <string name="fsmarthome_setup_phone">Najprościej z telefonu: skieruj aparat na kod QR, zaloguj się do swojego Home Assistant i naciśnij „Zezwól”. Hasło wpisujesz na telefonie, telewizor go nie widzi.</string>
+    <string name="fsmarthome_setup_manual">Lub ręcznie: „Ustawienia → Smart dom” — adres i token długoterminowy (HA: profil → Bezpieczeństwo), albo plik `homeassistant.json` (url, token) tutaj:\n%1$s</string>
+    <string name="fsmarthome_connect_phone">Połącz z telefonu</string>
+    <string name="fsmarthome_test_connection">Sprawdź połączenie</string>
+    <string name="fsmarthome_no_devices">Połączono, ale nie znaleziono urządzeń, którymi można sterować.</string>
+    <string name="fsmarthome_room_other">Inne</string>
+    <string name="fsmarthome_room_devices">Urządzenia</string>
+    <string name="fsmarthome_reading_air">powietrze</string>
+    <string name="fsmarthome_reading_humidity">wilgotność</string>
+    <string name="fsmarthome_unit_ugm3">µg/m³</string>
+</resources>

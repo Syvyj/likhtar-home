@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ds_qr_no_network">Can\'t see the home network — the box isn\'t on Wi‑Fi or cable, or the port is busy.</string>
+    <string name="ds_qr_same_network">The phone must be on the same network. %1$s</string>
+    <string name="ds_done">Done</string>
+    <string name="ds_close">Close</string>
+    <string name="ds_save">Save</string>
+    <string name="ds_cancel">Cancel</string>
+    <string name="ds_clear">Clear</string>
+    <string name="ds_preparing_title">Connecting to the torrent…</string>
+    <string name="ds_preparing_subtitle">Looking for a source that delivers its quality</string>
+    <!-- Фрази лоадера за замовчуванням: без «завантажую», про те, що справді відбувається. -->
+    <string-array name="ds_loader_phrases">
+        <item>Lighting the lantern…</item>
+        <item>Looking for the right audio track…</item>
+        <item>Picking the best quality…</item>
+        <item>Just a moment…</item>
+    </string-array>
+    <string name="ds_phone_drop">Send to TV from phone</string>
+    <string name="ds_support_title">Support the author</string>
+    <string name="ds_support_lead">Likhtar is free and will stay free. Scan the way that suits you — the payment opens on your phone.</string>
+    <string name="ds_support_kofi">Ko-fi</string>
+    <string name="ds_support_kofi_note">Card or PayPal</string>
+    <string name="ds_support_bmc">Buy Me a Coffee</string>
+    <string name="ds_support_bmc_note">A coffee, any amount</string>
+    <string name="ds_support_mono">Monobank jar</string>
+    <string name="ds_support_mono_note">Card, Apple Pay, Google Pay</string>
+</resources>

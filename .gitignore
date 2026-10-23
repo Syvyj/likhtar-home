@@ -1,0 +1,37 @@
+# Система й IDE
+.DS_Store
+.thumbnail
+.idea/
+*.iml
+
+# Збірка Android і локальні шляхи SDK
+local.properties
+build/
+.gradle/
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+
+# Секрети: ключі (.env) і конфіг Home Assistant із токеном ніколи не йдуть у репозиторій
+.env
+homeassistant.json
+
+# Python-кеш інструментів у tools/
+__pycache__/
+
+likhtar.png
+
+# Референси чужих інтерфейсів (Apple TV, Disney+) — лише локально; макети Ліхтаря комітимо
+docs/reference/*
+!docs/reference/likhtar_*.png
+
+# Скріншоти прогонів і референси чужих продуктів — лише локально
+artifacts/
+docs/apple-tv/
+docs/disney-plus/
+docs/uploads/

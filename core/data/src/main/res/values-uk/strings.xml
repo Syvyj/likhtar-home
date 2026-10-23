@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="data_weather_clear">Ясно</string>
+    <string name="data_weather_partly_cloudy">Мінлива хмарність</string>
+    <string name="data_weather_cloudy">Хмарно</string>
+    <string name="data_weather_fog">Туман</string>
+    <string name="data_weather_drizzle">Мряка</string>
+    <string name="data_weather_rain">Дощ</string>
+    <string name="data_weather_snow">Сніг</string>
+    <string name="data_weather_showers">Злива</string>
+    <string name="data_weather_snowfall">Снігопад</string>
+    <string name="data_weather_thunderstorm">Гроза</string>
+    <string name="data_weather_condition_wind">%1$s · вітер %2$d м/с</string>
+    <string name="data_daypart_morning">Ранок</string>
+    <string name="data_daypart_day">День</string>
+    <string name="data_daypart_evening">Вечір</string>
+    <string name="data_today">сьогодні</string>
+    <string name="data_tomorrow">завтра</string>
+    <string name="data_action_play">Дивитись</string>
+    <string name="data_action_services">Сервіси, де фільм є</string>
+    <string name="data_action_sources">Варіанти</string>
+    <string name="data_action_watchlist">У список</string>
+    <string name="data_action_franchise">Франшиза</string>
+    <string name="data_remapper_button_mapper_note">Перепризначає будь-яку кнопку пульта, є безкоштовна версія</string>
+    <string name="data_remapper_tvquickactions_note">Зроблений саме під Android TV, уміє довгі натискання</string>
+    <string name="data_open_with">Чим відкрити</string>
+</resources>

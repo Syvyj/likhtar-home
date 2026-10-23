@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- «Передати на приставку» до Android 10: файли в теці лаунчера, плеєру — через FileProvider.
+     З Android 10 вони в загальних Download/Likhtar (MediaStore), провайдер не потрібен. -->
+<paths>
+    <external-files-path name="drop" path="Download/Likhtar/" />
+    <files-path name="drop_internal" path="downloads/Likhtar/" />
+</paths>

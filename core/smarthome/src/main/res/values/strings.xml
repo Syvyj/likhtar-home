@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="smarthome_scene">Scene</string>
+    <string name="smarthome_on">On</string>
+    <string name="smarthome_off">Off</string>
+    <plurals name="smarthome_devices">
+        <item quantity="one">%1$d device</item>
+        <item quantity="other">%1$d devices</item>
+    </plurals>
+    <string name="smarthome_command_done">Command done</string>
+    <string name="smarthome_not_configured">Home Assistant is not set up</string>
+    <string name="smarthome_no_connection">No connection</string>
+    <string name="smarthome_not_controllable">%1$s can\'t be controlled</string>
+    <string name="smarthome_error_token">Token rejected (401/403). Create a new long-lived access token.</string>
+    <string name="smarthome_error_not_found">This address doesn\'t look like Home Assistant (404). Voice needs Assist enabled.</string>
+    <string name="smarthome_error_code">Home Assistant responded with code %1$d.</string>
+    <string name="smarthome_filter_replace">%1$d %% — time to replace</string>
+    <string name="smarthome_printer">3D printer</string>
+    <string name="smarthome_printer_offline">Offline</string>
+    <string name="smarthome_printer_printing">Printing</string>
+    <string name="smarthome_printer_paused">Paused</string>
+    <string name="smarthome_printer_preparing">Preparing</string>
+    <string name="smarthome_printer_finished">Done</string>
+    <string name="smarthome_printer_failed">Print failed</string>
+    <string name="smarthome_printer_idle">Not printing</string>
+    <string name="smarthome_remaining">%1$s left</string>
+    <string name="smarthome_nozzle">nozzle %1$d °C</string>
+    <string name="smarthome_bed">bed %1$d °C</string>
+    <string name="smarthome_hours">%1$d h</string>
+    <string name="smarthome_minutes">%1$d min</string>
+    <string name="smarthome_auth_no_refresh">HA didn\'t issue a refresh token</string>
+    <string name="smarthome_auth_http">HA responded %1$d %2$s</string>
+    <string name="smarthome_brand">Likhtar</string>
+    <string name="smarthome_link_tagline">TV home screen</string>
+    <string name="smarthome_link_title">Connect Home Assistant</string>
+    <string name="smarthome_link_intro">Enter your Home Assistant address. Its usual sign-in opens next — you enter the password there, the TV never sees it.</string>
+    <string name="smarthome_link_sign_in">Sign in to Home Assistant</string>
+    <string name="smarthome_link_bad_url">The address should look like http://192.168.0.10:8123</string>
+    <string name="smarthome_link_failed_title">Didn\'t work</string>
+    <string name="smarthome_link_expired">The link has expired.</string>
+    <string name="smarthome_link_retry">Open the QR code on the TV again.</string>
+    <string name="smarthome_link_done_title">Done</string>
+    <string name="smarthome_link_done">Likhtar is connected to Home Assistant. Go back to the TV.</string>
+    <string name="smarthome_link_code_rejected">HA didn\'t accept the code</string>
+</resources>

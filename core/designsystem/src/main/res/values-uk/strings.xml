@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ds_qr_no_network">Не бачу домашньої мережі — приставка не в Wi‑Fi чи кабелі, або порт зайнятий.</string>
+    <string name="ds_qr_same_network">Телефон має бути в тій самій мережі. %1$s</string>
+    <string name="ds_done">Готово</string>
+    <string name="ds_close">Закрити</string>
+    <string name="ds_save">Зберегти</string>
+    <string name="ds_cancel">Скасувати</string>
+    <string name="ds_clear">Очистити</string>
+    <string name="ds_preparing_title">Підключення до роздачі…</string>
+    <string name="ds_preparing_subtitle">Шукаємо джерело, яке віддає свою якість</string>
+    <!-- Фрази лоадера за замовчуванням: без «завантажую», про те, що справді відбувається. -->
+    <string-array name="ds_loader_phrases">
+        <item>Запалюємо ліхтар…</item>
+        <item>Шукаємо українську озвучку…</item>
+        <item>Підбираємо найкращу якість…</item>
+        <item>Ще мить…</item>
+    </string-array>
+    <string name="ds_phone_drop">Передати на приставку з телефона</string>
+    <string name="ds_support_title">Підтримати автора</string>
+    <string name="ds_support_lead">Likhtar безкоштовний і таким лишиться. Скануйте, як вам зручно, — оплата відкриється на телефоні.</string>
+    <string name="ds_support_kofi">Ko-fi</string>
+    <string name="ds_support_kofi_note">Картка чи PayPal</string>
+    <string name="ds_support_bmc">Buy Me a Coffee</string>
+    <string name="ds_support_bmc_note">Кава, будь-яка сума</string>
+    <string name="ds_support_mono">Банка Monobank</string>
+    <string name="ds_support_mono_note">Картка, Apple Pay, Google Pay</string>
+</resources>

@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+
+    <!-- Лаунчер Android TV: leanback обов'язковий, тачскрін — ні. -->
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="true" />
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Медіатека: пошук DLNA-серверів (SSDP) — мультикаст на Wi-Fi лише з MulticastLock. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- «Передати на приставку»: APK з телефона — системним встановлювачем. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!--
+        Автозапуск після ввімкнення приставки, див. BootReceiver. Самого BOOT_COMPLETED
+        не досить: запуск активності з приймача система рубає як фоновий (BAL_BLOCK).
+        Виключення з цього правила дає SYSTEM_ALERT_WINDOW —
+        тим самим механізмом працює ремап Home у сторонніх застосунках. Дозвіл спеціальний,
+        користувач видає його вручну, тому без нього лаунчер просто не автозапускається.
+    -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!--
+        Дозволяє читати стрічки, які застосунки віддають домашньому екрану Android TV:
+        глобальний «Продовжити перегляд» і власні добірки застосунків. Без нього провайдер
+        показує лише те, що опублікував сам лаунчер, тобто нічого. Дозвіл небезпечний,
+        тому запитується під час роботи — при першому відкритті Кінозалу.
+    -->
+    <uses-permission android:name="android.permission.READ_TV_LISTINGS" />
+
+    <!--
+        Видимість пакетів: замість QUERY_ALL_PACKAGES оголошуємо саме те, що показує лаунчер —
+        застосунки з точкою входу LEANBACK_LAUNCHER (TV) або LAUNCHER (сайдлоад телефонних).
+        Цього достатньо для queryIntentActivities і не вимагає дозволу з окремим рев'ю Play.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <!--
+            Відеоплеєри: без цього рядка список «чим відкрити потік» порожній, бо
+            queryIntentActivities бачить лише те, що оголошено тут (Android 11+).
+        -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="video/*" />
+        </intent>
+        <!--
+            Домашні екрани. Без цього рядка передвстановлений лаунчер для нас невидимий
+            (package visibility, Android 11+), і онбординг HOME називав «суперником»
+            першого-ліпшого: замість Google TV показувало
+            Projectivy лише тому, що той має LEANBACK_LAUNCHER, а launcherx — ні.
+        -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+        <!--
+            Застосунки з власним пошуком: у них питаємо, чи є в них цей фільм
+            (див. InstalledAppSearch). Без цього рядка SearchableInfo їх не бачить.
+        -->
+        <intent>
+            <action android:name="android.intent.action.SEARCH" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".LikhtarApplication"
+        android:allowBackup="false"
+        android:banner="@drawable/likhtar_inside_banner"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:supportsRtl="false"
+        android:theme="@style/Theme.Likhtar">
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/drop_paths" />
+        </provider>
+
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape"
+            android:stateNotNeeded="true"
+            android:theme="@style/Theme.Likhtar">
+
+            <!-- Домашній екран: саме цей фільтр робить LIKHTAR лаунчером. -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- Щоб LIKHTAR було видно у списку застосунків системного лаунчера. -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            exported=false навмисно: BOOT_COMPLETED розсилає система, і не експортований
+            приймач її отримує, а сторонні застосунки нас не збудять.
+        -->
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        <!-- Кнопка HOME → LIKHTAR: на Google TV системний лаунчер виграє резолвінг HOME. -->
+        <service
+            android:name=".HomeKeyService"
+            android:exported="false"
+            android:label="@string/home_key_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/home_key_service" />
+        </service>
+    </application>
+
+</manifest>

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Likhtar Home — your TV, minus the storefront</title>
+<meta name="description" content="A free, open-source home screen for Android TV and Google TV. No ads, no tracking, no account. Pick a mood, press OK.">
+<link rel="canonical" href="https://likhtar.syvyj.dev/">
+<link rel="alternate" hreflang="en" href="https://likhtar.syvyj.dev/">
+<link rel="alternate" hreflang="uk" href="https://likhtar.syvyj.dev/uk/">
+<meta property="og:title" content="Likhtar Home">
+<meta property="og:description" content="Your TV, minus the storefront.">
+<meta property="og:image" content="https://likhtar.syvyj.dev/assets/hero-tent.webp">
+<meta property="og:url" content="https://likhtar.syvyj.dev/">
+<meta name="theme-color" content="#13110E">
+<link rel="icon" href="assets/icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css?v=866474af">
+<script>document.documentElement.classList.add("js")</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <a class="brand" href="" aria-label="Likhtar Home">
+    <img src="assets/lantern-light.webp" alt="" width="12" height="23">
+    <span>Likhtar Home</span>
+  </a>
+  <nav aria-label="Main">
+    <a href="#tour">Tour</a>
+    <a href="#ai">AI</a>
+    <a href="#safe">Safety</a>
+    <a href="#support">Support</a>
+  </nav>
+  <div class="nav-tools">
+    <button class="sound" type="button" aria-pressed="false" data-sound-toggle>
+      <span class="sound-on">Sound on</span><span class="sound-off">Sound off</span>
+    </button>
+    <a class="lang" href="uk/" hreflang="uk" lang="uk">UA</a>
+    <a class="btn btn-small" href="https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-home.apk">Download</a>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero" aria-labelledby="hero-title">
+  <picture class="hero-scene">
+    <source media="(max-width: 760px)" srcset="assets/hero-tent-960.webp">
+    <img src="assets/hero-tent.webp" alt="A lantern glowing on a wooden crate inside a tent, a misty lake at dusk outside" width="1672" height="941" fetchpriority="high">
+  </picture>
+  <div class="hero-light" aria-hidden="true"></div>
+  <div class="hero-copy">
+    <p class="eyebrow">A home screen for any TV or box with Android TV or Google TV</p>
+    <h1 id="hero-title" class="split">Your TV, minus the <em>storefront.</em></h1>
+    <p class="lead">Turn on the TV, pick a mood, press OK. No sponsored banners, no tracking, no account — just tonight's film, your channels and your home.</p>
+    <div class="cta">
+      <a class="btn" href="https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-home.apk" data-chime>Download the APK</a>
+      <a class="btn btn-ghost" href="https://github.com/Syvyj/likhtar-home">Source on GitHub</a>
+    </div>
+    <ul class="facts" aria-label="At a glance">
+      <li>TVs & boxes</li><li>Android 7.0+</li><li>6.4 MB</li><li>GPL-3.0</li><li>No root</li><li>No computer</li>
+    </ul>
+  </div>
+  <button class="lantern-hit" type="button" aria-label="Light the lantern" data-lantern></button>
+</section>
+
+<section class="name" aria-label="About the name">
+  <p><b>Likhtar</b> means <em>lantern</em> in Ukrainian. It helps you find something worth watching, then lets the film take the spotlight.</p>
+</section>
+
+<section class="product" aria-labelledby="product-title">
+  <div class="section-head">
+    <p class="eyebrow">A first look</p>
+    <h2 id="product-title" class="split">See Likhtar <em>in action.</em></h2>
+  </div>
+  <div class="product-row">
+    <figure class="frame">
+      <img src="assets/01-home.webp" alt="Likhtar Home: the home screen with clock, weather and dock" width="1440" height="810" loading="lazy" decoding="async">
+      <figcaption><b>Home</b>Your wallpaper, the time and the weather, with every section in the dock.</figcaption>
+    </figure>
+    <figure class="frame">
+      <img src="assets/02-cinema-hero.webp" alt="Cinema: a full-screen spotlight on a new release" width="1440" height="810" loading="lazy" decoding="async">
+      <figcaption><b>Cinema</b>What's new and trending where you live, and every service on its own page.</figcaption>
+    </figure>
+    <figure class="frame">
+      <img src="assets/06-likhtaryk.webp" alt="Likhtaryk: format and mood picks with a row of suggestions" width="1440" height="810" loading="lazy" decoding="async">
+      <figcaption><b>Likhtaryk</b>Pick a format and a mood — get a selection of films and series for tonight.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="compare" id="compare" aria-labelledby="compare-title">
+  <div class="section-head">
+    <p class="eyebrow">Before and after</p>
+    <h2 id="compare-title" class="split">Same TV. <em>Different evening.</em></h2>
+    <p class="lead">On a TV with Google TV built in or on a set-top box — anything running Android TV or Google TV, Android 7.0 and newer.</p>
+  </div>
+  <div class="compare-pin">
+    <div class="compare-stage">
+      <figure class="shot shot-before">
+        <img src="assets/00-stock-google-tv.webp" alt="Stock Google TV home: a sponsored banner fills the screen" width="1440" height="810" loading="lazy" decoding="async">
+        <figcaption><b class="tag">Stock Google TV</b><span class="long"> — a sponsored banner first</span></figcaption>
+      </figure>
+      <figure class="shot shot-after">
+        <img src="assets/01-home.webp" alt="Likhtar Home: wallpaper, clock and a calm dock" width="1440" height="810" loading="lazy" decoding="async">
+        <figcaption><b class="tag">Likhtar Home</b><span class="long"> — your wallpaper, the time and your sections</span></figcaption>
+      </figure>
+      <div class="compare-edge" aria-hidden="true"></div>
+    </div>
+  </div>
+</section>
+
+<section class="tour" id="tour" aria-labelledby="tour-title">
+  <div class="section-head">
+    <p class="eyebrow">Take the remote</p>
+    <h2 id="tour-title" class="split">Built for <em>the remote.</em></h2>
+    <p class="hint"><kbd>←</kbd> <kbd>→</kbd> Try it with the arrow keys.</p>
+  </div>
+  <div class="channels" role="tablist" aria-label="Sections">
+    <button role="tab" type="button" aria-selected="true" data-shot="06-likhtaryk" data-text="Pick a format and a mood — get a selection of films and series for tonight, without what you've already seen.">Likhtaryk</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="02-cinema-hero" data-text="What's new and trending in your country, genres, and a page for every streaming service.">Cinema</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="08-title" data-text="Where to watch it, episodes, trailers, similar titles and the whole franchise in order.">Title page</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="09-live-tv" data-text="Your provider's playlist as a channel grid, with logos, groups and what's on now.">Live TV</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="10-reality" data-text="The shows everyone talks about, on one shelf instead of five apps.">Reality</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="16-smart-home" data-text="Your Home Assistant rooms on the big screen — lights, blinds, the kettle, by remote or by voice.">Smart home</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="17-send-from-phone" data-text="Scan a QR and drop a film, a photo, an APK or a link onto the TV — no app, no cable, no cloud.">From your phone</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="11-apps" data-text="Your apps, grouped for you, with what's new inside each service right on the tile.">Apps</button>
+  </div>
+  <div class="tv">
+    <div class="tv-screen">
+      <img data-tv src="assets/06-likhtaryk.webp" alt="" width="1440" height="810" loading="lazy" decoding="async">
+      <div class="tv-glare" aria-hidden="true"></div>
+    </div>
+    <p class="tv-caption" aria-live="polite" data-tv-caption></p>
+  </div>
+  <noscript><p class="tv-caption">Pick a format and a mood — get a selection of films and series for tonight.</p></noscript>
+</section>
+
+<section class="ai" id="ai" aria-labelledby="ai-title">
+  <div class="ai-copy">
+    <p class="eyebrow">Bring your own AI · optional</p>
+    <h2 id="ai-title" class="split">Ask for a film <em>in your own words.</em></h2>
+    <p class="lead">An AI film advisor that works in any country, needs no Google account and runs on the model you choose — in your language, on any TV or box with Android TV.</p>
+    <ul class="ticks">
+      <li><b>Your key, your model.</b> Claude, OpenAI, Gemini, OpenRouter — or a model on your own computer with Ollama or LM Studio, free and private.</li>
+      <li><b>Straight to the provider.</b> Your request goes directly to the AI provider you choose. Likhtar's server doesn't receive it.</li>
+      <li><b>We check every title.</b> Each suggestion is matched against TMDB by title and year before it's shown.</li>
+      <li><b>Season recaps.</b> A short retelling of the last season, from the episode summaries.</li>
+    </ul>
+  </div>
+  <div class="chat" aria-label="An example conversation">
+    <p class="bubble you">something like Interstellar, but lighter</p>
+    <p class="bubble lamp"><span class="who">Likhtaryk</span>You want space and wonder without the heartbreak — <b>The Martian</b>: survival, science and a lot of jokes.</p>
+    <p class="bubble lamp alt">Also: <i>Guardians of the Galaxy</i>, <i>Arrival</i>, <i>Contact</i></p>
+    <p class="chat-note">Without an AI, mood picks and search still work.</p>
+  </div>
+</section>
+
+<section class="safe" id="safe" aria-labelledby="safe-title">
+  <div class="section-head">
+    <p class="eyebrow">Safe to try, easy to undo</p>
+    <h2 id="safe-title" class="split">Try it without losing <em>the screen you know.</em></h2>
+  </div>
+  <ol class="steps">
+    <li><span class="step-n">01</span><h3>Install and look around</h3><p>Open it like any app. Nothing on the TV changes until you ask.</p></li>
+    <li><span class="step-n">02</span><h3>Make it your home screen</h3><p>One confirmation on the TV. The stock launcher is disabled, not removed — and your Wi‑Fi is checked first.</p></li>
+    <li><span class="step-n">03</span><h3>Changed your mind?</h3><p><i>Settings → Remote and startup → Bring back the stock home screen.</i> And if Likhtar ever crashes three times in five minutes, it hands the home screen back by itself.</p></li>
+  </ol>
+</section>
+
+<section class="privacy" aria-labelledby="privacy-title">
+  <h2 id="privacy-title" class="split">Your data <em>stays yours.</em></h2>
+  <div class="privacy-grid">
+    <p><b>Stays on your TV</b>History, lists, profiles, PINs and settings.</p>
+    <p><b>Stored encrypted</b>Keys, tokens, passwords and playlist addresses — with a key that never leaves the device.</p>
+    <p><b>No ads, no analytics</b>No account, no sign-in, nothing sold. Film data comes through a small read-only gateway that keeps no request log.</p>
+  </div>
+</section>
+
+<section class="grew" aria-labelledby="grew-title">
+  <div class="section-head">
+    <p class="eyebrow">How it grew</p>
+    <h2 id="grew-title" class="split">From a plugin <em>to a home screen.</em></h2>
+  </div>
+  <ol class="timeline">
+    <li><time>Jan 2026</time><p>A small plugin that gathered studio collections into a media app's sidebar.</p></li>
+    <li><time>Mar 2026</time><p><b>Likhtar</b> appears — a custom home page with banners and title logos, Ukrainian first.</p></li>
+    <li><time>Aug 5</time><p><b>Likhtaryk</b>, the film advisor, is born — on a local model at home.</p></li>
+    <li><time>Aug 11</time><p>The plugin hits the walls of someone else's app. The native launcher begins.</p></li>
+    <li><time>Sep</time><p>Reality, title pages, franchises, a focus system rebuilt for the remote.</p></li>
+    <li><time>Oct</time><p>A public build without a home server, settings from your phone, bring your own AI.</p></li>
+  </ol>
+  <p class="grew-note">Where it began is still public: <a href="https://github.com/Syvyj/studios_4lampa">the original plugin on GitHub</a>. The launcher's repository starts fresh with its first public release.</p>
+</section>
+
+<section class="support" id="support" aria-labelledby="support-title">
+  <img class="support-lantern" src="assets/lantern-light.webp" alt="" width="300" height="575" loading="lazy">
+  <div>
+    <h2 id="support-title" class="split">Support <em>Likhtar.</em></h2>
+    <p class="lead">Likhtar is free and will stay free. If it made your evenings a little easier, you can chip in.</p>
+    <div class="gives">
+      <a class="give" href="https://ko-fi.com/syvyj" target="_blank" rel="noopener"><b>Ko-fi</b><small>Card or PayPal</small><span class="give-arrow" aria-hidden="true">↗</span></a>
+<a class="give" href="https://buymeacoffee.com/syvyj" target="_blank" rel="noopener"><b>Buy Me a Coffee</b><small>A coffee, any amount</small><span class="give-arrow" aria-hidden="true">↗</span></a>
+<a class="give" href="https://send.monobank.ua/jar/5juJPj142b" target="_blank" rel="noopener"><b>Monobank jar</b><small>Card, Apple Pay, Google Pay</small><span class="give-arrow" aria-hidden="true">↗</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="final" aria-labelledby="final-title">
+  <h2 id="final-title" class="split">Tonight, <em>just press OK.</em></h2>
+  <div class="cta">
+    <a class="btn" href="https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-home.apk" data-chime>Download the APK</a>
+    <a class="btn btn-ghost" href="https://github.com/Syvyj/likhtar-home#install">How to install</a>
+  </div>
+  <p class="small">Android TV and Google TV, Android 7.0 or newer. Install with Downloader, a USB stick or <code>adb install</code>.</p>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div>
+    <p class="brand"><img src="assets/lantern-light.webp" alt="" width="10" height="19"> Likhtar Home</p>
+    <p class="small">Free software under GPL-3.0. Made in Ukraine, for living rooms everywhere.</p>
+  </div>
+  <div class="small footer-links">
+    <a href="https://github.com/Syvyj/likhtar-home">GitHub</a>
+    <a href="https://github.com/Syvyj/likhtar-home/blob/main/docs/privacy-policy.md">Privacy</a>
+    <a href="https://github.com/Syvyj/likhtar-home/releases">Releases</a>
+    <a href="#top">Back to top</a>
+  </div>
+  <p class="small tmdb">Film and TV data and images: TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB. Where-to-watch data: JustWatch, via TMDB. Google TV is a trademark of Google LLC; the stock screenshot is shown for comparison.</p>
+</footer>
+
+<script src="vendor/gsap.min.js" defer></script>
+<script src="vendor/ScrollTrigger.min.js" defer></script>
+<script src="vendor/lenis.min.js" defer></script>
+<script src="sound.js?v=866474af" defer></script>
+<script src="motion.js?v=866474af" defer></script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#27231E">
+<title>Передати на ТБ</title>
+<!-- «Передати на приставку» (PhoneDrop): файл — сирим тілом POST …/upload?name=, з прогресом;
+     посилання — POST …/link. Сторінку віддає сама приставка, тож шляхи відносні. -->
+<style>
+  :root { --bg:#27231E; --card:#302C25; --line:#3A352C; --text:#F4ECDF; --muted:#A8A196; --amber:#F2A93B; --glow:#FFD27A; --bad:#E07A5F; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.4 system-ui,-apple-system,Roboto,sans-serif; }
+  main { max-width:520px; margin:0 auto; padding:22px 16px 40px; }
+  h1 { margin:0 0 4px; font-size:23px; font-weight:650; }
+  .sub { color:var(--muted); font-size:14px; margin:0 0 22px; }
+  .pick { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:18px; border-radius:16px;
+          background:var(--amber); color:#27231E; font-size:18px; font-weight:650; cursor:pointer; }
+  .pick input { display:none; }
+  .free { color:var(--muted); font-size:13px; margin:10px 2px 0; }
+  ul { list-style:none; margin:18px 0 0; padding:0; }
+  li { background:var(--card); border-radius:14px; padding:12px 14px; margin-bottom:8px; }
+  .row { display:flex; justify-content:space-between; gap:10px; font-size:15px; }
+  .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pct { color:var(--muted); flex:none; font-variant-numeric:tabular-nums; }
+  .bar { height:4px; border-radius:2px; background:var(--line); margin-top:9px; overflow:hidden; }
+  .bar i { display:block; height:100%; width:0; background:var(--amber); transition:width .2s; }
+  li.ok .pct { color:var(--glow); }
+  li.bad .pct { color:var(--bad); }
+  h2 { font-size:15px; font-weight:600; color:var(--muted); margin:28px 0 8px; }
+  .link { display:flex; gap:8px; }
+  .link input { flex:1; min-width:0; background:var(--card); color:var(--text); border:1px solid var(--line); border-radius:12px;
+                padding:13px 14px; font-size:16px; outline:none; }
+  .link input:focus { border-color:var(--amber); }
+  .link button { border:0; border-radius:12px; padding:0 16px; background:var(--card); color:var(--glow); font:inherit; font-weight:600; border:1px solid var(--line); }
+  .note { color:var(--muted); font-size:13px; margin-top:8px; min-height:18px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Передати на телевізор</h1>
+  <p class="sub">Відео, фото чи APK — приставка запропонує, що з ним зробити. Усе лягає в «Завантаження → Likhtar» на приставці. Цю сторінку можна зберегти в закладки.</p>
+  <label class="pick">Вибрати файли<input id="files" type="file" multiple></label>
+  <div class="free" id="free"></div>
+  <ul id="list"></ul>
+  <h2>Або посилання</h2>
+  <form class="link" id="linkForm">
+    <input id="url" type="url" inputmode="url" placeholder="https://youtu.be/…" autocomplete="off">
+    <button type="submit">Відкрити</button>
+  </form>
+  <div class="note" id="note"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const size = (b) => b > 1e9 ? (b / 1e9).toFixed(1) + ' ГБ' : (b / 1e6).toFixed(b > 1e8 ? 0 : 1) + ' МБ';
+let free = null;
+
+async function refreshFree() {
+  try {
+    free = (await (await fetch('space', { cache: 'no-store' })).json()).free;
+    $('free').textContent = 'Вільно на приставці: ' + size(free);
+  } catch (_) { $('free').textContent = ''; }
+}
+
+function send(file, li) {
+  return new Promise((done) => {
+    const pct = li.querySelector('.pct'), bar = li.querySelector('i');
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'upload?name=' + encodeURIComponent(file.name));
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable) return;
+      const p = Math.round(e.loaded / e.total * 100);
+      bar.style.width = p + '%'; pct.textContent = p + '%';
+    };
+    xhr.onload = () => {
+      if (xhr.status === 200) { li.className = 'ok'; bar.style.width = '100%'; pct.textContent = 'на ТБ'; }
+      else { li.className = 'bad'; try { pct.textContent = JSON.parse(xhr.responseText).error; } catch (_) { pct.textContent = 'помилка'; } }
+      done();
+    };
+    xhr.onerror = () => { li.className = 'bad'; pct.textContent = 'зв\'язок обірвався'; done(); };
+    xhr.send(file);
+  });
+}
+
+$('files').addEventListener('change', async (e) => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  const items = files.map((f) => {
+    const li = document.createElement('li');
+    li.innerHTML = '<div class="row"><span class="name"></span><span class="pct">чекає</span></div><div class="bar"><i></i></div>';
+    li.querySelector('.name').textContent = f.name + ' · ' + size(f.size);
+    $('list').prepend(li);
+    return [f, li];
+  });
+  // По одному: приставка приймає один файл за раз, а диск і так один.
+  for (const [f, li] of items) {
+    if (free !== null && f.size > free) { li.className = 'bad'; li.querySelector('.pct').textContent = 'не вистачає місця'; continue; }
+    await send(f, li);
+    await refreshFree();
+  }
+});
+
+$('linkForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const url = $('url').value.trim();
+  if (!/^https?:\/\//.test(url)) { $('note').textContent = 'Вставте посилання, що починається з https://'; return; }
+  const r = await fetch('link', { method: 'POST', body: url }).catch(() => null);
+  $('note').textContent = r && r.ok ? 'Готово — підтвердіть на телевізорі' : 'Не вдалося передати';
+  if (r && r.ok) $('url').value = '';
+});
+
+refreshFree();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wallpaper_provider_plain">Bez tapety</string>
+    <string name="wallpaper_provider_bundled">Wbudowane tła</string>
+    <string name="wallpaper_provider_manifest">Zestaw zdalny</string>
+    <string name="wallpaper_provider_bing">Zdjęcie dnia Bing</string>
+    <string name="wallpaper_provider_themed">Motywy</string>
+    <string name="wallpaper_provider_mix">Mieszanka wszystkich źródeł</string>
+    <string name="wallpaper_theme_nature">Przyroda</string>
+    <string name="wallpaper_theme_animals">Zwierzęta</string>
+    <string name="wallpaper_theme_cities">Miasta</string>
+    <string name="wallpaper_theme_space">Kosmos</string>
+    <string name="wallpaper_theme_mix">Mieszanka</string>
+</resources>

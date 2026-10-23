@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="model_section_home">Головна</string>
+    <string name="model_section_search">Ліхтарик</string>
+    <string name="model_section_cinema">Кінозал</string>
+    <string name="model_section_live_tv">ТВ Ефір</string>
+    <string name="model_section_reality">Реаліті</string>
+    <string name="model_section_smart_home">Смарт дім</string>
+    <string name="model_section_apps">Застосунки</string>
+    <string name="model_section_settings">Налаштування</string>
+    <string name="model_category_media">Кіно та відео</string>
+    <string name="model_category_games">Ігри</string>
+    <string name="model_category_tools">Інструменти</string>
+    <string name="model_category_other">Інше</string>
+</resources>

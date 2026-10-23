@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="smarthome_scene">Сцена</string>
+    <string name="smarthome_on">Увімкнено</string>
+    <string name="smarthome_off">Вимкнено</string>
+    <plurals name="smarthome_devices">
+        <item quantity="one">%1$d пристрій</item>
+        <item quantity="few">%1$d пристрої</item>
+        <item quantity="many">%1$d пристроїв</item>
+        <item quantity="other">%1$d пристрою</item>
+    </plurals>
+    <string name="smarthome_command_done">Команду виконано</string>
+    <string name="smarthome_not_configured">Home Assistant не налаштовано</string>
+    <string name="smarthome_no_connection">Немає з\'єднання</string>
+    <string name="smarthome_not_controllable">%1$s не керується</string>
+    <string name="smarthome_error_token">Токен відхилено (401/403). Створіть новий long-lived access token.</string>
+    <string name="smarthome_error_not_found">Адреса не схожа на Home Assistant (404). Для голосу потрібен увімкнений Assist.</string>
+    <string name="smarthome_error_code">Home Assistant відповів кодом %1$d.</string>
+    <string name="smarthome_filter_replace">%1$d %% — час міняти</string>
+    <string name="smarthome_printer">3D принтер</string>
+    <string name="smarthome_printer_offline">Не в мережі</string>
+    <string name="smarthome_printer_printing">Друкує</string>
+    <string name="smarthome_printer_paused">Пауза</string>
+    <string name="smarthome_printer_preparing">Готується</string>
+    <string name="smarthome_printer_finished">Готово</string>
+    <string name="smarthome_printer_failed">Помилка друку</string>
+    <string name="smarthome_printer_idle">Не друкує</string>
+    <string name="smarthome_remaining">ще %1$s</string>
+    <string name="smarthome_nozzle">сопло %1$d °C</string>
+    <string name="smarthome_bed">стіл %1$d °C</string>
+    <string name="smarthome_hours">%1$d год</string>
+    <string name="smarthome_minutes">%1$d хв</string>
+    <string name="smarthome_auth_no_refresh">HA не видав refresh-токен</string>
+    <string name="smarthome_auth_http">HA відповів %1$d %2$s</string>
+    <string name="smarthome_brand">Ліхтар</string>
+    <string name="smarthome_link_tagline">домашній екран телевізора</string>
+    <string name="smarthome_link_title">Підключити Home Assistant</string>
+    <string name="smarthome_link_intro">Вкажіть адресу вашого Home Assistant. Далі відкриється його звичайний вхід — пароль вводите там, телевізор його не бачить.</string>
+    <string name="smarthome_link_sign_in">Увійти в Home Assistant</string>
+    <string name="smarthome_link_bad_url">Адреса має бути на кшталт http://192.168.0.10:8123</string>
+    <string name="smarthome_link_failed_title">Не вийшло</string>
+    <string name="smarthome_link_expired">Посилання застаріло.</string>
+    <string name="smarthome_link_retry">Відкрийте QR на телевізорі ще раз.</string>
+    <string name="smarthome_link_done_title">Готово</string>
+    <string name="smarthome_link_done">Ліхтар підключено до Home Assistant. Поверніться до телевізора.</string>
+    <string name="smarthome_link_code_rejected">HA не прийняв код</string>
+</resources>

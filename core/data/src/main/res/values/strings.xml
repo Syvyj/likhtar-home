@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="data_weather_clear">Clear</string>
+    <string name="data_weather_partly_cloudy">Partly cloudy</string>
+    <string name="data_weather_cloudy">Cloudy</string>
+    <string name="data_weather_fog">Fog</string>
+    <string name="data_weather_drizzle">Drizzle</string>
+    <string name="data_weather_rain">Rain</string>
+    <string name="data_weather_snow">Snow</string>
+    <string name="data_weather_showers">Showers</string>
+    <string name="data_weather_snowfall">Snowfall</string>
+    <string name="data_weather_thunderstorm">Thunderstorm</string>
+    <string name="data_weather_condition_wind">%1$s · wind %2$d m/s</string>
+    <string name="data_daypart_morning">Morning</string>
+    <string name="data_daypart_day">Afternoon</string>
+    <string name="data_daypart_evening">Evening</string>
+    <string name="data_today">today</string>
+    <string name="data_tomorrow">tomorrow</string>
+    <string name="data_action_play">Watch</string>
+    <string name="data_action_services">Services that have it</string>
+    <string name="data_action_sources">Options</string>
+    <string name="data_action_watchlist">Add to list</string>
+    <string name="data_action_franchise">Franchise</string>
+    <string name="data_remapper_button_mapper_note">Remaps any remote button; has a free version</string>
+    <string name="data_remapper_tvquickactions_note">Made for Android TV, supports long presses</string>
+    <string name="data_open_with">Open with</string>
+</resources>

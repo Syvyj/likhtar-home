@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="data_weather_clear">Bezchmurnie</string>
+    <string name="data_weather_partly_cloudy">Częściowe zachmurzenie</string>
+    <string name="data_weather_cloudy">Pochmurno</string>
+    <string name="data_weather_fog">Mgła</string>
+    <string name="data_weather_drizzle">Mżawka</string>
+    <string name="data_weather_rain">Deszcz</string>
+    <string name="data_weather_snow">Śnieg</string>
+    <string name="data_weather_showers">Ulewa</string>
+    <string name="data_weather_snowfall">Opady śniegu</string>
+    <string name="data_weather_thunderstorm">Burza</string>
+    <string name="data_weather_condition_wind">%1$s · wiatr %2$d m/s</string>
+    <string name="data_daypart_morning">Rano</string>
+    <string name="data_daypart_day">Dzień</string>
+    <string name="data_daypart_evening">Wieczór</string>
+    <string name="data_today">dziś</string>
+    <string name="data_tomorrow">jutro</string>
+    <string name="data_action_play">Oglądaj</string>
+    <string name="data_action_services">Serwisy z tym filmem</string>
+    <string name="data_action_sources">Warianty</string>
+    <string name="data_action_watchlist">Do listy</string>
+    <string name="data_action_franchise">Franczyza</string>
+    <string name="data_remapper_button_mapper_note">Zmienia funkcję dowolnego przycisku pilota, jest wersja darmowa</string>
+    <string name="data_remapper_tvquickactions_note">Stworzony dla Android TV, obsługuje długie naciśnięcia</string>
+    <string name="data_open_with">Otwórz za pomocą</string>
+</resources>

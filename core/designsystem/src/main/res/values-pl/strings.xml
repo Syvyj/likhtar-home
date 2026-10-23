@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ds_qr_no_network">Nie widzę sieci domowej — przystawka nie jest w Wi‑Fi ani na kablu albo port jest zajęty.</string>
+    <string name="ds_qr_same_network">Telefon musi być w tej samej sieci. %1$s</string>
+    <string name="ds_done">Gotowe</string>
+    <string name="ds_close">Zamknij</string>
+    <string name="ds_save">Zapisz</string>
+    <string name="ds_cancel">Anuluj</string>
+    <string name="ds_clear">Wyczyść</string>
+    <string name="ds_preparing_title">Łączenie z torrentem…</string>
+    <string name="ds_preparing_subtitle">Szukamy źródła, które daje deklarowaną jakość</string>
+    <!-- Фрази лоадера за замовчуванням: без «завантажую», про те, що справді відбувається. -->
+    <string-array name="ds_loader_phrases">
+        <item>Zapalamy latarnię…</item>
+        <item>Szukamy odpowiedniej ścieżki dźwiękowej…</item>
+        <item>Dobieramy najlepszą jakość…</item>
+        <item>Jeszcze chwila…</item>
+    </string-array>
+    <string name="ds_phone_drop">Wyślij na TV z telefonu</string>
+    <string name="ds_support_title">Wesprzyj autora</string>
+    <string name="ds_support_lead">Likhtar jest darmowy i taki zostanie. Zeskanuj wygodny sposób — płatność otworzy się w telefonie.</string>
+    <string name="ds_support_kofi">Ko-fi</string>
+    <string name="ds_support_kofi_note">Karta lub PayPal</string>
+    <string name="ds_support_bmc">Buy Me a Coffee</string>
+    <string name="ds_support_bmc_note">Kawa, dowolna kwota</string>
+    <string name="ds_support_mono">Słoik Monobank</string>
+    <string name="ds_support_mono_note">Karta, Apple Pay, Google Pay</string>
+</resources>

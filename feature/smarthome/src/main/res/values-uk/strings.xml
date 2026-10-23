@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fsmarthome_read_only">%1$s — лише показує стан</string>
+    <string name="fsmarthome_confirm_on">Ще раз OK — увімкнути «%1$s»</string>
+    <string name="fsmarthome_command_sent">%1$s: команду надіслано</string>
+    <string name="fsmarthome_command_send_failed">Не вдалося надіслати команду</string>
+    <string name="fsmarthome_voice_not_heard">Не почув команду. Спробуйте ще раз.</string>
+    <string name="fsmarthome_voice_running">«%1$s» — виконую…</string>
+    <string name="fsmarthome_command_failed">Команду не виконано</string>
+    <string name="fsmarthome_voice_unavailable">На цьому пристрої немає розпізнавання мовлення. Скористайтеся кнопкою мікрофона на пульті або Google Assistant.</string>
+    <string name="fsmarthome_checking">Перевіряю з\'єднання…</string>
+    <string name="fsmarthome_ping_ok">Home Assistant відповів: %1$s</string>
+    <string name="fsmarthome_no_connection">Немає з\'єднання</string>
+    <string name="fsmarthome_link_title">Підключити Home Assistant</string>
+    <string name="fsmarthome_link_line_scan">Наведіть камеру телефону на код. На сторінці — адреса вашого HA і кнопка входу.</string>
+    <string name="fsmarthome_link_line_password">Пароль вводите у звичайному вході Home Assistant — телевізор його не бачить.</string>
+    <string name="fsmarthome_link_opened">Телефон відкрив сторінку — увійдіть у HA…</string>
+    <string name="fsmarthome_link_done">Підключено ✓</string>
+    <string name="fsmarthome_link_failed">Не вийшло: %1$s</string>
+    <string name="fsmarthome_voice">Голосом</string>
+    <string name="fsmarthome_voice_prompt">Скажіть команду для дому</string>
+    <string name="fsmarthome_connecting">Підключаюся…</string>
+    <string name="fsmarthome_on_count">увімкнено %1$d</string>
+    <string name="fsmarthome_setup_phone">Найпростіше — з телефону: наведіть камеру на QR, увійдіть у свій Home Assistant і натисніть «Дозволити». Пароль вводиться на телефоні, телевізор його не бачить.</string>
+    <string name="fsmarthome_setup_manual">Або вручну: «Налаштування → Смарт дім» — адреса й довготривалий токен (HA: профіль → Безпека), чи файл `homeassistant.json` (url, token) тут:\n%1$s</string>
+    <string name="fsmarthome_connect_phone">Підключити з телефону</string>
+    <string name="fsmarthome_test_connection">Перевірити з\'єднання</string>
+    <string name="fsmarthome_no_devices">Підключення є, але пристроїв, якими можна керувати, не знайдено.</string>
+    <string name="fsmarthome_room_other">Інше</string>
+    <string name="fsmarthome_room_devices">Пристрої</string>
+    <string name="fsmarthome_reading_air">повітря</string>
+    <string name="fsmarthome_reading_humidity">вологість</string>
+    <string name="fsmarthome_unit_ugm3">мкг/м³</string>
+</resources>
