@@ -1,5 +1,7 @@
 package com.likhtar.home.feature.apps
 
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxHeight
 import com.likhtar.home.core.designsystem.BrandColors
 import androidx.compose.foundation.layout.widthIn
@@ -230,10 +232,21 @@ private fun AppsPage(
     onClick: (LauncherAppWithState) -> Unit,
     onLongClick: (LauncherAppWithState) -> Unit,
 ) {
-    val rows = buildList {
+    // «Усі застосунки»: той самий екран, але без груп — усе встановлене за абеткою (і приховане,
+    // притемнене), рядами по шість. BACK — назад до груп.
+    var showAll by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = showAll) { showAll = false }
+    val allTitle = stringResource(R.string.apps_all)
+    val rows = if (showAll) {
+        state.apps.sortedBy { it.app.label.lowercase() }.chunked(ALL_PER_ROW).mapIndexed { i, chunk ->
+            AppSection(if (i == 0) allTitle else "", chunk, count = state.apps.size)
+        }
+    } else buildList {
         if (state.recent.isNotEmpty()) add(AppSection(stringResource(R.string.apps_section_recent), state.recent))
         addAll(state.sections)
     }
+    val lead = if (showAll) stringResource(R.string.apps_by_groups) to { showAll = false }
+    else allTitle to { showAll = true }
     val list = rememberLazyListState()
     val scope = rememberCoroutineScope()
     // Вхід кожного ряду — його перша плитка. ↑/↓ ведемо самі: стандартний пошук фокуса
@@ -261,9 +274,10 @@ private fun AppsPage(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     contentPadding = PaddingValues(bottom = 60.dp),
                 ) {
-                    itemsIndexed(rows, key = { _, row -> row.title }) { rowIndex, row ->
+                    itemsIndexed(rows, key = { i, row -> "$showAll-$i-${row.title}" }) { rowIndex, row ->
                         AppsRail(
                             row = row,
+                            lead = lead.takeIf { rowIndex == 0 },
                             enter = entries.getOrElse(rowIndex) { firstAppFocusRequester },
                             onVertical = { down -> go(if (down) rowIndex + 1 else rowIndex - 1) },
                             onFocused = { id ->
@@ -285,6 +299,8 @@ private fun AppsPage(
 private fun AppsRail(
     row: AppSection,
     enter: FocusRequester,
+    /** Плитка-перемикач перед застосунками (лише в першому ряду): підпис і дія. */
+    lead: Pair<String, () -> Unit>?,
     onVertical: (down: Boolean) -> Boolean,
     onFocused: (String) -> Unit,
     onClick: (LauncherAppWithState) -> Unit,
@@ -313,8 +329,13 @@ private fun AppsRail(
                 }
             },
     ) {
-        SectionHeader(title = row.title, count = row.apps.size)
+        if (row.title.isNotEmpty()) SectionHeader(title = row.title, count = row.count)
         LikhtarRail(state = railState) {
+            lead?.let { (label, onLead) ->
+                item(key = "lead") {
+                    LeadTile(label, onLead, Modifier.padding(horizontal = 6.dp, vertical = 6.dp).focusRequester(enter))
+                }
+            }
             itemsIndexed(row.apps, key = { _, entry -> row.title + entry.app.id }) { index, entry ->
                 ProtoAppTile(
                     app = entry.app,
@@ -329,7 +350,7 @@ private fun AppsRail(
                     modifier = Modifier
                         .padding(horizontal = 6.dp, vertical = 6.dp)
                         .onFocusChanged { if (it.isFocused) onFocused(entry.app.id) }
-                        .then(if (index == 0) Modifier.focusRequester(enter) else Modifier),
+                        .then(if (index == 0 && lead == null) Modifier.focusRequester(enter) else Modifier),
                 )
             }
         }
@@ -570,6 +591,39 @@ private fun ProtoAppTile(
         FocusRing(hasFocus, 9.dp)
     }
 }
+
+/** Плитка-перемикач «Усі застосунки» / «Групами» — розміром із плитку застосунку. */
+@Composable
+private fun LeadTile(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FocusableSurface(
+        onClick = onClick,
+        modifier = modifier.size(150.dp, 84.5.dp).focusGlow(9.dp),
+        shape = RoundedCornerShape(9.dp),
+        background = LikhtarColors.TileFloor,
+        focusedBackground = LikhtarColors.TileFloor,
+        borderColor = Color.Transparent,
+        focusedScale = 1.07f,
+        focusLighten = 0f,
+    ) { hasFocus ->
+        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            androidx.tv.material3.Icon(
+                androidx.compose.ui.res.painterResource(com.likhtar.home.core.designsystem.R.drawable.ic_solar_widget),
+                null,
+                tint = LikhtarColors.Glow,
+                modifier = Modifier.size(20.dp),
+            )
+            Text(
+                label,
+                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
+                color = LikhtarColors.TextPrimary,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
+        FocusRing(hasFocus, 9.dp)
+    }
+}
+
+private const val ALL_PER_ROW = 6
 
 private val HeroHeight = 200.dp
 // .scrim: 90deg .92 → .6 на 45 % → 0; 180deg .35 → 0 на 30 %, 0 на 55 % → тло.

@@ -142,6 +142,12 @@
     <string name="settings_home_weather_group">POGODA</string>
     <string name="settings_home_show_weather">Pokazuj pogodę</string>
     <string name="settings_home_city">Miasto</string>
+    <string name="settings_home_dock_group">NA DOLNYM PASKU</string>
+    <string name="settings_home_dock_cinema">Kino</string>
+    <string name="settings_home_dock_live_tv">Na żywo</string>
+    <string name="settings_home_dock_reality">Reality</string>
+    <string name="settings_home_dock_search">Szukaj</string>
+    <string name="settings_home_dock_apps">Aplikacje</string>
     <string name="settings_home_torch_group">NAD KAFELKIEM „LIKHTAR HOME”</string>
     <string name="settings_home_torch">Likhtaryk</string>
     <string name="settings_home_torch_subtitle">Doradca: co obejrzeć dziś</string>
@@ -189,7 +195,8 @@
     <string name="settings_watch_availability_subtitle">Wybierz ręcznie, jeśli oglądasz przez VPN</string>
     <string name="settings_tv_sources_group">ŹRÓDŁA</string>
     <string name="settings_tv_playlist">Playlista kanałów</string>
-    <string name="settings_tv_playlist_subtitle">M3U od dostawcy — z logotypami kanałów</string>
+    <string name="settings_tv_playlist_file">Plik z telefonu</string>
+    <string name="settings_tv_playlist_subtitle">Link M3U od dostawcy albo plik wysłany z telefonu („Wyślij z telefonu”)</string>
     <string name="settings_tv_epg_subtitle">Opcjonalnie: kanały działają i bez niego</string>
     <string name="settings_tv_channels_group">KANAŁY</string>
     <string name="settings_tv_hidden">Ukryte kanały</string>

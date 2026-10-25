@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_tile_live_tv">Live TV</string>
+    <string name="home_tile_search">Search</string>
     <string name="home_ua_arrived_title">Now in Ukrainian: %1$s</string>
     <string name="home_ua_arrived_waiting_since">you\'ve been waiting since %1$s</string>
     <string name="home_ua_arrived_waited">you were waiting for this</string>

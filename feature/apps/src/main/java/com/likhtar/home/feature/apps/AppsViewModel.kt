@@ -35,6 +35,8 @@ enum class AppAction { LAUNCH, PIN_HOME, HIDE, LOCK, PIN_CINEMA, PIN_LIVE_TV, CA
 data class AppSection(
     val title: String,
     val apps: List<LauncherAppWithState>,
+    /** Лічильник у заголовку: у «Усіх застосунках» — усі, а не лише перший ряд. */
+    val count: Int = apps.size,
 )
 
 enum class PinPurpose {

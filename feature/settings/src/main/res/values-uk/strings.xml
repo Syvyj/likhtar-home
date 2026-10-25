@@ -142,6 +142,12 @@
     <string name="settings_home_weather_group">ПОГОДА</string>
     <string name="settings_home_show_weather">Показувати погоду</string>
     <string name="settings_home_city">Місто</string>
+    <string name="settings_home_dock_group">У НИЖНІЙ ПАНЕЛІ</string>
+    <string name="settings_home_dock_cinema">Кінозал</string>
+    <string name="settings_home_dock_live_tv">ТБ Ефір</string>
+    <string name="settings_home_dock_reality">Реаліті</string>
+    <string name="settings_home_dock_search">Пошук</string>
+    <string name="settings_home_dock_apps">Застосунки</string>
     <string name="settings_home_torch_group">НАД ПЛИТКОЮ «LIKHTAR HOME»</string>
     <string name="settings_home_torch">Ліхтарик</string>
     <string name="settings_home_torch_subtitle">Радник: що подивитися сьогодні</string>
@@ -189,7 +195,8 @@
     <string name="settings_watch_availability_subtitle">Оберіть вручну, якщо дивитесь через VPN</string>
     <string name="settings_tv_sources_group">ДЖЕРЕЛА</string>
     <string name="settings_tv_playlist">Плейлист каналів</string>
-    <string name="settings_tv_playlist_subtitle">M3U від провайдера — з логотипами каналів</string>
+    <string name="settings_tv_playlist_file">Файл з телефона</string>
+    <string name="settings_tv_playlist_subtitle">M3U-посилання від провайдера або файл, переданий з телефона («Передати з телефона»)</string>
     <string name="settings_tv_epg_subtitle">Необов\'язково: канали працюють і без неї</string>
     <string name="settings_tv_channels_group">КАНАЛИ</string>
     <string name="settings_tv_hidden">Приховані канали</string>

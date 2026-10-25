@@ -324,6 +324,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingsRepository.setAi("", "", "", "") }
     }
 
+    fun toggleDockSection(route: String) {
+        viewModelScope.launch { settingsRepository.toggleDockSection(route) }
+    }
+
     fun toggleHiddenService(key: String) {
         viewModelScope.launch { settingsRepository.toggleHiddenService(key) }
     }

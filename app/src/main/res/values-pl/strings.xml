@@ -11,6 +11,8 @@
     <string name="drop_received">Odebrano „%1$s”</string>
     <string name="drop_watch">Oglądaj</string>
     <string name="drop_install">Zainstaluj</string>
+    <string name="drop_use_playlist">Użyj jako playlisty Na żywo</string>
+    <string name="drop_playlist_done">Playlista ustawiona — kanały są w Na żywo</string>
     <string name="drop_saved">Zapisano w %1$s</string>
     <string name="drop_open_link">Otwórz</string>
     <string name="drop_close">Zamknij</string>

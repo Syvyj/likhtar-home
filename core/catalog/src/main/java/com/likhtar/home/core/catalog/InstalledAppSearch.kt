@@ -85,7 +85,7 @@ class InstalledAppSearch @Inject constructor(
         return manager.queryIntentActivities(Intent(Intent.ACTION_VIEW, link).addCategory(Intent.CATEGORY_BROWSABLE), 0)
             .asSequence()
             .map { it.activityInfo }
-            .filter { it.packageName != context.packageName && it.packageName !in IGNORED && it.packageName !in browsers }
+            .filter { it.packageName != context.packageName && it.packageName !in IGNORED && it.packageName in tvApps && it.packageName !in browsers }
             .distinctBy { it.packageName }
             .map { activity ->
                 val label = labelOf(activity.packageName)
@@ -108,7 +108,7 @@ class InstalledAppSearch @Inject constructor(
         context.packageManager.queryIntentActivities(Intent(Intent.ACTION_SEARCH), 0)
             .asSequence()
             .map { it.activityInfo }
-            .filter { it.packageName != context.packageName && it.packageName !in IGNORED && it.packageName !in skip }
+            .filter { it.packageName != context.packageName && it.packageName !in IGNORED && it.packageName in tvApps && it.packageName !in skip }
             .distinctBy { it.packageName }
             .map { activity ->
                 val label = labelOf(activity.packageName)
@@ -126,6 +126,26 @@ class InstalledAppSearch @Inject constructor(
             }
             .toList()
 
+    /**
+     * Застосунки з плиткою на екрані телевізора (`LEANBACK_LAUNCHER`). Пошук і посилання TMDB
+     * мають і телефонні системні застосунки — «Контакти», «Календар», «Пошта» — і на звичайному
+     * Android вони лізли в кнопки сторінки фільму. Фільм відкриваємо лише в тому, що для ТБ.
+     */
+    private val tvApps: Set<String>
+        get() {
+            val now = System.currentTimeMillis()
+            // Фільтр питає на кожному кандидаті — список тримаємо хвилину, а не перепитуємо систему.
+            if (now - tvAppsAt > TV_APPS_TTL_MS) {
+                tvAppsCache = context.packageManager
+                    .queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0)
+                    .mapTo(HashSet()) { it.activityInfo.packageName }
+                tvAppsAt = now
+            }
+            return tvAppsCache
+        }
+    @Volatile private var tvAppsCache: Set<String> = emptySet()
+    @Volatile private var tvAppsAt = 0L
+
     private fun labelOf(packageName: String): String = runCatching {
         val manager = context.packageManager
         manager.getApplicationLabel(manager.getApplicationInfo(packageName, 0)).toString()
@@ -140,7 +160,7 @@ class InstalledAppSearch @Inject constructor(
         context.packageManager.queryIntentActivities(Intent(Intent.ACTION_SEARCH), 0)
             .asSequence()
             .map { it.activityInfo }
-            .filter { it.packageName != context.packageName && it.packageName !in IGNORED }
+            .filter { it.packageName != context.packageName && it.packageName !in IGNORED && it.packageName in tvApps }
             .mapNotNull {
                 runCatching { manager.getSearchableInfo(ComponentName(it.packageName, it.name)) }.getOrNull()
             }
@@ -298,6 +318,7 @@ class InstalledAppSearch @Inject constructor(
         /** Будь-яка адреса: хто її бере — браузер, а не застосунок із карткою фільму. */
         const val ANY_SITE = "https://example.com/"
 
+        const val TV_APPS_TTL_MS = 60_000L
         val IGNORED = setOf(
             "com.android.vending",
             "com.google.android.gms",

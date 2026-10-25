@@ -1,5 +1,10 @@
 package com.likhtar.home.drop
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -63,7 +68,23 @@ class PhoneDropViewModel @Inject constructor(
             openFile(context, uri, name, mime, player)
         }
     }
+
+    /**
+     * Плейлист із телефона — у ТВ Ефір: копія у приватні файли лаунчера (файл у «Завантаженнях»
+     * людина може видалити чи перейменувати) і `file://` замість адреси. `true` — вийшло.
+     */
+    suspend fun usePlaylist(context: Context, uri: Uri): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val target = java.io.File(context.filesDir, "playlist.m3u")
+            context.contentResolver.openInputStream(uri)!!.use { input -> target.outputStream().use { input.copyTo(it) } }
+            // Мітка часу в адресі — щоб кеш каналів побачив новий файл, а не віддав старий список.
+            settings.setTvPlaylistUrl(target.toURI().toString() + "#" + System.currentTimeMillis())
+        }.isSuccess
+    }
 }
+
+/** M3U за назвою: MIME у різних телефонів різний (audio/x-mpegurl, application/octet-stream…). */
+private fun isPlaylist(name: String) = name.lowercase().let { it.endsWith(".m3u") || it.endsWith(".m3u8") }
 
 /**
  * «Передати на приставку»: QR → сторінка на телефоні → файл чи посилання на ТВ, і вікно саме
@@ -120,6 +141,14 @@ fun PhoneDropDialog(onDismiss: () -> Unit, viewModel: PhoneDropViewModel = hiltV
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxWidth().heightIn(max = 380.dp).padding(bottom = 12.dp),
                     )
+                    isPlaylist(s.name) -> {
+                        var done by remember(s.uri) { mutableStateOf(false) }
+                        val scope = rememberCoroutineScope()
+                        if (done) Status(stringResource(R.string.drop_playlist_done), ok = true)
+                        else Action(stringResource(R.string.drop_use_playlist), actionFocus) {
+                            scope.launch { done = viewModel.usePlaylist(context, s.uri) }
+                        }
+                    }
                     s.mime.startsWith("video/") || s.mime.startsWith("audio/") ->
                         Action(stringResource(R.string.drop_watch), actionFocus) { viewModel.open(context, s.uri, s.name, s.mime) }
                     s.mime == APK -> Action(stringResource(R.string.drop_install), actionFocus) { install(context, s.uri, s.name) }

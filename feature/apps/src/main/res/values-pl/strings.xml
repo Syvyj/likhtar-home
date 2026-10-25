@@ -7,6 +7,8 @@
         <item quantity="other">%d aplikacji</item>
     </plurals>
     <string name="apps_section_recent">Ostatnie</string>
+    <string name="apps_all">Wszystkie aplikacje</string>
+    <string name="apps_by_groups">Grupami</string>
     <string name="apps_section_hidden">Ukryte</string>
     <string name="apps_tag_cinema">Kino</string>
     <string name="apps_tag_live_tv">Na żywo</string>

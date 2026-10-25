@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_tile_live_tv">ТБ Ефір</string>
+    <string name="home_tile_search">Пошук</string>
     <string name="home_ua_arrived_title">Вийшла українською: %1$s</string>
     <string name="home_ua_arrived_waiting_since">ви чекали з %1$s</string>
     <string name="home_ua_arrived_waited">ви на неї чекали</string>

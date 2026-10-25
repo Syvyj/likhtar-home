@@ -81,30 +81,37 @@ class PlaylistTvSource @Inject constructor(
         runCatching { cache.get(url) { etag, lastModified -> download(url, etag, lastModified) } }
             // Адреса плейлиста часто несе токен провайдера, а текст винятку — усю адресу: логуємо
             // лише хост і клас помилки.
-            .onFailure { Log.w("LikhtarTv", "Плейлист не завантажився: ${java.net.URI(url).host} (${it.javaClass.simpleName})") }
+            .onFailure { Log.w("LikhtarTv", "Плейлист не завантажився: ${java.net.URI(url).host ?: "файл"} (${it.javaClass.simpleName})") }
             .getOrDefault(emptyList())
     }
 
     /** `null` — сервер відповів 304: те, що в кеші, досі актуальне. */
     private fun download(url: String, etag: String?, lastModified: String?): ConditionalCache.Fetched<List<ChannelLink>>? {
+        // Плейлист, переданий файлом із телефона: лежить у лаунчері, мережа не потрібна.
+        if (url.startsWith("file:")) {
+            val file = java.io.File(java.net.URI(url.substringBefore('#')))
+            return ConditionalCache.Fetched(file.inputStream().use { links(it) }, null, null)
+        }
         val conditional = buildMap {
             etag?.let { put("If-None-Match", it) }
             lastModified?.let { put("If-Modified-Since", it) }
         }
         return http(url, TIMEOUT_MS, READ_TIMEOUT_MS, headers = conditional) { connection ->
             if (connection.responseCode == HttpURLConnection.HTTP_NOT_MODIFIED) return null
-            val links = connection.inputStream.use { M3uParser().parse(it) }.map { channel ->
-                ChannelLink(
-                    name = channel.name,
-                    packageName = "",
-                    url = channel.url,
-                    category = channel.group,
-                    epgId = channel.id,
-                    logo = channel.logo,
-                )
-            }
+            val links = connection.inputStream.use { links(it) }
             ConditionalCache.Fetched(links, connection.getHeaderField("ETag"), connection.getHeaderField("Last-Modified"))
         }
+    }
+
+    private fun links(input: java.io.InputStream) = M3uParser().parse(input).map { channel ->
+        ChannelLink(
+            name = channel.name,
+            packageName = "",
+            url = channel.url,
+            category = channel.group,
+            epgId = channel.id,
+            logo = channel.logo,
+        )
     }
 
     private companion object {

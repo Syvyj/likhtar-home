@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -503,9 +504,12 @@ private fun Dock(
 
     // Одна смуга-«пігулка», як верхнє меню розділів (прототип): навігація однакова
     // скрізь у лаунчері. Фокус — тепла біла пігулка.
+    // Смуга — за вмістом і по центру екрана: розпірка після LIKHTAR HOME відганяла розділи
+    // до правого краю, і між ними зяяла дірка.
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally)
             .height(DockHeight)
             .clip(RoundedCornerShape(LikhtarDimens.CornerPill))
             .background(LikhtarColors.BackgroundDeep.copy(alpha = 0.74f))
@@ -532,7 +536,7 @@ private fun Dock(
                     }
                     .focusUp(upTarget),
             )
-            if (tile.section == LikhtarSection.HOME) Spacer(Modifier.weight(1f))
+            if (tile.section == LikhtarSection.HOME) Spacer(Modifier.width(DockHomeGap))
         }
     }
 }
@@ -606,6 +610,9 @@ private fun DockGlyph(tile: HomeTile, focused: Boolean) {
 }
 
 private val DockHeight = 52.dp
+
+/** Проміжок між LIKHTAR HOME і розділами — трохи більший за проміжок між розділами. */
+private val DockHomeGap = 4.dp
 private val DockItemHeight = 40.dp
 private val DockLabelStyle = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
 

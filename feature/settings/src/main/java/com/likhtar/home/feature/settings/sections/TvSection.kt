@@ -25,7 +25,11 @@ internal fun TvSection(
     GroupTitle(stringResource(R.string.settings_tv_sources_group))
     ValueRow(
         text = stringResource(R.string.settings_tv_playlist),
-        value = state.settings.tvPlaylistUrl.ifBlank { stringResource(R.string.settings_builtin) },
+        value = when {
+            state.settings.tvPlaylistUrl.isBlank() -> stringResource(R.string.settings_builtin)
+            state.settings.tvPlaylistUrl.startsWith("file:") -> stringResource(R.string.settings_tv_playlist_file)
+            else -> state.settings.tvPlaylistUrl
+        },
         onClick = viewModel::editTvPlaylistUrl,
         subtitle = stringResource(R.string.settings_tv_playlist_subtitle),
         focusRequester = editedRowFocusRequester

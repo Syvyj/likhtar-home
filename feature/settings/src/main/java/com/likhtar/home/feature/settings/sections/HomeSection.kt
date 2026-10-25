@@ -12,6 +12,7 @@ import com.likhtar.home.feature.settings.ToggleRow
 import com.likhtar.home.feature.settings.ValueRow
 import com.likhtar.home.feature.settings.ChoiceRow
 import com.likhtar.home.feature.settings.Note
+import com.likhtar.home.core.model.LikhtarSection
 
 // ─── ГОЛОВНА ──────────────────────────────────────────────────────────
 // Усе, що видно на Головній: погода й ряди, що з'являються над плитками доку.
@@ -43,6 +44,22 @@ internal fun HomeSection(
                 onSelect = { viewModel.selectWeatherPlace(place) },
             )
         }
+    }
+
+    // Що лишити в доці: прибраний розділ відкривається з меню вгорі, тож нічого не губиться.
+    GroupTitle(stringResource(R.string.settings_home_dock_group))
+    listOf(
+        LikhtarSection.CINEMA to R.string.settings_home_dock_cinema,
+        LikhtarSection.LIVE_TV to R.string.settings_home_dock_live_tv,
+        LikhtarSection.REALITY to R.string.settings_home_dock_reality,
+        LikhtarSection.SEARCH to R.string.settings_home_dock_search,
+        LikhtarSection.APPS to R.string.settings_home_dock_apps,
+    ).forEach { (section, label) ->
+        ToggleRow(
+            text = stringResource(label),
+            checked = section.route !in state.settings.hiddenDockSections,
+            onToggle = { viewModel.toggleDockSection(section.route) },
+        )
     }
 
     GroupTitle(stringResource(R.string.settings_home_torch_group))

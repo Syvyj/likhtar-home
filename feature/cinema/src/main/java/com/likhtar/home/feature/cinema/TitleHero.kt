@@ -6,6 +6,7 @@ import java.util.Locale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -95,7 +96,7 @@ internal fun PosterHead(
     onLocal: () -> Unit = {},
 ) {
     val item = details.item
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
     ) {
@@ -248,12 +249,14 @@ internal fun PosterHead(
         }
 
         // Друга сцена визирає знизу (.scene2: padding 40 px, вкладки, лінія, наступна серія).
-        // Нефокусоване: це вид, ↓ відкриває сцену цілком.
+        // Нефокусоване: це вид, ↓ відкриває сцену цілком. Відступ — від низу екрана, як і в
+        // колонки вище: при щільності 240 екран «вищий» (720 dp), і фіксовані 460 від верху
+        // клали вкладки й кадр серії поверх опису й кнопок (ATV9, 1080p).
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxWidth()
-                .offset(y = 460.dp),
+                .offset(y = maxHeight - 80.dp),
         ) {
             ProtoTabsRow(
                 tabs = titleTabs(details),

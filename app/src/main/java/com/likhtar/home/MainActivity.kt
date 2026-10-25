@@ -1,5 +1,6 @@
 package com.likhtar.home
 
+import androidx.compose.runtime.remember
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import com.likhtar.home.core.model.LikhtarSection
@@ -23,6 +24,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class MainActivity : ComponentActivity() {
 
     companion object {
+        /** Ширина екрана в dp, під яку зверстано лаунчер (як у AppLanguage). */
+        private const val DESIGN_WIDTH_DP = 960f
         /** Кнопка пульта → розділ LIKHTAR (маршрут [com.likhtar.home.core.model.LikhtarSection]). */
         const val EXTRA_SECTION = "likhtar.section"
 
@@ -124,8 +127,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(null)
         intent?.openRequest()?.let(openRequests::trySend)
         setContent {
-            LikhtarTheme {
-                LikhtarApp(homeRequests = homeRequests, openRequests = openRequests.receiveAsFlow(), interactions = interactions)
+            // Масштаб 960 dp — і тут, а не лише в контексті (AppLanguage.wrap): коли приставка
+            // міняє роздільність на ходу, активність не перестворюється (configChanges), і система
+            // повертає свою щільність. Ширина з поточної конфігурації — перераховується разом із нею.
+            val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+            val metrics = remember(configuration) { resources.displayMetrics }
+            val scale = maxOf(metrics.widthPixels, metrics.heightPixels) / DESIGN_WIDTH_DP
+            val base = androidx.compose.ui.platform.LocalDensity.current
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(scale, base.fontScale),
+            ) {
+                LikhtarTheme {
+                    LikhtarApp(homeRequests = homeRequests, openRequests = openRequests.receiveAsFlow(), interactions = interactions)
+                }
             }
         }
     }

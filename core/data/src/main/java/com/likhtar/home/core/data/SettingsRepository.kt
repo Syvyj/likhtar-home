@@ -92,6 +92,8 @@ data class LikhtarSettings(
     val onlyMyApps: Boolean = false,
     /** Сервіси, яких людина не хоче бачити в Кінозалі: ні плитки, ні їхніх рядів (ключі StreamingService). */
     val hiddenServices: Set<String> = emptySet(),
+    /** Розділи, прибрані з доку Головної (маршрути LikhtarSection); меню вгорі їх лишає. */
+    val hiddenDockSections: Set<String> = emptySet(),
     /**
      * Мова й країна контенту (майстер першого запуску): мова назв і описів TMDB,
      * країна — сервіси, топи, провайдери, вікові рейтинги. Порожньо — не вибрано, беремо
@@ -242,6 +244,7 @@ class SettingsRepository @Inject constructor(
             showAnime = prefs[KEY_SHOW_ANIME] ?: false,
             onlyMyApps = prefs[KEY_ONLY_MY_APPS] ?: false,
             hiddenServices = prefs[KEY_HIDDEN_SERVICES].orEmpty(),
+            hiddenDockSections = prefs[KEY_HIDDEN_DOCK].orEmpty(),
             contentLanguage = prefs[KEY_CONTENT_LANGUAGE].orEmpty(),
             contentCountry = prefs[KEY_CONTENT_COUNTRY].orEmpty(),
             showWithoutUaAudio = prefs[KEY_SHOW_WITHOUT_UA] ?: true,
@@ -411,6 +414,13 @@ class SettingsRepository @Inject constructor(
         context.settingsDataStore.edit { prefs -> prefs[KEY_HIDE_WATCHED] = hide }
     }
 
+    suspend fun toggleDockSection(route: String) {
+        context.settingsDataStore.edit { prefs ->
+            val hidden = prefs[KEY_HIDDEN_DOCK].orEmpty()
+            prefs[KEY_HIDDEN_DOCK] = if (route in hidden) hidden - route else hidden + route
+        }
+    }
+
     suspend fun toggleHiddenService(key: String) {
         context.settingsDataStore.edit { prefs ->
             val hidden = prefs[KEY_HIDDEN_SERVICES].orEmpty()
@@ -482,6 +492,7 @@ class SettingsRepository @Inject constructor(
         val KEY_SHOW_ANIME = booleanPreferencesKey("show_anime")
         val KEY_ONLY_MY_APPS = booleanPreferencesKey("only_my_apps")
         val KEY_HIDDEN_SERVICES = stringSetPreferencesKey("hidden_services")
+        val KEY_HIDDEN_DOCK = stringSetPreferencesKey("hidden_dock_sections")
         val KEY_CONTENT_LANGUAGE = stringPreferencesKey("content_language")
         val KEY_CONTENT_COUNTRY = stringPreferencesKey("content_country")
         val KEY_SHOW_WITHOUT_UA = booleanPreferencesKey("show_without_ua_audio")

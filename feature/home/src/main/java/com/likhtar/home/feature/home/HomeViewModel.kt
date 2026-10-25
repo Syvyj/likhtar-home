@@ -278,7 +278,8 @@ class HomeViewModel @Inject constructor(
                 weather = core.weather,
                 showWeather = core.showWeather,
                 tiles = tiles()
-                    .filter { it.section != LikhtarSection.SMART_HOME || core.smartHomeEnabled },
+                    .filter { it.section != LikhtarSection.SMART_HOME || core.smartHomeEnabled }
+                    .filter { it.section.route !in core.settings.hiddenDockSections },
                 pinnedApps = appsRow(core.dockApps, context.recentApps, core.settings),
                 resume = listOfNotNull(sources.arrival) + sources.watching,
                 realityResume = sources.shows,
@@ -349,8 +350,9 @@ class HomeViewModel @Inject constructor(
         add(HomeTile(LikhtarSection.LIVE_TV, ACCENT_CYAN, labelRes = R.string.home_tile_live_tv))
         add(HomeTile(LikhtarSection.REALITY, ACCENT_PINK))
         add(HomeTile(LikhtarSection.SMART_HOME, ACCENT_MINT))
-        // Лупа в доці — той самий розділ, що «Ліхтарик» у меню, тож і назва та сама.
-        add(HomeTile(LikhtarSection.SEARCH, ACCENT_VIOLET))
+        // Лупа в доці відкриває розділ одразу на полі пошуку, тож і зветься «Пошук»: «Ліхтарик»
+        // уже є в ряду над LIKHTAR HOME, і дві однакові кнопки плутали.
+        add(HomeTile(LikhtarSection.SEARCH, ACCENT_VIOLET, labelRes = R.string.home_tile_search))
         add(HomeTile(LikhtarSection.APPS, ACCENT_BLUE))
     }
 

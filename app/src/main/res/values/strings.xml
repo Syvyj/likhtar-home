@@ -28,6 +28,8 @@
     <string name="drop_received">Received “%1$s”</string>
     <string name="drop_watch">Watch</string>
     <string name="drop_install">Install</string>
+    <string name="drop_use_playlist">Use as Live TV playlist</string>
+    <string name="drop_playlist_done">Playlist set — channels are in Live TV</string>
     <string name="drop_saved">Saved to %1$s</string>
     <string name="drop_open_link">Open</string>
     <string name="drop_close">Close</string>

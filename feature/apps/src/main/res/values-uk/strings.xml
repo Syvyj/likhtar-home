@@ -7,6 +7,8 @@
         <item quantity="other">%d шт.</item>
     </plurals>
     <string name="apps_section_recent">Нещодавні</string>
+    <string name="apps_all">Усі застосунки</string>
+    <string name="apps_by_groups">Групами</string>
     <string name="apps_section_hidden">Приховані</string>
     <string name="apps_tag_cinema">Кінозал</string>
     <string name="apps_tag_live_tv">ТВ Ефір</string>
