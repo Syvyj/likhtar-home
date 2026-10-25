@@ -339,6 +339,7 @@
     <string name="settings_tv_takeover_title">Right on the TV, no computer</string>
     <string name="settings_tv_takeover_audience">Google TV and Android TV · recommended</string>
     <string name="settings_tv_takeover_steps">1. Settings → System → About → press “Android TV OS build” 7 times.\n2. Settings → System → Developer options → turn on “USB debugging”.\n3. Press the button below; when the TV asks “Allow USB debugging?”, tick “Always allow” and press OK.\nThe stock home screen is turned off, not removed: one button brings it back.</string>
+    <string name="settings_tv_takeover_before_uninstall">Important: the stock home screen will be switched off. To uninstall Likhtar later, first press Settings → Remote and startup → Bring back the stock home screen — otherwise the TV is left without a home screen.</string>
     <string name="settings_tv_takeover_button">Make it the home screen</string>
     <string name="settings_tv_takeover_working">Working…</string>
     <string name="settings_tv_takeover_approve">On the screen: “Allow USB debugging?” — tick “Always allow” and press OK.</string>

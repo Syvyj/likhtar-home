@@ -340,6 +340,9 @@ private fun TvTakeoverStep(repository: HomeLauncherRepository, onChanged: () -> 
     var phase by remember { mutableStateOf(TvPhase.IDLE) }
     var problem by remember { mutableStateOf<HomeTakeover.Problem?>(null) }
     Text(text = stringResource(R.string.settings_tv_takeover_steps), style = LikhtarType.Body2, color = LikhtarColors.TextTertiary)
+    // Як потім видаляти — до згоди, а не після: стоковий екран вимикається, і видалений без
+    // «Повернути» Ліхтар лишає телевізор із чорним екраном.
+    Text(text = stringResource(R.string.settings_tv_takeover_before_uninstall), style = LikhtarType.Label, color = LikhtarColors.AccentBright)
     ActionButton(
         text = stringResource(if (phase == TvPhase.IDLE) R.string.settings_tv_takeover_button else R.string.settings_tv_takeover_working),
         onClick = {

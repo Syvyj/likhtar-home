@@ -339,6 +339,7 @@
     <string name="settings_tv_takeover_title">Na telewizorze, bez komputera</string>
     <string name="settings_tv_takeover_audience">Google TV i Android TV · zalecane</string>
     <string name="settings_tv_takeover_steps">1. Ustawienia → System → Informacje → naciśnij 7 razy „Kompilacja systemu Android TV”.\n2. Ustawienia → System → Opcje programisty → włącz „Debugowanie USB”.\n3. Naciśnij przycisk poniżej; gdy telewizor zapyta „Zezwolić na debugowanie USB?”, zaznacz „Zawsze zezwalaj” i naciśnij OK.\nFabryczny ekran główny jest wyłączany, nie usuwany: jeden przycisk go przywraca.</string>
+    <string name="settings_tv_takeover_before_uninstall">Ważne: fabryczny ekran główny zostanie wyłączony. Aby później odinstalować Likhtar, najpierw naciśnij Ustawienia → Pilot i uruchamianie → Przywróć fabryczny ekran główny — inaczej telewizor zostanie bez ekranu głównego.</string>
     <string name="settings_tv_takeover_button">Ustaw jako ekran główny</string>
     <string name="settings_tv_takeover_working">Chwileczkę…</string>
     <string name="settings_tv_takeover_approve">Na ekranie — „Zezwolić na debugowanie USB?”: zaznacz „Zawsze zezwalaj” i naciśnij OK.</string>

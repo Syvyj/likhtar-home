@@ -339,6 +339,7 @@
     <string name="settings_tv_takeover_title">Прямо з телевізора, без комп\'ютера</string>
     <string name="settings_tv_takeover_audience">Google TV і Android TV · рекомендовано</string>
     <string name="settings_tv_takeover_steps">1. Налаштування → Система → Про пристрій → 7 разів натисніть «Збірка ОС Android TV».\n2. Налаштування → Система → Параметри розробника → увімкніть «Налагодження USB».\n3. Натисніть кнопку нижче; на запит «Дозволити налагодження USB?» позначте «Завжди дозволяти» і натисніть OK.\nСтоковий домашній екран вимикається, а не видаляється: одна кнопка повертає його.</string>
+    <string name="settings_tv_takeover_before_uninstall">Важливо: стоковий домашній екран буде вимкнено. Щоб потім видалити Likhtar, спершу натисніть Налаштування → Пульт і запуск → Повернути стоковий домашній екран — інакше телевізор лишиться без домашнього екрана.</string>
     <string name="settings_tv_takeover_button">Зробити домашнім</string>
     <string name="settings_tv_takeover_working">Зачекайте…</string>
     <string name="settings_tv_takeover_approve">На екрані — «Дозволити налагодження USB?»: позначте «Завжди дозволяти» і натисніть OK.</string>
