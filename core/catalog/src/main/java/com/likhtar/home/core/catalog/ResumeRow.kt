@@ -1,5 +1,7 @@
 package com.likhtar.home.core.catalog
 
+import com.likhtar.home.core.catalog.media.LibraryResume
+import com.likhtar.home.core.catalog.media.MediaLibrary
 import android.content.Context
 import com.likhtar.home.core.data.AppsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -59,6 +61,8 @@ fun resumeCards(
     services: List<ServiceResume> = emptyList(),
     /** Підпис картки нашої позиції — [ContinueItem.episodeLabel] мовою інтерфейсу. */
     subtitle: (ContinueItem) -> String,
+    /** Недодивлене на сервері медіатеки (Jellyfin) — веде на сторінку тайтла. */
+    library: List<LibraryResume> = emptyList(),
 ): List<ResumeCard> {
     // Одна шкала часу на обидва джерела: сервер виводить, коли дивились у MEGOGO, з того,
     // як міняється його порядок. Раніше тут було чергування «наше, MEGOGO, наше» — дат
@@ -66,7 +70,11 @@ fun resumeCards(
     // Шоу й матчі MEGOGO — у ряд реаліті (showResumeCards), як і наші.
     val ours = watching.distinctBy { it.title to subtitle(it) }.map { it.updatedAt to it.card(LikhtarSection.CINEMA, subtitle(it)) }
     val theirs = services.filterNot { it.show }.map { it.updatedAt to it.card(LikhtarSection.CINEMA) }
-    return byTime(ours + theirs)
+    // Тайтл, який уже є в нашій історії, другою карткою не дублюємо.
+    val known = watching.map { it.tmdbId to it.kind }.toSet()
+    val shelf = library.filterNot { (it.item.tmdbId to it.item.kind) in known }.distinctBy { it.item.id }
+        .map { it.playedAt to it.card() }
+    return byTime(ours + theirs + shelf)
 }
 
 /** Стабільно, від найсвіжішого: позиції MEGOGO без часу (0) — у хвості, у його ж порядку. */
@@ -80,6 +88,15 @@ private fun ContinueItem.card(section: LikhtarSection, subtitle: String) = Resum
     imageUrl = TmdbImages.backdropThumb(backdropPath) ?: TmdbImages.poster(posterPath),
     logoUrl = TmdbImages.logo(logoPath),
     continueItem = this,
+)
+
+private fun LibraryResume.card() = ResumeCard(
+    title = item.title,
+    subtitle = if (file.season > 0) String.format(java.util.Locale.US, "S%02dE%02d", file.season, file.episode) else item.year.take(4),
+    progress = progress,
+    section = LikhtarSection.CINEMA,
+    imageUrl = TmdbImages.backdropThumb(item.backdropPath) ?: TmdbImages.poster(item.posterPath),
+    openTitle = item,
 )
 
 private fun ShowContinue.card() = ResumeCard(
@@ -120,13 +137,14 @@ class ResumeRows @Inject constructor(
     private val showProgress: ShowProgressRepository,
     private val services: ServiceContinueRepository,
     private val apps: AppWatchNext,
+    private val media: MediaLibrary,
 ) {
     /** Чужі застосунки: MEGOGO з акаунта + системний WatchNext (Netflix, YouTube…). */
     private suspend fun megogo() = runCatching { services.megogo() }.getOrDefault(emptyList()) +
         runCatching { apps.programs() }.getOrDefault(emptyList())
 
     suspend fun cinema(limit: Int = ROW_MAX): List<ResumeCard> =
-        resumeCards(watchProgress.continueWatching(limit, kind = "cinema"), megogo(), ::label)
+        resumeCards(watchProgress.continueWatching(limit, kind = "cinema"), megogo(), ::label, runCatching { media.resume() }.getOrDefault(emptyList()))
 
     private fun label(item: ContinueItem) = item.episodeLabel(context)
 

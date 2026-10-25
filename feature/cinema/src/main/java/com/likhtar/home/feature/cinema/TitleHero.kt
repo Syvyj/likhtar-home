@@ -182,6 +182,11 @@ internal fun PosterHead(
                 // немає, і сторінка стояла зовсім без фокуса — пульт нічого не робив.
                 var firstTaken = false
                 fun first(): Modifier = if (firstTaken) Modifier else Modifier.focusRequester(playFocus).also { firstTaken = true }
+                // Свій файл (медіатека, Jellyfin) — і там, де групи «Дивитись» немає (публічна збірка):
+                // інакше кнопка жила лише поруч із «Дивитись» і в публічній збірці не з'являлась.
+                if (localLabel != null && TitleActions.PLAY !in actionsOrder) {
+                    ProtoButton(label = localLabel, onClick = onLocal, icon = DsR.drawable.ic_solar_folder, modifier = first())
+                }
                 actionsOrder.forEach { group ->
                     when (group) {
                         TitleActions.PLAY -> {

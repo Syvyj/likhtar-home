@@ -60,7 +60,8 @@ living room that shows you the way to tonight's film and then gets out of the wa
 | ![Apps](docs/screenshots/1920x1080/11-apps.png) | **Your apps, sorted for you.** Grouped automatically, with what's new inside each service shown right on the tile. Hide, pin or lock any app with a PIN. |
 | ![From your phone](docs/screenshots/1920x1080/15-from-phone-qr.png) | **Settings from your phone.** Scan a QR code and type long addresses, keys and passwords on your phone instead of hunting letters with the remote. |
 
-Also inside: a **media library** for your own DLNA servers and SMB shares, weather on the home
+Also inside: a **media library** for your **Jellyfin** and **Plex** servers (Continue watching and
+watched marks stay in sync both ways), DLNA servers and SMB shares, weather on the home
 screen, idle-mode wallpapers, profiles with PIN locks, and remote-key remapping.
 
 ## Bring your own AI (optional)

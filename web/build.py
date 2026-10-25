@@ -60,4 +60,23 @@ def write(out, text):
 template = open(os.path.join(HERE, "src/page.html"), encoding="utf-8").read()
 write("index.html", render(template, "en"))
 write("uk/index.html", render(template, "uk"))
-write("robots.txt", "User-agent: *\nAllow: /\n")
+write("robots.txt", "User-agent: *\nAllow: /\n\nSitemap: https://likhtar.syvyj.dev/sitemap.xml\n")
+
+# Дві мовні сторінки, кожна з посиланням на сестру — так пошуковик не вважає їх дублями.
+ALTS = "".join(
+    f'\n    <xhtml:link rel="alternate" hreflang="{l}" href="https://likhtar.syvyj.dev/{p}"/>'
+    for l, p in (("en", ""), ("uk", "uk/"), ("x-default", ""))
+)
+write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n'
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
+      + "".join(f"  <url>\n    <loc>https://likhtar.syvyj.dev/{p}</loc>{ALTS}\n  </url>\n" for p in ("", "uk/"))
+      + "</urlset>\n")
+
+# /favicon.ico браузери просять самі, без <link>. ICO з PNG усередині — один заголовок
+# над готовою іконкою 32×32.
+png = open(os.path.join(HERE, "assets/icon-32.png"), "rb").read()
+ico = (0).to_bytes(2, "little") + (1).to_bytes(2, "little") + (1).to_bytes(2, "little") \
+    + bytes([32, 32, 0, 0]) + (1).to_bytes(2, "little") + (32).to_bytes(2, "little") \
+    + len(png).to_bytes(4, "little") + (22).to_bytes(4, "little") + png
+open(os.path.join(HERE, "favicon.ico"), "wb").write(ico)
+print("wrote favicon.ico")

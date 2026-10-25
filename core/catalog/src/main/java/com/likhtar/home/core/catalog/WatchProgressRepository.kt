@@ -430,9 +430,6 @@ class WatchProgressRepository @Inject constructor(
 
     private companion object {
         const val TAG = "LikhtarProgress"
-
-        /** Після цієї частки вважаємо, що додивились: далі йдуть титри. */
-        const val FINISHED_FRACTION = 0.92
         const val TIMEOUT_MS = 10_000
         const val LIMIT = 20
 
@@ -468,3 +465,6 @@ internal fun airDate(iso: String, locale: java.util.Locale = java.util.Locale.ge
     }.getOrNull() ?: return null
     return java.text.SimpleDateFormat("d MMM", locale).format(date)
 }
+
+/** Після цієї частки вважаємо, що додивились: далі йдуть титри. */
+internal const val FINISHED_FRACTION = 0.92

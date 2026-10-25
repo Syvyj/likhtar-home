@@ -182,6 +182,11 @@ class SettingsPhoneLink @Inject constructor(
                 else { media.add(source); media.rescan(); saved += str(R.string.settings_media_add_smb) }
             }
         }
+        f["jf"]?.takeIf { it.isNotEmpty() }?.let { address ->
+            media.loginJellyfin(address, f["jf_user"].orEmpty(), f["jf_password"].orEmpty())
+                .onSuccess { media.add(it); media.rescan(); saved += str(R.string.settings_media_add_jellyfin) }
+                .onFailure { problems += str(R.string.settings_media_jellyfin_failed, it.message ?: it.javaClass.simpleName) }
+        }
         val haUrl = f["ha_url"].orEmpty()
         val haToken = f["ha_token"].orEmpty()
         if (haUrl.isNotEmpty() || haToken.isNotEmpty()) {
@@ -270,6 +275,9 @@ class SettingsPhoneLink @Inject constructor(
                 field("smb", str(R.string.settings_media_smb_address), extra = " placeholder=\"${str(R.string.settings_media_smb_address_hint)}\"") +
                 field("smb_user", str(R.string.settings_media_smb_user)) +
                 field("smb_password", str(R.string.settings_media_smb_password), type = "password") +
+                field("jf", str(R.string.settings_media_jellyfin_address), extra = " placeholder=\"${str(R.string.settings_media_jellyfin_address_hint)}\" inputmode=\"url\"") +
+                field("jf_user", str(R.string.settings_media_jellyfin_user)) +
+                field("jf_password", str(R.string.settings_media_jellyfin_password), type = "password") +
                 "<h2>Home Assistant</h2>" +
                 "<a class=\"btn\" href=\"ha\">${str(R.string.settings_phone_ha_login)}</a>" +
                 field("ha_url", str(R.string.settings_address), s.smartHomeUrl, " inputmode=\"url\"") +

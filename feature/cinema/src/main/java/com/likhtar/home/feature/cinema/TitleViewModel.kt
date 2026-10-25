@@ -236,9 +236,11 @@ class TitleViewModel @Inject constructor(
                     uri = url,
                     mime = "video/*",
                     packageName = settings.settings.first().videoPlayerPackage,
-                    resumeMs = progress.positionOf(item.tmdbId, item.kind, season, episode),
+                    // Jellyfin знає, де зупинились і на інших пристроях; мовчить — своя позиція.
+                    resumeMs = media.serverPosition(file) ?: progress.positionOf(item.tmdbId, item.kind, season, episode),
                     title = PlayingTitle(item = item, season = season, episode = episode),
                     source = com.likhtar.home.core.catalog.PlaybackController.LOCAL_SOURCE,
+                    ref = media.refFor(file).orEmpty(),
                 ),
             )
             if (!launched) state.update { it.copy(message = context.getString(R.string.cinema_player_open_failed)) }
@@ -1133,6 +1135,7 @@ class TitleViewModel @Inject constructor(
                 return@launch
             }
             state.update { it.copy(mark = saved, message = markMessage(context, saved)) }
+            if (mark == "watched" && season == 0) media.setPlayed(item, true)
             refreshResume(item)
         }
     }
@@ -1146,6 +1149,7 @@ class TitleViewModel @Inject constructor(
                 return@launch
             }
             state.update { it.copy(mark = null, message = context.getString(R.string.cinema_mark_cleared)) }
+            media.setPlayed(item, false)
             refreshResume(item)
         }
     }

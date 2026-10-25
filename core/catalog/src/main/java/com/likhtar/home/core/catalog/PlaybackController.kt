@@ -103,6 +103,7 @@ class PlaybackController @Inject constructor(
     private val config: CatalogConfig,
     private val settings: com.likhtar.home.core.data.SettingsRepository,
     private val history: com.likhtar.home.core.data.RecentHistoryRepository,
+    private val media: com.likhtar.home.core.catalog.media.MediaLibrary,
 ) {
     /**
      * Що плеєр має знати про нас для «Паузи, що знає»: адреса сервера й профіль. Just+ сам
@@ -254,6 +255,10 @@ class PlaybackController @Inject constructor(
             positionMs = positionMs,
             durationMs = durationMs,
         )
+        // Файл із Jellyfin чи Plex: позиція й «переглянуто» — і на сервер, щоб інші клієнти знали.
+        if (playingRef.startsWith(com.likhtar.home.core.catalog.media.MediaLibrary.SERVER_REF)) {
+            media.reportClosed(playingRef, positionMs, durationMs, FINISHED_FRACTION)
+        }
         // Сервер сам пише кожен ЗАПУСК, але не знає, чи з нього щось вийшло. Ось той
         // єдиний момент, коли ми це знаємо напевно: плеєр повернувся з позицією.
         progress.reportAttempt(

@@ -37,7 +37,9 @@ import org.json.JSONObject
 
 /**
  * Джерело медіатеки. DLNA: [address] — опис пристрою (location). SMB: `smb://host/share/шлях`,
- * [user] порожній — гостьовий вхід.
+ * [user] порожній — гостьовий вхід. JELLYFIN: [address] — сервер, [user] — id користувача,
+ * [password] — токен входу ([Jellyfin]). PLEX: [address] — сервер, [password] — токен
+ * (порожній, коли сервер пускає без входу) ([Plex]).
  *
  * ponytail: пароль SMB лежить у приватному DataStore лаунчера відкритим текстом — як і токен
  * Home Assistant; шифрувати, коли з'явиться спільне сховище секретів.
@@ -50,10 +52,15 @@ data class MediaSource(
     val user: String = "",
     val password: String = "",
 ) {
-    enum class Kind { DLNA, SMB }
+    enum class Kind { DLNA, SMB, JELLYFIN, PLEX }
 }
 
-/** Файл медіатеки. [url] — пряме посилання DLNA; для SMB порожній (див. [MediaLibrary.playUrl]). */
+/**
+ * Файл медіатеки. [url] — пряме посилання DLNA; для SMB і Jellyfin порожній, для Plex — шлях
+ * частини файлу на сервері (див. [MediaLibrary.playUrl]). На медіасервері [path] — id запису.
+ * [tmdbId] відомий наперед, коли сервер сам знає, що це за фільм (Jellyfin, Plex), — тоді назву
+ * з імені файлу не вгадуємо.
+ */
 data class LocalFile(
     val sourceId: String,
     val path: String,
@@ -64,7 +71,14 @@ data class LocalFile(
     val episode: Int = 0,
     /** Назва джерела — показати, звідки файл, коли однакові лежать у двох місцях. */
     val sourceName: String = "",
+    val tmdbId: Int = 0,
+    val tv: Boolean = false,
+    /** Сервер каже, що переглянуто (Jellyfin, Plex); на час скану. */
+    val played: Boolean = false,
 )
+
+/** Недодивлене на сервері медіатеки: що, з якого файлу, скільки пройдено (0–1) і коли дивились. */
+data class LibraryResume(val item: CatalogItem, val file: LocalFile, val progress: Float, val playedAt: Long)
 
 /** Фільм чи серіал із TMDB, для якого в медіатеці є файли. */
 data class LocalTitle(val item: CatalogItem, val files: List<LocalFile>)
@@ -91,11 +105,14 @@ private val KEY_SOURCES = stringPreferencesKey("sources")
 class MediaLibrary @Inject constructor(
     @ApplicationContext private val context: Context,
     private val tmdb: TmdbClient,
+    private val marks: com.likhtar.home.core.catalog.TitleMarksRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val indexFile = File(context.filesDir, "media_library.json")
     private val scanLock = Mutex()
     private val smb = ConcurrentHashMap<String, SmbAccess>()
+    /** Джерела-медіасервери (Jellyfin, Plex) за id: з них грає й синхронізує [MediaServer]. */
+    private val servers = ConcurrentHashMap<String, MediaSource>()
     private val stream = LocalStream { id -> smb[id] }
 
     private val _state = MutableStateFlow(LibraryState())
@@ -139,6 +156,7 @@ class MediaLibrary @Inject constructor(
     suspend fun remove(id: String) {
         context.mediaStore.edit { prefs -> prefs[KEY_SOURCES] = Secrets.seal(encodeSources(decodeSources(Secrets.open(prefs[KEY_SOURCES])).filterNot { it.id == id })) }
         smb.remove(id)?.close()
+        servers.remove(id)
         _state.update { s ->
             val titles = s.titles.mapNotNull { t -> t.copy(files = t.files.filterNot { it.sourceId == id }).takeIf { it.files.isNotEmpty() } }
             val other = s.other.filterNot { it.sourceId == id }
@@ -154,11 +172,91 @@ class MediaLibrary @Inject constructor(
 
     fun newId(): String = UUID.randomUUID().toString().take(8)
 
+    /** Увійти на сервер Jellyfin: готове джерело або текст помилки. */
+    suspend fun loginJellyfin(address: String, user: String, password: String): Result<MediaSource> = withContext(Dispatchers.IO) {
+        runCatching {
+            val id = newId()
+            val login = Jellyfin.login(address, user, password, id)
+            MediaSource(id, MediaSource.Kind.JELLYFIN, login.serverName, MediaServer.normalize(address), login.userId, login.token)
+        }
+    }
+
+    /** Код для plex.tv/link; [clientId] — той самий і для [waitPlex]. */
+    suspend fun plexPin(clientId: String): Result<PlexPin> = withContext(Dispatchers.IO) { runCatching { Plex.createPin(clientId) } }
+
+    /**
+     * Чекати, поки людина введе код, — і сервери її акаунта готовими джерелами. Код живе
+     * 15 хвилин; стільки й чекаємо, питаючи раз на дві секунди.
+     */
+    suspend fun waitPlex(clientId: String, pin: PlexPin): Result<List<MediaSource>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val deadline = System.currentTimeMillis() + PLEX_PIN_MS
+            var token: String? = null
+            while (token == null) {
+                if (System.currentTimeMillis() > deadline) error("код застарів — спробуйте ще раз")
+                delay(PLEX_POLL_MS)
+                token = Plex.pinToken(clientId, pin)
+            }
+            Plex.servers(clientId, token).ifEmpty { error("в акаунті немає серверів Plex") }
+                .map { MediaSource(newId(), MediaSource.Kind.PLEX, it.name, it.address, "", it.token) }
+        }
+    }
+
+    /** Сервер Plex просто адресою — для того, що пускає з домашньої мережі без входу. */
+    suspend fun plexByAddress(address: String): Result<MediaSource> = withContext(Dispatchers.IO) {
+        runCatching { Plex.direct(address).let { MediaSource(newId(), MediaSource.Kind.PLEX, it.name, it.address, "", it.token) } }
+    }
+
     /** Посилання для плеєра; `null` — джерело вже прибрали. */
     fun playUrl(file: LocalFile): String? = when {
+        servers.containsKey(file.sourceId) -> servers.getValue(file.sourceId).let { serverOf(it).streamUrl(it, file) }
         file.url.isNotBlank() -> file.url
         smb.containsKey(file.sourceId) -> stream.urlFor(file.sourceId, file.path, file.name)
         else -> null
+    }
+
+    /** Мітка сеансу для [com.likhtar.home.core.catalog.PlayRequest.ref]: файл із медіасервера — його запис; інакше `null`. */
+    fun refFor(file: LocalFile): String? = file.takeIf { servers.containsKey(it.sourceId) }?.let { "$SERVER_REF${it.sourceId}:${it.path}" }
+
+    /** Де зупинились на сервері; `null` — не медіасервер або сервер мовчить (тоді — своя позиція). */
+    suspend fun serverPosition(file: LocalFile): Long? = withContext(Dispatchers.IO) {
+        val source = servers[file.sourceId] ?: return@withContext null
+        runCatching { serverOf(source).position(source, file.path) }.onFailure { Log.w(TAG, "позиція ${source.name}", it) }.getOrNull()
+    }
+
+    /**
+     * Плеєр закрився на файлі з медіасервера ([ref] з [refFor]): позиція — на сервер, а
+     * додивлене (той самий поріг, що й у своїй історії) — переглянутим.
+     */
+    suspend fun reportClosed(ref: String, positionMs: Long, durationMs: Long, finishedFraction: Double) = withContext(Dispatchers.IO) {
+        val (sourceId, itemId) = ref.removePrefix(SERVER_REF).split(':', limit = 2).takeIf { it.size == 2 } ?: return@withContext
+        val source = servers[sourceId] ?: return@withContext
+        val server = serverOf(source)
+        runCatching {
+            server.reportStopped(source, itemId, positionMs)
+            if (durationMs > 0 && positionMs >= durationMs * finishedFraction) server.setPlayed(source, itemId, true)
+        }.onFailure { Log.w(TAG, "звіт ${source.name}", it) }
+    }
+
+    /** Позначка «Переглянуто» в лаунчері — і на сервері: усі файли цієї назви з медіасерверів. */
+    suspend fun setPlayed(item: CatalogItem, played: Boolean) = withContext(Dispatchers.IO) {
+        for (file in filesFor(item)) {
+            val source = servers[file.sourceId] ?: continue
+            runCatching { serverOf(source).setPlayed(source, file.path, played) }.onFailure { Log.w(TAG, "переглянуто в ${source.name}", it) }
+        }
+    }
+
+    /** Недодивлене з усіх медіасерверів — для ряду «Продовжити»; лише те, що є в медіатеці. */
+    suspend fun resume(): List<LibraryResume> = withContext(Dispatchers.IO) {
+        val byId = state.value.titles.flatMap { t -> t.files.map { (it.sourceId to it.path) to (t.item to it) } }.toMap()
+        servers.values.flatMap { source ->
+            runCatching { serverOf(source).resume(source) }.onFailure { Log.w(TAG, "продовжити з ${source.name}", it) }
+                .getOrDefault(emptyList()).map { source.id to it }
+        }.mapNotNull { (sourceId, r) ->
+            val (item, file) = byId[sourceId to r.itemId] ?: return@mapNotNull null
+            val progress = if (r.runtimeMs > 0) (r.positionMs.toFloat() / r.runtimeMs).coerceIn(0f, 1f) else 0f
+            LibraryResume(item, file, progress, r.playedAt)
+        }
     }
 
     /** Файли цієї назви, серії — по порядку. */
@@ -189,15 +287,33 @@ class MediaLibrary @Inject constructor(
         )
         _state.value = done
         save()
+        markPlayedMovies(titles)
+    }
+
+    /**
+     * Фільм, переглянутий на медіасервері, — «Переглянуто» й тут, якщо своєї позначки ще немає.
+     * Лише фільми: серіал переглянутий, коли переглянуто все, а цього сервер одним полем не каже.
+     */
+    private suspend fun markPlayedMovies(titles: List<LocalTitle>) {
+        for (t in titles) {
+            if (t.item.kind != TitleKind.MOVIE || t.files.none { it.played }) continue
+            runCatching { if (marks.markOf(t.item) == null) marks.setMark(t.item, "watched") }
+                .onFailure { Log.w(TAG, "позначка з Jellyfin", it) }
+        }
     }
 
     private fun remember(source: MediaSource) {
-        if (source.kind == MediaSource.Kind.SMB) smb[source.id] = SmbAccess(source)
+        when (source.kind) {
+            MediaSource.Kind.SMB -> smb[source.id] = SmbAccess(source)
+            MediaSource.Kind.JELLYFIN, MediaSource.Kind.PLEX -> servers[source.id] = source
+            MediaSource.Kind.DLNA -> Unit
+        }
     }
 
     private fun walk(source: MediaSource): List<LocalFile> = when (source.kind) {
         MediaSource.Kind.SMB -> walkSmb(source)
         MediaSource.Kind.DLNA -> walkDlna(source)
+        MediaSource.Kind.JELLYFIN, MediaSource.Kind.PLEX -> serverOf(source).walk(source)
     }
 
     private fun walkSmb(source: MediaSource): List<LocalFile> {
@@ -239,6 +355,8 @@ class MediaLibrary @Inject constructor(
         return byUrl.values.toList()
     }
 
+    private fun serverOf(source: MediaSource): MediaServer = if (source.kind == MediaSource.Kind.PLEX) Plex else Jellyfin
+
     private fun file(source: MediaSource, path: String, name: String, url: String, size: Long): LocalFile {
         val parsed = MediaNames.parse(path)
         return LocalFile(source.id, path, name, url, size, parsed.season, parsed.episode, source.name)
@@ -246,12 +364,23 @@ class MediaLibrary @Inject constructor(
 
     /** Файли групуються за прочитаною назвою, кожна група — один пошук у TMDB. */
     private suspend fun match(files: List<LocalFile>): Pair<List<LocalTitle>, List<LocalFile>> {
-        val groups = files.groupBy { f ->
+        val titles = LinkedHashMap<String, LocalTitle>()
+        val other = mutableListOf<LocalFile>()
+        val order = compareBy<LocalFile>({ it.season }, { it.episode }, { it.name })
+        // Сервер сам сказав, що це за фільм, — картка за id, без пошуку за назвою.
+        val (known, guessed) = files.partition { it.tmdbId > 0 }
+        for ((key, group) in known.groupBy { it.tmdbId to it.tv }) {
+            val item = runCatching { tmdb.card(key.first, if (key.second) TitleKind.TV else TitleKind.MOVIE) }.getOrNull()
+            if (item == null) {
+                other += group
+                continue
+            }
+            titles.merge(item.id, LocalTitle(item, group.sortedWith(order))) { a, b -> a.copy(files = (a.files + b.files).sortedWith(order)) }
+        }
+        val groups = guessed.groupBy { f ->
             val n = MediaNames.parse(f.path)
             Triple(n.title.lowercase(), n.year, n.isEpisode)
         }
-        val titles = LinkedHashMap<String, LocalTitle>()
-        val other = mutableListOf<LocalFile>()
         for ((key, group) in groups) {
             val (title, year, episodes) = key
             val sample = MediaNames.parse(group.first().path).title
@@ -263,8 +392,7 @@ class MediaLibrary @Inject constructor(
                 other += group
                 continue
             }
-            val sorted = group.sortedWith(compareBy({ it.season }, { it.episode }, { it.name }))
-            titles.merge(item.id, LocalTitle(item, sorted)) { a, b -> a.copy(files = (a.files + b.files).sortedWith(compareBy({ it.season }, { it.episode }, { it.name }))) }
+            titles.merge(item.id, LocalTitle(item, group.sortedWith(order))) { a, b -> a.copy(files = (a.files + b.files).sortedWith(order)) }
         }
         return titles.values.sortedBy { it.item.title } to other.sortedBy { it.path }
     }
@@ -280,6 +408,9 @@ class MediaLibrary @Inject constructor(
 
     companion object {
         private const val TAG = "LikhtarMedia"
+        const val SERVER_REF = "server:"
+        private const val PLEX_PIN_MS = 15 * 60_000L
+        private const val PLEX_POLL_MS = 2_000L
         private const val FIRST_CHECK_MS = 2 * 60_000L
         private const val CHECK_MS = 30 * 60_000L
         /** Індекс старший за 6 годин — пересканувати. */
@@ -337,10 +468,12 @@ class MediaLibrary @Inject constructor(
 
         private fun fileJson(f: LocalFile) = JSONObject().put("source", f.sourceId).put("path", f.path).put("name", f.name)
             .put("url", f.url).put("size", f.size).put("season", f.season).put("episode", f.episode).put("sourceName", f.sourceName)
+            .put("tmdb", f.tmdbId).put("tv", f.tv).put("played", f.played)
 
         private fun fileOf(o: JSONObject) = LocalFile(
             o.optString("source"), o.optString("path"), o.optString("name"), o.optString("url"),
             o.optLong("size"), o.optInt("season"), o.optInt("episode"), o.optString("sourceName"),
+            o.optInt("tmdb"), o.optBoolean("tv"), o.optBoolean("played"),
         )
 
         internal fun encodeIndex(s: LibraryState): String = JSONObject()
