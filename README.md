@@ -18,7 +18,20 @@ Turn on the TV, pick a mood, press OK.
 
 **No ads · no tracking · no account · no root · no computer needed · one button to undo**
 
+<!-- 30-second demo: drop likhtar-promo-en-1x1.mp4 here in the GitHub web editor — it becomes a player. -->
+
 </div>
+
+### What's inside
+
+- 🏮 **Likhtaryk** — pick a format and a mood, get tonight's films without what you've already seen
+- 🎬 **Cinema** — what's new in your country and a page for every streaming service
+- ▶️ **Opens anywhere** — a title opens in the app that has it: Netflix, YouTube or any app you've installed
+- 🗂 **Your Jellyfin & Plex** — your own films on their title pages, *Continue watching* synced both ways
+- 📺 **Live TV** — your own M3U playlist with a programme guide
+- 🏠 **Smart home** — Home Assistant rooms on the big screen, by remote or voice
+- 📱 **Phone as a keyboard** — scan a QR code: long addresses, passwords and files go from phone to TV
+- ✨ **Your own AI** — *"something like Interstellar, but lighter"*, with your key or a local model
 
 | You want to… | Do this |
 |---|---|
