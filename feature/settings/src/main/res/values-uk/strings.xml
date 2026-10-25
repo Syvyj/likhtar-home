@@ -343,6 +343,7 @@
     <string name="settings_tv_takeover_working">Зачекайте…</string>
     <string name="settings_tv_takeover_approve">На екрані — «Дозволити налагодження USB?»: позначте «Завжди дозволяти» і натисніть OK.</string>
     <string name="settings_tv_takeover_revert">Повернути стоковий домашній екран</string>
+    <string name="settings_tv_takeover_uninstall_warning">Видаляєте Likhtar? Спершу натисніть цю кнопку — інакше телевізор лишиться без домашнього екрана.</string>
     <string name="settings_tv_takeover_debugging_off">Налагодження вимкнене — увімкніть «Налагодження USB» (кроки вище).</string>
     <string name="settings_tv_takeover_not_approved">Дозволу не надано. Спробуйте ще раз і виберіть «Завжди дозволяти».</string>
     <string name="settings_tv_takeover_no_response">ADB телевізора не відповів. Спробуйте ще раз.</string>

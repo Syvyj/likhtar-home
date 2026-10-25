@@ -343,6 +343,7 @@
     <string name="settings_tv_takeover_working">Chwileczkę…</string>
     <string name="settings_tv_takeover_approve">Na ekranie — „Zezwolić na debugowanie USB?”: zaznacz „Zawsze zezwalaj” i naciśnij OK.</string>
     <string name="settings_tv_takeover_revert">Przywróć fabryczny ekran główny</string>
+    <string name="settings_tv_takeover_uninstall_warning">Odinstalowujesz Likhtar? Najpierw naciśnij ten przycisk — inaczej telewizor zostanie bez ekranu głównego.</string>
     <string name="settings_tv_takeover_debugging_off">Debugowanie jest wyłączone — włącz „Debugowanie USB” (kroki wyżej).</string>
     <string name="settings_tv_takeover_not_approved">Nie udzielono zgody. Spróbuj ponownie i wybierz „Zawsze zezwalaj”.</string>
     <string name="settings_tv_takeover_no_response">ADB telewizora nie odpowiedział. Spróbuj ponownie.</string>

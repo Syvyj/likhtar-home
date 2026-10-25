@@ -343,6 +343,7 @@
     <string name="settings_tv_takeover_working">Working…</string>
     <string name="settings_tv_takeover_approve">On the screen: “Allow USB debugging?” — tick “Always allow” and press OK.</string>
     <string name="settings_tv_takeover_revert">Bring back the stock home screen</string>
+    <string name="settings_tv_takeover_uninstall_warning">Uninstalling Likhtar? Press this button first — otherwise the TV is left without a home screen.</string>
     <string name="settings_tv_takeover_debugging_off">Debugging is off — turn on “USB debugging” (steps above).</string>
     <string name="settings_tv_takeover_not_approved">Permission wasn’t given. Try again and pick “Always allow”.</string>
     <string name="settings_tv_takeover_no_response">The TV’s ADB didn’t answer. Try again.</string>

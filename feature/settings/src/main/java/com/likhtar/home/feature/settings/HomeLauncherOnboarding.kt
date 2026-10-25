@@ -150,6 +150,14 @@ fun HomeLauncherOnboarding(
             // Домашнім зробили через ADB телевізора — і повернути можна однією кнопкою.
             if (repository.takeover.isActive) {
                 TvRevertButton(repository) { status = repository.status() }
+                // Android не дає застосунку нічого повернути, коли його видаляють: стоковий екран
+                // лишився б вимкненим, і телевізор — з чорним екраном без HOME.
+                Text(
+                    text = stringResource(R.string.settings_tv_takeover_uninstall_warning),
+                    style = LikhtarType.Body2,
+                    color = LikhtarColors.AccentBright,
+                    modifier = Modifier.width(470.dp),
+                )
             } else if (status.currentPackage != null) {
                 // Роль наша, але стоковий лаунчер увімкнений: на Google TV після ввімкнення
                 // він перебиває роль за пріоритетом HOME-фільтра (приставка, 08.2026).

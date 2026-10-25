@@ -125,12 +125,27 @@ Becoming the home screen on Google TV is the scary part, so here is exactly what
 - **A crash safety net.** If Likhtar crashes three times within five minutes, it gives the home screen
   back to the stock launcher by itself.
 
-> ⚠️ **Before uninstalling Likhtar, press *Bring back the stock home screen* first.** If you forgot,
-> restore it from a computer:
-> ```bash
-> adb shell pm enable com.google.android.tungsten.setupwraith
-> adb shell pm enable com.google.android.apps.tv.launcherx
-> ```
+> ⚠️ **Before uninstalling Likhtar, press *Bring back the stock home screen* first.** Android gives an
+> app no chance to undo its changes while it is being removed.
+
+### Uninstalled it and got a black screen?
+
+Nothing is broken: the stock home screen is only switched off, so the TV has no home screen to show.
+Switch it back on in any of these ways:
+
+1. **Without a computer.** Open the TV settings — say *"Open settings"* to the Assistant (the
+   microphone button), or press the ⚙ Settings button if your remote has one. Go to *Apps → See all
+   apps → Show system apps*, open **Google TV Home** and **Google TV Setup** (names vary a little
+   between brands) and press **Enable** on each. Then press HOME or restart the TV.
+2. **From a computer** on the same network — USB debugging is still on:
+   ```bash
+   adb connect <TV address>:5555
+   adb shell pm enable com.google.android.tungsten.setupwraith
+   adb shell pm enable com.google.android.apps.tv.launcherx
+   ```
+   Accept the debugging prompt on the TV if it appears.
+3. **Or put Likhtar back** (`adb install likhtar-home.apk`), open it, press *Bring back the stock home
+   screen*, and only then uninstall it.
 
 ## How it grew
 
