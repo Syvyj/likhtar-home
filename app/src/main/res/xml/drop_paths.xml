@@ -4,4 +4,6 @@
 <paths>
     <external-files-path name="drop" path="Download/Likhtar/" />
     <files-path name="drop_internal" path="downloads/Likhtar/" />
+    <!-- Оновлення лаунчера: APK з GitHub перед встановленням (AppUpdate). -->
+    <cache-path name="updates" path="updates/" />
 </paths>

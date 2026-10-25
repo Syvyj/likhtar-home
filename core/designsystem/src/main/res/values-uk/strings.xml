@@ -4,6 +4,11 @@
     <string name="ds_qr_same_network">Телефон має бути в тій самій мережі. %1$s</string>
     <string name="ds_done">Готово</string>
     <string name="ds_close">Закрити</string>
+    <string name="ds_update_title">Доступна версія %1$s</string>
+    <string name="ds_update_install">Оновити</string>
+    <string name="ds_update_later">Пізніше</string>
+    <string name="ds_update_downloading">Завантаження… %1$d%%</string>
+    <string name="ds_update_failed">Не оновилось: %1$s</string>
     <string name="ds_save">Зберегти</string>
     <string name="ds_cancel">Скасувати</string>
     <string name="ds_clear">Очистити</string>

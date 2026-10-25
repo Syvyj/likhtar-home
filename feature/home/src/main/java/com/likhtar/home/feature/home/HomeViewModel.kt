@@ -86,8 +86,18 @@ class HomeViewModel @Inject constructor(
     private val smartHomeRepository: SmartHomeRepository,
     private val resumeRows: ResumeRows,
     private val watchlist: com.likhtar.home.core.catalog.WatchlistRepository,
+    private val appUpdate: com.likhtar.home.core.data.AppUpdate,
     settingsRepository: SettingsRepository,
 ) : ViewModel() {
+
+    /** Новіша версія з GitHub — пігулкою над LIKHTAR HOME; `null` — оновлювати нічого. */
+    val update = appUpdate.available
+    val updateProgress = appUpdate.progress
+    val updateError = MutableStateFlow<String?>(null)
+
+    fun installUpdate(release: com.likhtar.home.core.data.AppRelease) {
+        viewModelScope.launch { updateError.value = appUpdate.install(release) }
+    }
 
     /** Радар української: тайтл, на який чекали, уже з озвучкою — перша картка «Продовжити». */
     private val uaArrival = MutableStateFlow<ResumeCard?>(null)
@@ -156,6 +166,7 @@ class HomeViewModel @Inject constructor(
      * запити тоді, коли вони справді потрібні, і жодного, поки телевізор стоїть.
      */
     init {
+        viewModelScope.launch { appUpdate.check() }
         // ON_RESUME приходить раніше, ніж прогрес після плеєра доходить до сервера: ряд
         // лишався на старій серії. Перечитуємо, щойно запис закінчено.
         viewModelScope.launch { continuePlayback.saved.collect { refreshResume() } }

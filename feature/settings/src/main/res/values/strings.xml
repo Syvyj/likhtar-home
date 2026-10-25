@@ -340,6 +340,12 @@
     <string name="settings_about_app_group">App</string>
     <string name="settings_about_gpl">Free software under GNU GPL 3.0, with no warranty. OK — license text.</string>
     <string name="settings_about_source">Source code</string>
+    <string name="settings_about_update">Updates</string>
+    <string name="settings_about_update_check">Check</string>
+    <string name="settings_about_update_checking">Checking…</string>
+    <string name="settings_about_update_latest">Latest version</string>
+    <string name="settings_about_update_available">%1$s available</string>
+    <string name="settings_about_update_subtitle">New versions come from GitHub; the TV asks before installing</string>
     <string name="settings_about_components_group">Third-party components</string>
     <string name="settings_about_data_group">Data and images</string>
     <string name="settings_about_data">Film and TV data and images: TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB. Where to watch: JustWatch (via TMDB). Weather: Open-Meteo.com (CC BY 4.0). Wallpapers belong to their authors, credited on screen. Cinema background: “Luxury Movie Theater Seats”, Author0612, Wikimedia Commons, CC BY-SA 4.0.</string>

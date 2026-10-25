@@ -414,7 +414,7 @@ private fun SectionDetail(
                 ConnectionsSection(state, viewModel, editedRowFocusRequester)
                 SmartHomeSection(state, viewModel, editedRowFocusRequester)
             }
-            SettingsSection.ABOUT -> com.likhtar.home.feature.settings.sections.AboutSection()
+            SettingsSection.ABOUT -> com.likhtar.home.feature.settings.sections.AboutSection(viewModel.appUpdate)
         }
 
     }

@@ -340,6 +340,12 @@
     <string name="settings_about_app_group">Застосунок</string>
     <string name="settings_about_gpl">Вільна програма за ліцензією GNU GPL 3.0, без жодних гарантій. OK — текст ліцензії.</string>
     <string name="settings_about_source">Вихідний код</string>
+    <string name="settings_about_update">Оновлення</string>
+    <string name="settings_about_update_check">Перевірити</string>
+    <string name="settings_about_update_checking">Перевіряю…</string>
+    <string name="settings_about_update_latest">Остання версія</string>
+    <string name="settings_about_update_available">Доступна %1$s</string>
+    <string name="settings_about_update_subtitle">Нові версії — з GitHub; телевізор спитає перед встановленням</string>
     <string name="settings_about_components_group">Сторонні компоненти</string>
     <string name="settings_about_data_group">Дані й зображення</string>
     <string name="settings_about_data">Дані й зображення фільмів і серіалів: TMDB. Цей продукт використовує TMDB API, але не схвалений і не сертифікований TMDB. Де дивитись: JustWatch (через TMDB). Погода: Open-Meteo.com (CC BY 4.0). Шпалери належать авторам, підписи — на екрані. Тло Кінозалу: «Luxury Movie Theater Seats», Author0612, Wikimedia Commons, CC BY-SA 4.0.</string>

@@ -67,4 +67,5 @@
         <item>Something with a twist ending</item>
     </string-array>
     <string name="home_support">Support the author</string>
+    <string name="home_update">Update %1$s</string>
 </resources>

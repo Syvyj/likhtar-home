@@ -67,4 +67,5 @@
         <item>Щось із несподіваним фіналом</item>
     </string-array>
     <string name="home_support">Підтримати автора</string>
+    <string name="home_update">Оновлення %1$s</string>
 </resources>

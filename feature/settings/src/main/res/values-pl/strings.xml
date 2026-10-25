@@ -340,6 +340,12 @@
     <string name="settings_about_app_group">Aplikacja</string>
     <string name="settings_about_gpl">Wolne oprogramowanie na licencji GNU GPL 3.0, bez żadnej gwarancji. OK — tekst licencji.</string>
     <string name="settings_about_source">Kod źródłowy</string>
+    <string name="settings_about_update">Aktualizacje</string>
+    <string name="settings_about_update_check">Sprawdź</string>
+    <string name="settings_about_update_checking">Sprawdzam…</string>
+    <string name="settings_about_update_latest">Najnowsza wersja</string>
+    <string name="settings_about_update_available">Dostępna %1$s</string>
+    <string name="settings_about_update_subtitle">Nowe wersje z GitHub; telewizor zapyta przed instalacją</string>
     <string name="settings_about_components_group">Komponenty zewnętrzne</string>
     <string name="settings_about_data_group">Dane i obrazy</string>
     <string name="settings_about_data">Dane i obrazy filmów i seriali: TMDB. Ten produkt korzysta z API TMDB, ale nie jest przez TMDB zatwierdzony ani certyfikowany. Gdzie obejrzeć: JustWatch (przez TMDB). Pogoda: Open-Meteo.com (CC BY 4.0). Tapety należą do autorów, podpisy są na ekranie. Tło Kina: „Luxury Movie Theater Seats”, Author0612, Wikimedia Commons, CC BY-SA 4.0.</string>

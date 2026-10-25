@@ -4,6 +4,11 @@
     <string name="ds_qr_same_network">The phone must be on the same network. %1$s</string>
     <string name="ds_done">Done</string>
     <string name="ds_close">Close</string>
+    <string name="ds_update_title">Version %1$s is available</string>
+    <string name="ds_update_install">Update</string>
+    <string name="ds_update_later">Later</string>
+    <string name="ds_update_downloading">Downloading… %1$d%%</string>
+    <string name="ds_update_failed">Did not update: %1$s</string>
     <string name="ds_save">Save</string>
     <string name="ds_cancel">Cancel</string>
     <string name="ds_clear">Clear</string>

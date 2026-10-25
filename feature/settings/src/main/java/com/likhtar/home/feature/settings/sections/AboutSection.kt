@@ -1,5 +1,7 @@
 package com.likhtar.home.feature.settings.sections
 
+import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -65,7 +67,7 @@ internal const val SOURCE_URL = "https://github.com/Syvyj/likhtar-home"
 // GPL-3.0 вимагає показати ліцензію й відсутність гарантій; Apache, MIT, BSD і OFL — дати
 // текст своєї ліцензії разом із програмою. Тексти лежать в APK, тут їх можна прочитати.
 @Composable
-internal fun AboutSection() {
+internal fun AboutSection(appUpdate: com.likhtar.home.core.data.AppUpdate) {
     val context = LocalContext.current
     var shown by rememberSaveable { mutableStateOf<String?>(null) }
     val version = remember {
@@ -79,6 +81,45 @@ internal fun AboutSection() {
         subtitle = stringResource(R.string.settings_about_gpl),
         onClick = { shown = "gpl-3.0.txt" },
     )
+    // Оновлення з GitHub — лише публічна збірка; особиста ставиться з комп'ютера.
+    if (com.likhtar.home.core.model.Distribution.store) {
+        val scope = androidx.compose.runtime.rememberCoroutineScope()
+        val release by appUpdate.available.collectAsStateWithLifecycle()
+        val progress by appUpdate.progress.collectAsStateWithLifecycle()
+        var checking by remember { mutableStateOf(false) }
+        var checked by remember { mutableStateOf(false) }
+        var dialog by remember { mutableStateOf(false) }
+        var error by remember { mutableStateOf<String?>(null) }
+        ValueRow(
+            text = stringResource(R.string.settings_about_update),
+            value = when {
+                release != null -> stringResource(R.string.settings_about_update_available, release!!.version)
+                checking -> stringResource(R.string.settings_about_update_checking)
+                checked -> stringResource(R.string.settings_about_update_latest)
+                else -> stringResource(R.string.settings_about_update_check)
+            },
+            subtitle = stringResource(R.string.settings_about_update_subtitle),
+            onClick = {
+                if (release != null) dialog = true
+                else if (!checking) scope.launch {
+                    checking = true
+                    dialog = appUpdate.check(force = true)
+                    checking = false
+                    checked = true
+                }
+            },
+        )
+        release?.takeIf { dialog }?.let { r ->
+            com.likhtar.home.core.designsystem.UpdateDialog(
+                version = r.version,
+                notes = r.notes,
+                progress = progress,
+                error = error,
+                onUpdate = { scope.launch { error = appUpdate.install(r) } },
+                onDismiss = { dialog = false },
+            )
+        }
+    }
     if (SOURCE_URL.isNotBlank()) {
         ValueRow(text = stringResource(R.string.settings_about_source), value = SOURCE_URL, onClick = {})
     }

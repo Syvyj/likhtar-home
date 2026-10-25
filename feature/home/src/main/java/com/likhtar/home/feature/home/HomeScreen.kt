@@ -117,6 +117,20 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val update by viewModel.update.collectAsStateWithLifecycle()
+    val updateProgress by viewModel.updateProgress.collectAsStateWithLifecycle()
+    val updateError by viewModel.updateError.collectAsStateWithLifecycle()
+    var updateOpen by remember { mutableStateOf(false) }
+    update?.takeIf { updateOpen }?.let { release ->
+        com.likhtar.home.core.designsystem.UpdateDialog(
+            version = release.version,
+            notes = release.notes,
+            progress = updateProgress,
+            error = updateError,
+            onUpdate = { viewModel.installUpdate(release) },
+            onDismiss = { updateOpen = false },
+        )
+    }
 
     // «Продовжити» перечитуємо на кожному поверненні на екран. Раніше цим займався
     // п'ятихвилинний цикл у ViewModel — рівно та затримка, з якою ряд оновлювався після
@@ -298,6 +312,8 @@ fun HomeScreen(
             when (section) {
                 LikhtarSection.HOME -> HomeContextRow(
                     showTorch = state.showTorch,
+                    update = update,
+                    onUpdate = { updateOpen = true },
                     onOpenSettings = { onSelectSection(LikhtarSection.SETTINGS) },
                     onOpenTorch = { onSelectSection(LikhtarSection.SEARCH) },
                     onAsk = { query ->
@@ -671,6 +687,8 @@ private fun ContextSection(label: String?, content: @Composable RowScope.() -> U
 @Composable
 private fun HomeContextRow(
     showTorch: Boolean,
+    update: com.likhtar.home.core.data.AppRelease?,
+    onUpdate: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenTorch: () -> Unit,
     onAsk: (String) -> Unit,
@@ -684,6 +702,10 @@ private fun HomeContextRow(
         if (firstTaken) crossZone else { firstTaken = true; crossZone.focusRequester(first) }
     }
     ContextSection(label = if (showTorch) stringResource(R.string.home_torch_suggests) else null) {
+        // Нова версія — першою: її видно щоразу, коли фокус на LIKHTAR HOME, а це старт Головної.
+        update?.let {
+            HomePill(text = stringResource(R.string.home_update, it.version), icon = com.likhtar.home.core.designsystem.R.drawable.ic_solar_download, onClick = onUpdate, modifier = firstOnce())
+        }
         if (showTorch) {
             // «Новинки українською» — лише українському інтерфейсу: поляк бачив «Nowości po ukraińsku»
             // поруч із власними підказками, як решту українського пласта.

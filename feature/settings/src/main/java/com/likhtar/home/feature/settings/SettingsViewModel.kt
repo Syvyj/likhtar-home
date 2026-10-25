@@ -102,6 +102,7 @@ data class TextPrompt(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    val appUpdate: com.likhtar.home.core.data.AppUpdate,
     @ApplicationContext private val appContext: Context,
     private val settingsRepository: SettingsRepository,
     private val lan: LanDiscovery,

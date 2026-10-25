@@ -67,4 +67,5 @@
         <item>Coś z zaskakującym zakończeniem</item>
     </string-array>
     <string name="home_support">Wesprzyj autora</string>
+    <string name="home_update">Aktualizacja %1$s</string>
 </resources>
