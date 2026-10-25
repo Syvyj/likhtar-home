@@ -18,7 +18,7 @@ Turn on the TV, pick a mood, press OK.
 
 **No ads · no tracking · no account · no root · no computer needed · one button to undo**
 
-<!-- 30-second demo: drop likhtar-promo-en-1x1.mp4 here in the GitHub web editor — it becomes a player. -->
+<img src="docs/banner-en.webp" alt="Likhtar Home — Likhtaryk, Cinema, opens anywhere, Jellyfin & Plex, Live TV, smart home, phone as a keyboard, your own AI" width="100%">
 
 </div>
 
