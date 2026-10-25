@@ -83,7 +83,8 @@ class HomeAssistantClientTest {
             ),
         )
 
-        val reply = client.conversation(config, "вимкни світло кухні").getOrThrow()
+        // Мова — явно: за замовчуванням береться мова системи, а на CI вона англійська.
+        val reply = client.conversation(config, "вимкни світло кухні", language = "uk").getOrThrow()
 
         assertEquals("Вимкнено світло кухні", reply)
         val body = server.takeRequest().body.readUtf8()
