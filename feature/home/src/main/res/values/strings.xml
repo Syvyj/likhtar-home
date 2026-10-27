@@ -23,6 +23,7 @@
     <string name="home_continue_reality">Continue reality</string>
     <string name="home_continue_reality_empty">Shows you\'ve started will appear here</string>
     <string name="home_all_history">All history</string>
+    <string name="home_your_games">Your games</string>
     <string name="home_your_apps">Your apps</string>
     <string name="home_your_apps_empty">Installed apps will appear here</string>
     <string name="home_weather_loading">Weather is loading…</string>

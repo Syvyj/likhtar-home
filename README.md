@@ -30,6 +30,7 @@ Turn on the TV, pick a mood, press OK.
 - 🗂 **Your Jellyfin & Plex** — your own films on their title pages, *Continue watching* synced both ways
 - 📺 **Live TV** — your own M3U playlist with a programme guide
 - 🏠 **Smart home** — Home Assistant rooms on the big screen, by remote or voice
+- 🎮 **Games** — Boosteroid, Xbox Cloud, GeForce NOW and PS Remote Play in one row, your ROMs with box art in one press of RetroArch, and every game you have installed (turn it on in Settings)
 - 📱 **Phone as a keyboard** — scan a QR code: long addresses, passwords and files go from phone to TV
 - ✨ **Your own AI** — *"something like Interstellar, but lighter"*, with your key or a local model
 
@@ -70,6 +71,7 @@ living room that shows you the way to tonight's film and then gets out of the wa
 | ![Reality](docs/screenshots/1920x1080/10-reality.png) | **Reality.** The shows everyone talks about, gathered in one shelf instead of scattered across five apps. |
 | ![Smart home](docs/screenshots/1920x1080/16-smart-home.png) | **Smart home, from the sofa.** Your Home Assistant rooms and devices on the big screen: lights, blinds, the air conditioner, the kettle, scenes like *Movie night*. Toggle them with the remote, or just say what you want — the request goes to your own Home Assistant Assist. |
 | ![Send from your phone](docs/screenshots/1920x1080/17-send-from-phone.png) | **Send anything from your phone.** Scan the QR code and drop a video, a photo, an APK or a link onto the TV — no app, no cable, no cloud. Even a full-length film goes straight to the TV's Downloads and opens in the right player or installer. |
+| ![Games](docs/screenshots/1920x1080/18-games.png) | **Games, in their own section.** Cloud gaming first: Boosteroid, Xbox Cloud Gaming, GeForce NOW and PS Remote Play open in one press, or take you to their store page if they are not installed yet. Put ROM files into a `ROMs` folder (on the TV, a USB stick, or send them from your phone) and they show up as boxes with art from the libretro database, with a real frame from the game behind the title. OK starts the game in RetroArch with the right core, no menus; *Continue playing* keeps what you played last on top. Installed games and emulators sit below, and any app can be moved here with a long press → *Category*. Off by default: *Settings → Home → Games*. |
 | ![Apps](docs/screenshots/1920x1080/11-apps.png) | **Your apps, sorted for you.** Grouped automatically, with what's new inside each service shown right on the tile. Hide, pin or lock any app with a PIN. |
 | ![From your phone](docs/screenshots/1920x1080/15-from-phone-qr.png) | **Settings from your phone.** Scan a QR code and type long addresses, keys and passwords on your phone instead of hunting letters with the remote. |
 
@@ -200,6 +202,13 @@ settings are never touched.
 off and Likhtar stays your home screen; after an update you would press *Make it the home screen*
 again (Settings → Remote and startup).
 
+**How do I play my own games?** Turn on *Settings → Home → Games*, install RetroArch, and in RetroArch
+download the core for your console once (*Online Updater → Core Downloader*: Gambatte for Game Boy,
+FCEUmm for NES, Snes9x for SNES, Genesis Plus GX for Mega Drive). Put ROM files into a `ROMs` folder
+or send them from your phone. To see ROMs copied from a USB stick, allow Likhtar access to all files
+(*Settings → Home → Games from USB*; on Google TV it opens the system list, find Likhtar Home there).
+Likhtar does not include or download any games.
+
 **Which languages?** The interface follows your TV: English, Ukrainian or Polish.
 
 ## Tested on
@@ -246,6 +255,8 @@ Likhtar is free and will stay free. If it made your evenings a bit easier, you c
 - Film and TV data and images: [TMDB](https://www.themoviedb.org). This product uses the TMDB API
   but is not endorsed or certified by TMDB. Where-to-watch data: JustWatch, via TMDB.
 - Weather: [Open-Meteo](https://open-meteo.com) (CC BY 4.0).
+- Game box art and screenshots: [libretro-thumbnails](https://github.com/libretro-thumbnails). Boosteroid,
+  Xbox, GeForce NOW and PlayStation names and app icons belong to their owners and only link to their apps.
 - The on-device ADB client that makes Likhtar your home screen is ported from
   [Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT).
 - Fonts: Manrope, JetBrains Mono, Oswald (SIL OFL 1.1).

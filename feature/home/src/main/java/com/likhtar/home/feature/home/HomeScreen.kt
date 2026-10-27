@@ -165,6 +165,7 @@ fun HomeScreen(
         // «Новий пошук» стоїть завжди, навіть коли історія порожня.
         LikhtarSection.SEARCH -> true
         LikhtarSection.APPS -> state.pinnedApps.isNotEmpty()
+        LikhtarSection.GAMES -> state.games.isNotEmpty()
         else -> false
     }
     // Кожна картка ряду мусить знати вихід угору й донизу: між зонами пів екрана
@@ -355,6 +356,13 @@ fun HomeScreen(
                     first = contextFocusRequester,
                     crossZone = contextCross,
                 )
+                LikhtarSection.GAMES -> AppsContextRow(
+                    apps = state.games,
+                    onLaunch = viewModel::launch,
+                    first = contextFocusRequester,
+                    crossZone = contextCross,
+                    label = R.string.home_your_games,
+                )
                 LikhtarSection.SEARCH -> SearchContextRow(
                     queries = state.recentSearches,
                     // Запит із пігулки — одразу шукати; «Новий пошук» — у поле.
@@ -517,6 +525,8 @@ private fun Dock(
     onFocusInside: (Boolean) -> Unit = {},
 ) {
     val requesters = remember(tiles.size) { List(tiles.size) { FocusRequester() } }
+    // З «Іграми» розділів вісім, і на 960 dp українські підписи вже не влазять: поля тісніші.
+    val compact = tiles.size > COMPACT_DOCK_FROM
 
     // Одна смуга-«пігулка», як верхнє меню розділів (прототип): навігація однакова
     // скрізь у лаунчері. Фокус — тепла біла пігулка.
@@ -533,7 +543,7 @@ private fun Dock(
             .onFocusChanged { onFocusInside(it.hasFocus) }
             .padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 4.dp),
     ) {
         tiles.forEachIndexed { index, tile ->
             val previous = requesters[(index - 1 + tiles.size) % tiles.size]
@@ -543,6 +553,7 @@ private fun Dock(
                 onClick = { onSelectSection(tile.section) },
                 onFocused = onFocused,
                 marked = !hasFocus && tile.section == selected,
+                compact = compact,
                 modifier = Modifier
                     .focusRequester(requesters[index])
                     .then(if (index == 0) Modifier.focusRequester(firstTileFocusRequester) else Modifier)
@@ -564,7 +575,9 @@ private fun NavTile(
     onFocused: (LikhtarSection) -> Unit,
     modifier: Modifier = Modifier,
     marked: Boolean = false,
+    compact: Boolean = false,
 ) {
+    val pad = if (compact) 8.dp else 12.dp
     FocusableSurface(
         onClick = onClick,
         modifier = modifier
@@ -582,7 +595,7 @@ private fun NavTile(
         val ink = if (focused) LikhtarColors.OnWarmWhite else LikhtarColors.Ink
         Row(
             // Поля 12, не 15: з «Ліхтариком» замість «Пошуку» в доці «Застосунки» обрізались.
-            modifier = Modifier.padding(start = if (tile.section == LikhtarSection.HOME) 8.dp else 12.dp, end = 12.dp).fillMaxHeight(),
+            modifier = Modifier.padding(start = if (tile.section == LikhtarSection.HOME) 8.dp else pad, end = pad).fillMaxHeight(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
@@ -615,6 +628,7 @@ private fun DockGlyph(tile: HomeTile, focused: Boolean) {
         LikhtarSection.REALITY -> R.drawable.ic_dock_reality
         LikhtarSection.SMART_HOME -> R.drawable.ic_dock_smart
         LikhtarSection.SEARCH -> R.drawable.ic_dock_search
+        LikhtarSection.GAMES -> R.drawable.ic_dock_games
         else -> R.drawable.ic_dock_apps
     }
     Image(
@@ -626,6 +640,7 @@ private fun DockGlyph(tile: HomeTile, focused: Boolean) {
 }
 
 private val DockHeight = 52.dp
+private const val COMPACT_DOCK_FROM = 7
 
 /** Проміжок між LIKHTAR HOME і розділами — трохи більший за проміжок між розділами. */
 private val DockHomeGap = 4.dp
@@ -1201,8 +1216,9 @@ private fun AppsContextRow(
     onLaunch: (LauncherApp) -> Unit,
     first: FocusRequester,
     crossZone: Modifier,
+    label: Int = R.string.home_your_apps,
 ) {
-    ContextSection(label = stringResource(R.string.home_your_apps)) {
+    ContextSection(label = stringResource(label)) {
         if (apps.isEmpty()) {
             ContextHint(stringResource(R.string.home_your_apps_empty))
         } else {

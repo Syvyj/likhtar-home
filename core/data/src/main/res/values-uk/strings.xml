@@ -24,4 +24,6 @@
     <string name="data_remapper_button_mapper_note">Перепризначає будь-яку кнопку пульта, є безкоштовна версія</string>
     <string name="data_remapper_tvquickactions_note">Зроблений саме під Android TV, уміє довгі натискання</string>
     <string name="data_open_with">Чим відкрити</string>
+    <string name="data_roms_no_emulator">Щоб грати, встановіть RetroArch або Lemuroid.</string>
+    <string name="data_roms_launch_failed">Гра не запустилась. Відкрийте RetroArch і завантажте ядро для цієї приставки: Онлайн-оновлювач → Завантажити ядра.</string>
 </resources>

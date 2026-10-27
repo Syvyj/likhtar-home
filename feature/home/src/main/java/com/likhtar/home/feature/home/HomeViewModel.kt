@@ -13,6 +13,7 @@ import com.likhtar.home.core.smarthome.SmartHomeRepository
 import com.likhtar.home.core.data.LikhtarSettings
 import com.likhtar.home.core.data.SettingsRepository
 import com.likhtar.home.core.data.WeatherRepository
+import com.likhtar.home.core.model.AppCategory
 import com.likhtar.home.core.model.LauncherApp
 import com.likhtar.home.core.catalog.ContinueItem
 import com.likhtar.home.core.catalog.ContinuePlayback
@@ -57,6 +58,8 @@ data class HomeUiState(
     val showWeather: Boolean = true,
     val tiles: List<HomeTile> = emptyList(),
     val pinnedApps: List<LauncherApp> = emptyList(),
+    /** Контекстний ряд «Ігор»: останні запущені ігри першими. */
+    val games: List<LauncherApp> = emptyList(),
     val resume: List<ResumeCard> = emptyList(),
     /** Ряд над «Реаліті»: випуски, на яких зупинились. */
     val realityResume: List<ResumeCard> = emptyList(),
@@ -155,6 +158,11 @@ class HomeViewModel @Inject constructor(
             .take(APPS_MAX)
     }
 
+    /** Ігри для ряду над плиткою «Ігри»: категорія з урахуванням ручної зміни, без прихованих. */
+    private val games = combine(appsRepository.apps, appStateRepository.states) { all, states ->
+        all.filter { it.id !in states.hidden && (states.stateOf(it.id).category ?: it.category) == AppCategory.GAMES }
+    }
+
     /**
      * Перечитати «Продовжити». Викликається з екрана на `ON_RESUME`.
      *
@@ -198,6 +206,7 @@ class HomeViewModel @Inject constructor(
         val showWeather: Boolean,
         val smartHomeEnabled: Boolean,
         val dockApps: List<LauncherApp>,
+        val games: List<LauncherApp>,
         /** Налаштування контекстних рядів — цілим блоком, щоб не плодити поля. */
         val settings: LikhtarSettings,
     )
@@ -211,13 +220,15 @@ class HomeViewModel @Inject constructor(
             .onStart { emit(null) },
         settingsRepository.settings,
         apps,
-    ) { now, weatherSnapshot, settings, dockApps ->
+        games,
+    ) { now, weatherSnapshot, settings, dockApps, games ->
         HomeCoreState(
             now = now,
             weather = weatherSnapshot,
             showWeather = settings.showWeather,
             smartHomeEnabled = settings.smartHomeEnabled,
             dockApps = dockApps,
+            games = games,
             settings = settings,
         )
     }
@@ -290,8 +301,14 @@ class HomeViewModel @Inject constructor(
                 showWeather = core.showWeather,
                 tiles = tiles()
                     .filter { it.section != LikhtarSection.SMART_HOME || core.smartHomeEnabled }
+                    .filter { it.section != LikhtarSection.GAMES || core.settings.gamesEnabled }
                     .filter { it.section.route !in core.settings.hiddenDockSections },
                 pinnedApps = appsRow(core.dockApps, context.recentApps, core.settings),
+                games = appsRow(
+                    core.games,
+                    context.recentApps,
+                    core.settings.copy(homeAppsPinned = false),
+                ),
                 resume = listOfNotNull(sources.arrival) + sources.watching,
                 realityResume = sources.shows,
                 recentChannels = channelRow(context.channels, core.settings),
@@ -364,6 +381,7 @@ class HomeViewModel @Inject constructor(
         // Лупа в доці відкриває розділ одразу на полі пошуку, тож і зветься «Пошук»: «Ліхтарик»
         // уже є в ряду над LIKHTAR HOME, і дві однакові кнопки плутали.
         add(HomeTile(LikhtarSection.SEARCH, ACCENT_VIOLET, labelRes = R.string.home_tile_search))
+        add(HomeTile(LikhtarSection.GAMES, ACCENT_PINK))
         add(HomeTile(LikhtarSection.APPS, ACCENT_BLUE))
     }
 

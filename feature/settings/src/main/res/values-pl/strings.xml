@@ -147,6 +147,12 @@
     <string name="settings_home_dock_live_tv">Na żywo</string>
     <string name="settings_home_dock_reality">Reality</string>
     <string name="settings_home_dock_search">Szukaj</string>
+    <string name="settings_home_games">Gry</string>
+    <string name="settings_home_games_subtitle">Sekcja z grami i emulatorami: w menu i w docku</string>
+    <string name="settings_home_games_files">Gry z pendrive\'a i folderu ROMs</string>
+    <string name="settings_home_games_files_on">Dozwolone</string>
+    <string name="settings_home_games_files_off">Zezwól</string>
+    <string name="settings_home_games_files_subtitle">Bez dostępu widać tylko gry wysłane z telefonu</string>
     <string name="settings_home_dock_apps">Aplikacje</string>
     <string name="settings_home_torch_group">NAD KAFELKIEM „LIKHTAR HOME”</string>
     <string name="settings_home_torch">Likhtaryk</string>

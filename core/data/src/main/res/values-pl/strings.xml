@@ -24,4 +24,6 @@
     <string name="data_remapper_button_mapper_note">Zmienia funkcję dowolnego przycisku pilota, jest wersja darmowa</string>
     <string name="data_remapper_tvquickactions_note">Stworzony dla Android TV, obsługuje długie naciśnięcia</string>
     <string name="data_open_with">Otwórz za pomocą</string>
+    <string name="data_roms_no_emulator">Aby zagrać, zainstaluj RetroArch lub Lemuroid.</string>
+    <string name="data_roms_launch_failed">Nie udało się uruchomić gry. Otwórz RetroArch i pobierz rdzeń dla tej konsoli: Aktualizator online → Pobieranie rdzeni.</string>
 </resources>

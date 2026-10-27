@@ -10,6 +10,7 @@
     <string name="drop_receiving">Отримую «%1$s» — %2$d%% з %3$s</string>
     <string name="drop_received">Отримано «%1$s»</string>
     <string name="drop_watch">Дивитись</string>
+    <string name="drop_open_games">Грати в «Іграх»</string>
     <string name="drop_install">Встановити</string>
     <string name="drop_use_playlist">Зробити плейлистом ТБ Ефір</string>
     <string name="drop_playlist_done">Плейлист підключено — канали в ТБ Ефір</string>

@@ -278,7 +278,13 @@ fun LikhtarApp(
     }
 
     var dropOpen by remember { mutableStateOf(false) }
-    if (dropOpen) com.likhtar.home.drop.PhoneDropDialog(onDismiss = { dropOpen = false })
+    if (dropOpen) com.likhtar.home.drop.PhoneDropDialog(
+        onDismiss = { dropOpen = false },
+        onOpenGames = {
+            dropOpen = false
+            navigateTo(LikhtarSection.GAMES)
+        },
+    )
     // Файл із телефона прийшов, коли вікно вже закрили (чи його збила заставка) — показуємо знову.
     val drop: com.likhtar.home.drop.PhoneDropViewModel = hiltViewModel()
     LaunchedEffect(Unit) {
@@ -339,7 +345,7 @@ fun LikhtarApp(
                 WallpaperScrim.HOME
             (if (onDetailRoute) LikhtarSection.CINEMA else currentSection) == LikhtarSection.CINEMA ->
                 WallpaperScrim.HERO
-            currentSection == LikhtarSection.APPS -> WallpaperScrim.APPS
+            currentSection == LikhtarSection.APPS || currentSection == LikhtarSection.GAMES -> WallpaperScrim.APPS
             else -> WallpaperScrim.CONTENT
         },
         // Налаштування мають власний суцільний фон, тому шпалери під ними не видно —
@@ -480,6 +486,9 @@ fun LikhtarApp(
             }
             composable(LikhtarSection.APPS.route) {
                 AppsScreen(onSelectSection = navigateTo)
+            }
+            composable(LikhtarSection.GAMES.route) {
+                AppsScreen(onSelectSection = navigateTo, games = true)
             }
             composable(LikhtarSection.SETTINGS.route) {
                 SettingsScreen(onSelectSection = navigateTo)

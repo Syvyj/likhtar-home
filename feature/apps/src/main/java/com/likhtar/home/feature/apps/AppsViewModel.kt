@@ -2,11 +2,15 @@ package com.likhtar.home.feature.apps
 
 import com.likhtar.home.core.model.StreamingService
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.likhtar.home.core.data.AppStateRepository
 import com.likhtar.home.core.data.AppsRepository
 import com.likhtar.home.core.data.RecentHistoryRepository
+import com.likhtar.home.core.data.RetroGame
+import com.likhtar.home.core.data.RomLibrary
 import com.likhtar.home.core.data.ParentalControlRepository
 import com.likhtar.home.core.model.AppCategory
 import com.likhtar.home.core.model.LauncherApp
@@ -35,8 +39,12 @@ enum class AppAction { LAUNCH, PIN_HOME, HIDE, LOCK, PIN_CINEMA, PIN_LIVE_TV, CA
 data class AppSection(
     val title: String,
     val apps: List<LauncherAppWithState>,
+    /** Ігри з образів — ряд «Ігор» замість застосунків. */
+    val games: List<RetroGame> = emptyList(),
+    /** Хмарні сервіси — ярлики в «Іграх». */
+    val clouds: List<CloudGame> = emptyList(),
     /** Лічильник у заголовку: у «Усіх застосунках» — усі, а не лише перший ряд. */
-    val count: Int = apps.size,
+    val count: Int = apps.size + games.size + clouds.size,
 )
 
 enum class PinPurpose {
@@ -78,6 +86,11 @@ data class AppsUiState(
     val actionIndex: Int = 0,
     val pinRequest: PinRequest? = null,
     val message: String? = null,
+    /** Ігри з образів і нещодавно запущені з них, свіжі першими. */
+    val roms: List<RetroGame> = emptyList(),
+    val recentRoms: List<RetroGame> = emptyList(),
+    /** Лаунчер бачить образи з флешки; інакше — лише передані з телефона. */
+    val romsReadable: Boolean = true,
 ) {
     val selected: LauncherAppWithState?
         get() = apps.firstOrNull { it.app.id == selectedId }
@@ -92,17 +105,31 @@ class AppsViewModel @Inject constructor(
     private val recentHistory: RecentHistoryRepository,
     private val sectionRows: SectionRowsRepository,
     private val serviceContinue: ServiceContinueRepository,
+    private val romLibrary: RomLibrary,
 ) : ViewModel() {
+
+    private val romsReadable = MutableStateFlow(true)
+    private val roms = combine(romLibrary.games, romLibrary.recent, romsReadable) { games, recent, readable ->
+        val byPath = games.associateBy { it.path }
+        Triple(games, recent.mapNotNull(byPath::get), readable)
+    }
 
     private val interaction = MutableStateFlow(InteractionState())
     private val heroes = MutableStateFlow<Map<String, AppHero>>(emptyMap())
     private var heroJob: Job? = null
+    private var focusedUnderMenu: String? = null
 
     /** Запам'ятовує, що саме треба заблокувати після створення PIN. */
     private var pinFirstEntry: String? = null
 
     val uiState: StateFlow<AppsUiState> =
-        combine(appsRepository.apps, appStateRepository.states, interaction, recentHistory.apps, heroes) { apps, states, ui, recentIds, heroMap ->
+        combine(
+            combine(appsRepository.apps, appStateRepository.states, ::Pair),
+            interaction,
+            recentHistory.apps,
+            heroes,
+            roms,
+        ) { (apps, states), ui, recentIds, heroMap, (games, recentGames, readable) ->
             val entries = apps.map { LauncherAppWithState(it, states.stateOf(it.id)) }
             val byId = entries.associateBy { it.app.id }
             val selected = entries.firstOrNull { it.app.id == ui.selectedId }
@@ -116,6 +143,9 @@ class AppsViewModel @Inject constructor(
                 actionIndex = ui.actionIndex,
                 pinRequest = ui.pinRequest,
                 message = ui.message,
+                roms = games,
+                recentRoms = recentGames,
+                romsReadable = readable,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -142,7 +172,37 @@ class AppsViewModel @Inject constructor(
         }
     }
 
+    /** Перечитати образи — щоразу, як відкривають «Ігри». */
+    fun refreshRoms() {
+        romsReadable.value = romLibrary.canReadAll
+        viewModelScope.launch { romLibrary.refresh() }
+    }
+
+    /** OK на грі: RetroArch з ядром. Текст — чому не вийшло, якщо не вийшло. */
+    fun launchGame(game: RetroGame): String? = romLibrary.launch(game)
+
+    fun openFileAccess() = romLibrary.openFileAccessSettings()
+
+    /** Хмарний сервіс: встановлений — запустити, ні — його сторінка в Google Play чи сайт. */
+    fun openCloud(cloud: CloudGame): String? {
+        uiState.value.apps.firstOrNull { it.app.packageName in cloud.packages }?.let { launch(it); return null }
+        val pkg = cloud.packages.first()
+        val intents = listOfNotNull(
+            cloud.web?.let { Intent(Intent.ACTION_VIEW, Uri.parse(it)) },
+            Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg")),
+            Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkg")),
+        )
+        val opened = intents.any { runCatching { context.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess }
+        return if (opened) null else context.getString(R.string.apps_cloud_open_failed, cloud.title)
+    }
+
     fun onAppFocused(appId: String) {
+        // Меню дій відкрите — воно про свій застосунок. У «Іграх» зміна категорії прибирає плитку,
+        // фокус переходить на сусідню, і без цього наступне OK змінювало б уже її.
+        if (interaction.value.actionsOpen) {
+            focusedUnderMenu = appId
+            return
+        }
         interaction.value = interaction.value.copy(selectedId = appId)
         val pkg = appId.substringBefore('/')
         if (pkg in heroes.value) return
@@ -168,6 +228,7 @@ class AppsViewModel @Inject constructor(
     }
 
     fun openActions(appId: String) {
+        focusedUnderMenu = null
         interaction.value = interaction.value.copy(
             selectedId = appId,
             actionsOpen = true,
@@ -178,6 +239,8 @@ class AppsViewModel @Inject constructor(
 
     fun closeActions() {
         interaction.value = interaction.value.copy(actionsOpen = false)
+        // Шапка — за плиткою, на якій фокус тепер.
+        focusedUnderMenu?.let { focusedUnderMenu = null; onAppFocused(it) }
     }
 
     /**

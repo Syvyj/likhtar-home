@@ -7,6 +7,24 @@
         <item quantity="other">%d aplikacji</item>
     </plurals>
     <string name="apps_section_recent">Ostatnie</string>
+    <string name="apps_games_empty">Nie ma jeszcze gier. Zainstaluj emulator (RetroArch, Lemuroid) lub grę ze sklepu, a pojawi się tutaj. Każdą aplikację można tu przenieść: w Aplikacjach długie OK → Kategoria.</string>
+    <string name="apps_games_continue">Kontynuuj grę</string>
+    <string name="apps_games_file_access">Gry z pendrive\'a</string>
+    <string name="apps_games_empty_access">Gry z pendrive\'a lub folderu ROMs będą widoczne po przyznaniu dostępu do plików: Ustawienia → Główna → Gry.</string>
+    <string name="apps_games_hero_hint">OK — graj w RetroArch</string>
+    <string name="apps_games_roms_hint">Umieść pliki gier w folderze ROMs (albo wyślij je z telefonu), a pojawią się tutaj z okładkami.</string>
+    <string name="apps_cloud_boosteroid">Gry PC z chmury. Wymaga subskrypcji Boosteroid.</string>
+    <string name="apps_cloud_xbox">Gry Game Pass z chmury na xbox.com/play. Wymaga Game Pass i pada.</string>
+    <string name="apps_cloud_geforce">Twoje gry ze Steam, Epic i Ubisoft z chmury NVIDIA.</string>
+    <string name="apps_cloud_ps">feature/apps/src/main/res/values-pl/strings.xml</string>
+    <string name="apps_cloud_open_failed">Nie udało się otworzyć %1$s</string>
+    <string name="apps_games_cloud">Gry w chmurze</string>
+    <string name="apps_games_installed">Zainstalowane gry</string>
+    <string name="apps_cloud_open">OK — otwórz</string>
+    <string name="apps_cloud_get">OK — zainstaluj</string>
+    <string name="apps_games_play">OK — graj</string>
+    <string name="apps_cloud_install_tag">Zainstaluj</string>
+    <string name="apps_games_retro">Gry retro</string>
     <string name="apps_all">Wszystkie aplikacje</string>
     <string name="apps_by_groups">Grupami</string>
     <string name="apps_section_hidden">Ukryte</string>

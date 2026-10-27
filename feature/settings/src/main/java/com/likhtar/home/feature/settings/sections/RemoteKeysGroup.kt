@@ -170,5 +170,6 @@ private const val ASSISTANT = "assistant:"
 
 private val SECTIONS = listOf(
     LikhtarSection.HOME, LikhtarSection.SEARCH, LikhtarSection.CINEMA, LikhtarSection.LIVE_TV,
-    LikhtarSection.REALITY, LikhtarSection.SMART_HOME, LikhtarSection.APPS,
+    LikhtarSection.REALITY, LikhtarSection.SMART_HOME, LikhtarSection.GAMES,
+    LikhtarSection.APPS,
 )

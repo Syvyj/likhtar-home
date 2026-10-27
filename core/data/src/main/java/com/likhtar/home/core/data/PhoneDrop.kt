@@ -201,7 +201,8 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, name)
                 put(MediaStore.Downloads.MIME_TYPE, mime)
-                put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$FOLDER")
+                // Образи ігор — у Download/ROMs: їх одразу бачать «Ігри» і RetroArch.
+                put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/${folderFor(name)}")
                 // Поки пишемо, інші застосунки файлу не бачать — плеєр не схопить половину.
                 put(MediaStore.Downloads.IS_PENDING, 1)
             }
@@ -234,9 +235,10 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
     private fun unique(name: String): File {
         val stem = name.substringBeforeLast('.')
         val ext = name.substringAfterLast('.', "").let { if (it.isEmpty()) "" else ".$it" }
-        var f = File(legacyDir, name)
+        val dir = if (isRom(name)) File(legacyDir.parentFile, RomLibrary.FOLDER).apply { mkdirs() } else legacyDir
+        var f = File(dir, name)
         var i = 2
-        while (f.exists()) f = File(legacyDir, "$stem (${i++})$ext")
+        while (f.exists()) f = File(dir, "$stem (${i++})$ext")
         return f
     }
 
@@ -275,6 +277,11 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
         private const val MARGIN = 200L * 1024 * 1024
         /** Тека в «Завантаженнях»: Download/Likhtar. */
         const val FOLDER = "Likhtar"
+
+        /** Образ гри, приставку якого видно з розширення. */
+        fun isRom(name: String): Boolean = RomLibrary.systemOf(name, null) != null
+
+        private fun folderFor(name: String) = if (isRom(name)) RomLibrary.FOLDER else FOLDER
 
         fun mimeOf(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {
             "mp4", "m4v" -> "video/mp4"

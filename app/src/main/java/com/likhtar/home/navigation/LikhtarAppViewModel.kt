@@ -108,15 +108,19 @@ class LikhtarAppViewModel @Inject constructor(
 
     /**
      * Розділи, видимі в меню та на Головній. «Смарт дім» можна вимкнути в налаштуваннях —
-     * тоді він зникає з інтерфейсу повністю, а не просто показує заглушку.
+     * тоді він зникає з інтерфейсу повністю, а не просто показує заглушку. «Ігри» — навпаки,
+     * з'являються лише після ввімкнення.
      */
     val visibleSections: StateFlow<List<LikhtarSection>> = settingsRepository.settings
         .map { settings ->
-            LikhtarSection.entries.filter { it != LikhtarSection.SMART_HOME || settings.smartHomeEnabled }
+            LikhtarSection.entries.filter {
+                (it != LikhtarSection.SMART_HOME || settings.smartHomeEnabled) &&
+                    (it != LikhtarSection.GAMES || settings.gamesEnabled)
+            }
         }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
-            initialValue = LikhtarSection.entries,
+            initialValue = LikhtarSection.entries - LikhtarSection.GAMES,
         )
 }

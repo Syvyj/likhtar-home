@@ -1,6 +1,10 @@
 package com.likhtar.home.feature.settings.sections
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import com.likhtar.home.feature.settings.R
 import androidx.compose.ui.focus.FocusRequester
@@ -59,6 +63,27 @@ internal fun HomeSection(
             text = stringResource(label),
             checked = section.route !in state.settings.hiddenDockSections,
             onToggle = { viewModel.toggleDockSection(section.route) },
+        )
+    }
+    // «Ігри» — цілий розділ, а не лише плитка: вимкнено, доки людина не ввімкне сама.
+    ToggleRow(
+        text = stringResource(R.string.settings_home_games),
+        subtitle = stringResource(R.string.settings_home_games_subtitle),
+        checked = state.settings.gamesEnabled,
+        onToggle = viewModel::toggleGames,
+    )
+    if (state.settings.gamesEnabled) {
+        // Дозвіл дають у системі — після повернення перечитуємо.
+        var readable by remember { mutableStateOf(viewModel.roms.canReadAll) }
+        androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+            readable = viewModel.roms.canReadAll
+            onPauseOrDispose { }
+        }
+        ValueRow(
+            text = stringResource(R.string.settings_home_games_files),
+            value = stringResource(if (readable) R.string.settings_home_games_files_on else R.string.settings_home_games_files_off),
+            onClick = viewModel.roms::openFileAccessSettings,
+            subtitle = stringResource(R.string.settings_home_games_files_subtitle),
         )
     }
 

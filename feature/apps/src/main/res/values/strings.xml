@@ -5,6 +5,24 @@
         <item quantity="other">%d apps</item>
     </plurals>
     <string name="apps_section_recent">Recent</string>
+    <string name="apps_games_empty">No games yet. Install an emulator like RetroArch or Lemuroid, or a game from the store, and it will appear here. Any app can be moved here: in Apps, long-press OK → Category.</string>
+    <string name="apps_games_continue">Continue playing</string>
+    <string name="apps_games_file_access">Games from ROM files</string>
+    <string name="apps_games_empty_access">RetroArch can open games from a USB stick or the ROMs folder once you allow access to files: Settings → Home → Games.</string>
+    <string name="apps_games_hero_hint">OK — play in RetroArch</string>
+    <string name="apps_games_roms_hint">Put ROM files into the ROMs folder (or send them from your phone), and they appear here with covers.</string>
+    <string name="apps_cloud_boosteroid">PC games streamed from the cloud. Needs a Boosteroid subscription.</string>
+    <string name="apps_cloud_xbox">Game Pass games from the cloud at xbox.com/play. Needs Game Pass and a controller.</string>
+    <string name="apps_cloud_geforce">Your Steam, Epic and Ubisoft games streamed by NVIDIA.</string>
+    <string name="apps_cloud_ps">feature/apps/src/main/res/values/strings.xml</string>
+    <string name="apps_cloud_open_failed">Couldn\'t open %1$s</string>
+    <string name="apps_games_cloud">Cloud gaming</string>
+    <string name="apps_games_installed">Installed games</string>
+    <string name="apps_cloud_open">OK — open</string>
+    <string name="apps_cloud_get">OK — get the app</string>
+    <string name="apps_games_play">OK — play</string>
+    <string name="apps_cloud_install_tag">Get</string>
+    <string name="apps_games_retro">Retro games</string>
     <string name="apps_all">All apps</string>
     <string name="apps_by_groups">By groups</string>
     <string name="apps_section_hidden">Hidden</string>

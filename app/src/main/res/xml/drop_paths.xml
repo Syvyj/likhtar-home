@@ -4,6 +4,9 @@
 <paths>
     <external-files-path name="drop" path="Download/Likhtar/" />
     <files-path name="drop_internal" path="downloads/Likhtar/" />
+    <!-- Образи ігор з телефона («Ігри»). -->
+    <external-files-path name="roms" path="Download/ROMs/" />
+    <files-path name="roms_internal" path="downloads/ROMs/" />
     <!-- Оновлення лаунчера: APK з GitHub перед встановленням (AppUpdate). -->
     <cache-path name="updates" path="updates/" />
 </paths>

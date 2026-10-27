@@ -103,6 +103,8 @@ data class TextPrompt(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     val appUpdate: com.likhtar.home.core.data.AppUpdate,
+    /** Образи для «Ігор»: доступ до файлів — екрану як є, стану не тримає. */
+    val roms: com.likhtar.home.core.data.RomLibrary,
     @ApplicationContext private val appContext: Context,
     private val settingsRepository: SettingsRepository,
     private val lan: LanDiscovery,
@@ -329,6 +331,10 @@ class SettingsViewModel @Inject constructor(
     /** Відключити AI: ключ стирається з приставки. */
     fun disconnectAi() {
         viewModelScope.launch { settingsRepository.setAi("", "", "", "") }
+    }
+
+    fun toggleGames() {
+        viewModelScope.launch { settingsRepository.setGamesEnabled(!settingsRepository.settings.first().gamesEnabled) }
     }
 
     fun toggleDockSection(route: String) {

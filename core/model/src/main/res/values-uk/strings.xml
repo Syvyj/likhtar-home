@@ -6,6 +6,7 @@
     <string name="model_section_live_tv">ТВ Ефір</string>
     <string name="model_section_reality">Реаліті</string>
     <string name="model_section_smart_home">Смарт дім</string>
+    <string name="model_section_games">Ігри</string>
     <string name="model_section_apps">Застосунки</string>
     <string name="model_section_settings">Налаштування</string>
     <string name="model_category_media">Кіно та відео</string>

@@ -27,6 +27,7 @@
     <string name="drop_receiving">Receiving “%1$s” — %2$d%% of %3$s</string>
     <string name="drop_received">Received “%1$s”</string>
     <string name="drop_watch">Watch</string>
+    <string name="drop_open_games">Play in Games</string>
     <string name="drop_install">Install</string>
     <string name="drop_use_playlist">Use as Live TV playlist</string>
     <string name="drop_playlist_done">Playlist set — channels are in Live TV</string>

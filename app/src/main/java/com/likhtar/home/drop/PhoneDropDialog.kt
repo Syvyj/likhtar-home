@@ -60,7 +60,18 @@ import kotlinx.coroutines.launch
 class PhoneDropViewModel @Inject constructor(
     val drop: PhoneDrop,
     private val settings: SettingsRepository,
+    private val roms: com.likhtar.home.core.data.RomLibrary,
 ) : ViewModel() {
+    /** «До ігор»: образ уже в Download/ROMs — вмикаємо розділ, якщо він ще вимкнений. */
+    fun openGames(then: () -> Unit) {
+        viewModelScope.launch {
+            settings.setGamesEnabled(true)
+            then()
+            // «Ігри» могли вже бути на екрані — тоді самі вони теку не перечитають.
+            roms.refresh()
+        }
+    }
+
     /** Відео — у плеєр із налаштувань (як усе в лаунчері), решта — тим, що система вважає своїм. */
     fun open(context: Context, uri: Uri, name: String, mime: String) {
         viewModelScope.launch {
@@ -91,7 +102,11 @@ private fun isPlaylist(name: String) = name.lowercase().let { it.endsWith(".m3u"
  * пропонує, що з ним зробити: відео — дивитись, фото — показати, APK — встановити.
  */
 @Composable
-fun PhoneDropDialog(onDismiss: () -> Unit, viewModel: PhoneDropViewModel = hiltViewModel()) {
+fun PhoneDropDialog(
+    onDismiss: () -> Unit,
+    onOpenGames: () -> Unit = {},
+    viewModel: PhoneDropViewModel = hiltViewModel(),
+) {
     val context = LocalContext.current
     val url = remember { viewModel.drop.start() }
     val state by viewModel.drop.state.collectAsStateWithLifecycle()
@@ -152,6 +167,7 @@ fun PhoneDropDialog(onDismiss: () -> Unit, viewModel: PhoneDropViewModel = hiltV
                     s.mime.startsWith("video/") || s.mime.startsWith("audio/") ->
                         Action(stringResource(R.string.drop_watch), actionFocus) { viewModel.open(context, s.uri, s.name, s.mime) }
                     s.mime == APK -> Action(stringResource(R.string.drop_install), actionFocus) { install(context, s.uri, s.name) }
+                    PhoneDrop.isRom(s.name) -> Action(stringResource(R.string.drop_open_games), actionFocus) { viewModel.openGames(onOpenGames) }
                     else -> Status(stringResource(R.string.drop_saved, "Download/${PhoneDrop.FOLDER}"))
                 }
             }

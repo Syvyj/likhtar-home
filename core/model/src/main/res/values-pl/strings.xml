@@ -6,6 +6,7 @@
     <string name="model_section_live_tv">Telewizja</string>
     <string name="model_section_reality">Reality</string>
     <string name="model_section_smart_home">Smart dom</string>
+    <string name="model_section_games">Gry</string>
     <string name="model_section_apps">Aplikacje</string>
     <string name="model_section_settings">Ustawienia</string>
     <string name="model_category_media">Filmy i wideo</string>

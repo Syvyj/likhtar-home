@@ -7,6 +7,24 @@
         <item quantity="other">%d шт.</item>
     </plurals>
     <string name="apps_section_recent">Нещодавні</string>
+    <string name="apps_games_empty">Ігор поки немає. Встановіть емулятор (RetroArch, Lemuroid) чи гру з магазину, і вони з\'являться тут. Будь-який застосунок можна перенести сюди: у Застосунках довге OK → Категорія.</string>
+    <string name="apps_games_continue">Продовжити гру</string>
+    <string name="apps_games_file_access">Образи з флешки</string>
+    <string name="apps_games_empty_access">Образи з флешки чи теки ROMs лаунчер побачить, коли ви дасте доступ до файлів: Налаштування → Головна → Ігри.</string>
+    <string name="apps_games_hero_hint">OK — грати в RetroArch</string>
+    <string name="apps_games_roms_hint">Образи ігор покладіть у теку ROMs (або передайте з телефона), і вони з\'являться тут з обкладинками.</string>
+    <string name="apps_cloud_boosteroid">Комп\'ютерні ігри з хмари. Потрібна підписка Boosteroid.</string>
+    <string name="apps_cloud_xbox">Ігри Game Pass з хмари на xbox.com/play. Потрібні Game Pass і геймпад.</string>
+    <string name="apps_cloud_geforce">Ваші ігри зі Steam, Epic і Ubisoft з хмари NVIDIA.</string>
+    <string name="apps_cloud_ps">feature/apps/src/main/res/values-uk/strings.xml</string>
+    <string name="apps_cloud_open_failed">Не вдалося відкрити %1$s</string>
+    <string name="apps_games_cloud">Хмарні ігри</string>
+    <string name="apps_games_installed">Встановлені ігри</string>
+    <string name="apps_cloud_open">OK — відкрити</string>
+    <string name="apps_cloud_get">OK — встановити</string>
+    <string name="apps_games_play">OK — грати</string>
+    <string name="apps_cloud_install_tag">Встановити</string>
+    <string name="apps_games_retro">Ретро-ігри</string>
     <string name="apps_all">Усі застосунки</string>
     <string name="apps_by_groups">Групами</string>
     <string name="apps_section_hidden">Приховані</string>

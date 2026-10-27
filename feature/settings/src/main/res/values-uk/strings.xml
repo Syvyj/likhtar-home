@@ -147,6 +147,12 @@
     <string name="settings_home_dock_live_tv">ТБ Ефір</string>
     <string name="settings_home_dock_reality">Реаліті</string>
     <string name="settings_home_dock_search">Пошук</string>
+    <string name="settings_home_games">Ігри</string>
+    <string name="settings_home_games_subtitle">Розділ з іграми й емуляторами: у меню і в доці</string>
+    <string name="settings_home_games_files">Ігри з флешки й теки ROMs</string>
+    <string name="settings_home_games_files_on">Дозволено</string>
+    <string name="settings_home_games_files_off">Дати доступ</string>
+    <string name="settings_home_games_files_subtitle">Без доступу видно лише ігри, передані з телефона</string>
     <string name="settings_home_dock_apps">Застосунки</string>
     <string name="settings_home_torch_group">НАД ПЛИТКОЮ «LIKHTAR HOME»</string>
     <string name="settings_home_torch">Ліхтарик</string>

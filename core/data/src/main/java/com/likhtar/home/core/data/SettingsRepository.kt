@@ -125,6 +125,8 @@ data class LikhtarSettings(
 
     /** «Смарт дім» можна повністю прибрати з меню та з Головної. */
     val smartHomeEnabled: Boolean = true,
+    /** Розділ «Ігри»: емулятори й ігри окремим екраном. Вимкнено, доки людина не ввімкне. */
+    val gamesEnabled: Boolean = false,
     val smartHomeRefreshSeconds: Int = 15,
     /** Адреса Home Assistant і long-lived access token; порожні — інтеграція не налаштована. */
     val smartHomeUrl: String = "",
@@ -255,6 +257,7 @@ class SettingsRepository @Inject constructor(
             wallpaperManifestUrl = prefs[KEY_WALLPAPER_MANIFEST] ?: "",
             wallpaperTheme = prefs[KEY_WALLPAPER_THEME] ?: "mix",
             smartHomeEnabled = prefs[KEY_SMART_HOME_ENABLED] ?: true,
+            gamesEnabled = prefs[KEY_GAMES_ENABLED] ?: false,
             smartHomeRefreshSeconds = prefs[KEY_SMART_HOME_REFRESH] ?: 15,
             smartHomeUrl = prefs[KEY_SMART_HOME_URL] ?: "",
             smartHomeToken = Secrets.open(prefs[KEY_SMART_HOME_TOKEN]),
@@ -280,6 +283,10 @@ class SettingsRepository @Inject constructor(
 
     suspend fun setSmartHomeEnabled(enabled: Boolean) {
         context.settingsDataStore.edit { it[KEY_SMART_HOME_ENABLED] = enabled }
+    }
+
+    suspend fun setGamesEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { it[KEY_GAMES_ENABLED] = enabled }
     }
 
     suspend fun setVoiceCommandsEnabled(enabled: Boolean) {
@@ -509,6 +516,7 @@ class SettingsRepository @Inject constructor(
         val KEY_WALLPAPER_MANIFEST = stringPreferencesKey("wallpaper_manifest_url")
         val KEY_WALLPAPER_THEME = stringPreferencesKey("wallpaper_theme")
         val KEY_SMART_HOME_ENABLED = booleanPreferencesKey("smart_home_enabled")
+        val KEY_GAMES_ENABLED = booleanPreferencesKey("games_enabled")
         val KEY_SMART_HOME_REFRESH = intPreferencesKey("smart_home_refresh_seconds")
         val KEY_SMART_HOME_URL = stringPreferencesKey("smart_home_url")
         val KEY_SMART_HOME_TOKEN = stringPreferencesKey("smart_home_token")

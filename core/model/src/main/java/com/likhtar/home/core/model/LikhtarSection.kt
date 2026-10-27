@@ -17,6 +17,7 @@ enum class LikhtarSection(
     LIVE_TV("ТВ Ефір", "livetv", R.string.model_section_live_tv),
     REALITY("Реаліті", "reality", R.string.model_section_reality),
     SMART_HOME("Смарт дім", "smarthome", R.string.model_section_smart_home),
+    GAMES("Ігри", "games", R.string.model_section_games),
     APPS("Застосунки", "apps", R.string.model_section_apps),
     SETTINGS("Налаштування", "settings", R.string.model_section_settings);
 

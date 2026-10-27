@@ -24,4 +24,6 @@
     <string name="data_remapper_button_mapper_note">Remaps any remote button; has a free version</string>
     <string name="data_remapper_tvquickactions_note">Made for Android TV, supports long presses</string>
     <string name="data_open_with">Open with</string>
+    <string name="data_roms_no_emulator">Install RetroArch or Lemuroid to play this game.</string>
+    <string name="data_roms_launch_failed">Couldn\'t start the game. Open RetroArch once and download the core for this console: Online Updater → Core Downloader.</string>
 </resources>
