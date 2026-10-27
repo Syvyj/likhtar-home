@@ -80,6 +80,7 @@ class SettingsPhoneLink @Inject constructor(
         Toggle("only_my_apps", R.string.settings_watch_only_my_apps, { it.onlyMyApps }, settings::setOnlyMyApps),
         Toggle("anime", R.string.settings_watch_anime, { it.showAnime }, settings::setShowAnime),
         Toggle("live_stills", R.string.settings_watch_live_stills, { it.titleLiveStills }, settings::setTitleLiveStills),
+        Toggle("trailer_up", R.string.settings_watch_trailer_up, { it.titleTrailerOnUp }, settings::setTitleTrailerOnUp),
         Toggle("smart_home", R.string.settings_smart_home_toggle, { it.smartHomeEnabled }, settings::setSmartHomeEnabled),
         Toggle("ha_voice", R.string.settings_ha_voice, { it.voiceCommandsEnabled }, settings::setVoiceCommandsEnabled),
     )

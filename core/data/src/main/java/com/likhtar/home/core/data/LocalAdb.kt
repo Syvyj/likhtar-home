@@ -45,7 +45,7 @@ class LocalAdb private constructor(private val socket: Socket) : Closeable {
     /** Чому не вийшло — коротко, для людини. */
     class Failure(val reason: Reason) : IOException(reason.name)
 
-    enum class Reason { DEBUGGING_OFF, NO_RESPONSE, NOT_APPROVED, WIRELESS_TLS, REJECTED, PROTOCOL }
+    enum class Reason { DEBUGGING_OFF, PORT_CLOSED, NO_RESPONSE, NOT_APPROVED, WIRELESS_TLS, REJECTED, PROTOCOL }
 
     /** Виконує команду в shell телевізора; stdout і stderr разом. */
     fun shell(command: String): String {
@@ -130,7 +130,11 @@ class LocalAdb private constructor(private val socket: Socket) : Closeable {
                 socket.connect(InetSocketAddress("127.0.0.1", 5555), 3000)
             } catch (e: IOException) {
                 socket.close()
-                throw Failure(Reason.DEBUGGING_OFF)
+                // Налагодження ввімкнене, а порту 5555 немає: частина телевізорів (Ergo та інші
+                // на MediaTek) слухає лише USB і бездротове з парою — тоді «увімкніть налагодження»
+                // нічого не дає, людині треба відкрити порт.
+                val enabled = android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.ADB_ENABLED, 0) == 1
+                throw Failure(if (enabled) Reason.PORT_CLOSED else Reason.DEBUGGING_OFF)
             }
             val adb = LocalAdb(socket)
             try {

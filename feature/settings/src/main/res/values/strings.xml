@@ -190,7 +190,9 @@
     <string name="settings_watch_anime_subtitle">“Anime” row in Cinema and a collections page</string>
     <string name="settings_watch_title_page_group">TITLE PAGE</string>
     <string name="settings_watch_live_stills">Live stills</string>
-    <string name="settings_watch_live_stills_subtitle">Stills slowly drift behind the text; ↑ — trailer on YouTube</string>
+    <string name="settings_watch_live_stills_subtitle">Stills slowly drift behind the text</string>
+    <string name="settings_watch_trailer_up">Trailer on ↑</string>
+    <string name="settings_watch_trailer_up_subtitle">↑ above the buttons opens the trailer on YouTube</string>
     <string name="settings_watch_availability">“Available on” — for countries</string>
     <string name="settings_watch_availability_subtitle">Pick manually if you watch through a VPN</string>
     <string name="settings_tv_sources_group">SOURCES</string>
@@ -359,6 +361,7 @@
     <string name="settings_tv_takeover_revert">Bring back the stock home screen</string>
     <string name="settings_tv_takeover_uninstall_warning">Uninstalling Likhtar? Press this button first — otherwise the TV is left without a home screen.</string>
     <string name="settings_tv_takeover_debugging_off">Debugging is off — turn on “USB debugging” (steps above).</string>
+    <string name="settings_tv_takeover_port_closed">USB debugging is on, but this TV doesn\'t open it on the network port Likhtar needs. Enable \"ADB over network\" in Developer options if it\'s there, or once from a phone or computer (e.g. ATV Toolbox): adb tcpip 5555 — then press the button again.</string>
     <string name="settings_tv_takeover_not_approved">Permission wasn’t given. Try again and pick “Always allow”.</string>
     <string name="settings_tv_takeover_no_response">The TV’s ADB didn’t answer. Try again.</string>
     <string name="settings_tv_takeover_wireless">Wireless debugging is on — “USB debugging” is the one needed.</string>

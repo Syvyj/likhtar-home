@@ -394,6 +394,7 @@ private enum class TvPhase { IDLE, WORKING, APPROVAL }
 
 private fun problemText(problem: HomeTakeover.Problem): Int = when (problem) {
     HomeTakeover.Problem.DEBUGGING_OFF -> R.string.settings_tv_takeover_debugging_off
+    HomeTakeover.Problem.PORT_CLOSED -> R.string.settings_tv_takeover_port_closed
     HomeTakeover.Problem.NOT_APPROVED -> R.string.settings_tv_takeover_not_approved
     HomeTakeover.Problem.NO_RESPONSE -> R.string.settings_tv_takeover_no_response
     HomeTakeover.Problem.WIRELESS_TLS -> R.string.settings_tv_takeover_wireless

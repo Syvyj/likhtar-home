@@ -190,7 +190,9 @@
     <string name="settings_watch_anime_subtitle">Rząd „Anime” w Kinie i strona z kolekcjami</string>
     <string name="settings_watch_title_page_group">STRONA FILMU</string>
     <string name="settings_watch_live_stills">Żywe kadry</string>
-    <string name="settings_watch_live_stills_subtitle">Kadry powoli przesuwają się za tekstem; ↑ — zwiastun w YouTube</string>
+    <string name="settings_watch_live_stills_subtitle">Kadry powoli przesuwają się za tekstem</string>
+    <string name="settings_watch_trailer_up">Zwiastun przyciskiem ↑</string>
+    <string name="settings_watch_trailer_up_subtitle">↑ nad przyciskami otwiera zwiastun w YouTube</string>
     <string name="settings_watch_availability">„Dostępne w” — dla krajów</string>
     <string name="settings_watch_availability_subtitle">Wybierz ręcznie, jeśli oglądasz przez VPN</string>
     <string name="settings_tv_sources_group">ŹRÓDŁA</string>
@@ -359,6 +361,7 @@
     <string name="settings_tv_takeover_revert">Przywróć fabryczny ekran główny</string>
     <string name="settings_tv_takeover_uninstall_warning">Odinstalowujesz Likhtar? Najpierw naciśnij ten przycisk — inaczej telewizor zostanie bez ekranu głównego.</string>
     <string name="settings_tv_takeover_debugging_off">Debugowanie jest wyłączone — włącz „Debugowanie USB” (kroki wyżej).</string>
+    <string name="settings_tv_takeover_port_closed">Debugowanie USB jest włączone, ale ten telewizor nie otwiera portu sieciowego, którego potrzebuje Likhtar. Włącz „ADB przez sieć” w opcjach programisty, jeśli jest, albo raz z telefonu lub komputera (np. ATV Toolbox): adb tcpip 5555 — i naciśnij przycisk ponownie.</string>
     <string name="settings_tv_takeover_not_approved">Nie udzielono zgody. Spróbuj ponownie i wybierz „Zawsze zezwalaj”.</string>
     <string name="settings_tv_takeover_no_response">ADB telewizora nie odpowiedział. Spróbuj ponownie.</string>
     <string name="settings_tv_takeover_wireless">Włączone jest debugowanie bezprzewodowe — potrzebne jest „Debugowanie USB”.</string>

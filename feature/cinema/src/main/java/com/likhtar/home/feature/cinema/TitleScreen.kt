@@ -291,7 +291,7 @@ fun TitleScreen(
                                 }
                                 true
                             } else if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp &&
-                                trailer != null && !focusManager.moveFocus(FocusDirection.Up)
+                                trailer != null && state.trailerOnUp && !focusManager.moveFocus(FocusDirection.Up)
                             ) {
                                 // Вище за кнопки нічого немає — туди «виїжджає» трейлер: офіційний
                                 // YouTube на весь екран, BACK повертає сюди.
@@ -302,7 +302,7 @@ fun TitleScreen(
                             }
                         },
                 )
-                if (trailer != null) {
+                if (trailer != null && state.trailerOnUp) {
                     // .hint: «˄ Трейлер ˄» — 22 px / 600, .8, 40 px від верху.
                     Row(
                         modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp),

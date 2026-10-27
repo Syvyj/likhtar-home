@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,11 +86,23 @@ fun WallpaperBackground(
     attribution: String? = null,
     content: @Composable () -> Unit,
 ) {
+    // Нова шпалера — лише коли вже завантажилась: інакше між кадрами 3–5 с стояло голе тло
+    // (Bing, мікс). Стара висить, поки нова вантажиться; не завантажилась — лишається стара.
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var shown by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(imageUri) }
+    androidx.compose.runtime.LaunchedEffect(imageUri) {
+        if (imageUri == null || imageUri == shown) {
+            shown = imageUri
+            return@LaunchedEffect
+        }
+        val result = coil3.SingletonImageLoader.get(context).execute(coil3.request.ImageRequest.Builder(context).data(imageUri).build())
+        if (result is coil3.request.SuccessResult || shown == null) shown = imageUri
+    }
     Box(modifier = modifier.fillMaxSize().let { if (scrim == null) it else it.background(LikhtarColors.Background) }) {
         if (scrim != null) {
             when {
-                imageUri != null -> AsyncImage(
-                    model = imageUri,
+                shown != null -> AsyncImage(
+                    model = shown,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),

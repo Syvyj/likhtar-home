@@ -26,6 +26,12 @@ class LikhtarApplication : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         installCrashSafetyNet()
+        homeTakeover.watch()
+        // HTTP-кеш на диску для всіх запитів лаунчера, за їхніми ж Cache-Control. Android вбиває
+        // лаунчер, поки працює плеєр чи YouTube, і кеш у пам'яті гинув разом із ним: Кінозал
+        // після повернення знову йшов по ~25 запитів і 2–3 с стояв порожній. Шлюз віддає TMDB
+        // з max-age доби — тепер ці відповіді беруться з диска.
+        runCatching { android.net.http.HttpResponseCache.install(java.io.File(cacheDir, "http"), HTTP_CACHE_BYTES) }
     }
 
     /**
@@ -89,3 +95,5 @@ private const val CrossfadeMs = 200
 
 private const val CRASH_LIMIT = 3
 private const val CRASH_WINDOW_MS = 5 * 60_000L
+
+private const val HTTP_CACHE_BYTES = 30L * 1024 * 1024

@@ -190,7 +190,9 @@
     <string name="settings_watch_anime_subtitle">Ряд «Аніме» в Кінозалі й сторінка з добірками</string>
     <string name="settings_watch_title_page_group">СТОРІНКА ФІЛЬМУ</string>
     <string name="settings_watch_live_stills">Живі кадри</string>
-    <string name="settings_watch_live_stills_subtitle">Кадри тайтла повільно пливуть за текстом; ↑ — трейлер у YouTube</string>
+    <string name="settings_watch_live_stills_subtitle">Кадри тайтла повільно пливуть за текстом</string>
+    <string name="settings_watch_trailer_up">Трейлер кнопкою ↑</string>
+    <string name="settings_watch_trailer_up_subtitle">↑ над кнопками відкриває трейлер у YouTube</string>
     <string name="settings_watch_availability">«Доступно в» — для країн</string>
     <string name="settings_watch_availability_subtitle">Оберіть вручну, якщо дивитесь через VPN</string>
     <string name="settings_tv_sources_group">ДЖЕРЕЛА</string>
@@ -359,6 +361,7 @@
     <string name="settings_tv_takeover_revert">Повернути стоковий домашній екран</string>
     <string name="settings_tv_takeover_uninstall_warning">Видаляєте Likhtar? Спершу натисніть цю кнопку — інакше телевізор лишиться без домашнього екрана.</string>
     <string name="settings_tv_takeover_debugging_off">Налагодження вимкнене — увімкніть «Налагодження USB» (кроки вище).</string>
+    <string name="settings_tv_takeover_port_closed">Налагодження USB увімкнене, але цей телевізор не відкриває для нього мережевий порт, потрібний Ліхтарю. Увімкніть «ADB по мережі» в параметрах розробника, якщо такий пункт є, або один раз з телефона чи комп\'ютера (напр. ATV Toolbox): adb tcpip 5555 — і натисніть кнопку ще раз.</string>
     <string name="settings_tv_takeover_not_approved">Дозволу не надано. Спробуйте ще раз і виберіть «Завжди дозволяти».</string>
     <string name="settings_tv_takeover_no_response">ADB телевізора не відповів. Спробуйте ще раз.</string>
     <string name="settings_tv_takeover_wireless">Увімкнено бездротове налагодження — потрібне саме «Налагодження USB».</string>

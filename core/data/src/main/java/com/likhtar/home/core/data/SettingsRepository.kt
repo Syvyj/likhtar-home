@@ -56,6 +56,8 @@ data class LikhtarSettings(
     val voiceSearchOnTv: Boolean = false,
     /** Живий фон першої сцени тайтла: кадри повільно пливуть і змінюються. */
     val titleLiveStills: Boolean = true,
+    /** ↑ над кнопками сторінки фільму відкриває трейлер; вимкнено — ↑ нікуди не веде. */
+    val titleTrailerOnUp: Boolean = true,
     /** Скільки карток у «Продовжити перегляд»: 3, 5 або 7. */
     /** Скільки каналів показує «Останні канали». */
     val homeChannelCount: Int = 4,
@@ -232,6 +234,7 @@ class SettingsRepository @Inject constructor(
             homeShowTorch = prefs[KEY_HOME_TORCH] ?: true,
             voiceSearchOnTv = prefs[KEY_VOICE_ON_TV] ?: false,
             titleLiveStills = prefs[KEY_LIVE_STILLS] ?: true,
+            titleTrailerOnUp = prefs[KEY_TRAILER_UP] ?: true,
             homeChannelCount = prefs[KEY_HOME_CHANNELS] ?: 4,
             pinnedChannels = prefs[KEY_PINNED_CHANNELS].orEmpty(),
             homeAppsPinned = prefs[KEY_HOME_APPS_PINNED] ?: false,
@@ -397,6 +400,10 @@ class SettingsRepository @Inject constructor(
         context.settingsDataStore.edit { it[KEY_VOICE_ON_TV] = on }
     }
 
+    suspend fun setTitleTrailerOnUp(on: Boolean) {
+        context.settingsDataStore.edit { it[KEY_TRAILER_UP] = on }
+    }
+
     suspend fun setTitleLiveStills(on: Boolean) {
         context.settingsDataStore.edit { it[KEY_LIVE_STILLS] = on }
     }
@@ -477,6 +484,7 @@ class SettingsRepository @Inject constructor(
         val KEY_HOME_TORCH = booleanPreferencesKey("home_torch")
         val KEY_VOICE_ON_TV = booleanPreferencesKey("voice_search_on_tv")
         val KEY_LIVE_STILLS = booleanPreferencesKey("title_live_stills")
+        val KEY_TRAILER_UP = booleanPreferencesKey("title_trailer_on_up")
         val KEY_HOME_CHANNELS = intPreferencesKey("home_channel_count")
         val KEY_PINNED_CHANNELS = stringSetPreferencesKey("pinned_channels")
         val KEY_HOME_APPS_PINNED = booleanPreferencesKey("home_apps_pinned")

@@ -173,6 +173,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun toggleTrailerOnUp() {
+        viewModelScope.launch {
+            settingsRepository.setTitleTrailerOnUp(!settingsRepository.settings.first().titleTrailerOnUp)
+        }
+    }
+
     fun toggleTitleLiveStills() {
         viewModelScope.launch {
             settingsRepository.setTitleLiveStills(!settingsRepository.settings.first().titleLiveStills)

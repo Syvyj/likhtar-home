@@ -142,6 +142,7 @@ data class TitleUiState(
     val uaWaitSince: Long? = null,
     /** Живий фон першої сцени — з налаштувань. */
     val liveStills: Boolean = true,
+    val trailerOnUp: Boolean = true,
     /**
      * Дата виходу серії, яку мали б продовжити, якщо вона ще попереду. Порожньо — або вже
      * вийшла, або ми цього не знаємо.
@@ -262,7 +263,7 @@ class TitleViewModel @Inject constructor(
         // перемалювалась, без повернення на неї.
         viewModelScope.launch {
             settings.settings.collect { saved ->
-                state.update { it.copy(actionsOrder = TitleActions.visible(saved.titleActionsOrder), liveStills = saved.titleLiveStills) }
+                state.update { it.copy(actionsOrder = TitleActions.visible(saved.titleActionsOrder), liveStills = saved.titleLiveStills, trailerOnUp = saved.titleTrailerOnUp) }
             }
         }
         val route = savedStateHandle.toRoute<TitleRoute>()

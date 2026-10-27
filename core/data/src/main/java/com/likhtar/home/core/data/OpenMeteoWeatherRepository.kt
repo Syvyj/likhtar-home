@@ -66,9 +66,15 @@ class OpenMeteoWeatherRepository @Inject constructor(
         val now = System.currentTimeMillis()
         if (hit != null && now - hit.atMs < CACHE_MS) return@flow
 
+        // Без мережі (приставка стартувала раніше за Wi-Fi) — дочекатися її й спитати ще раз,
+        // а не мовчати до наступного оновлення.
         val fetched = runCatching { fetch(place) }
             .onFailure { Log.w(TAG, "Не вдалося отримати погоду", it) }
             .getOrNull()
+            ?: run {
+                awaitOnline(context)
+                runCatching { fetch(place) }.getOrNull()
+            }
             ?: return@flow
 
         cached = Cached(place = place.city, atMs = now, snapshot = fetched)

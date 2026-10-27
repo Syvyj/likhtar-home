@@ -27,6 +27,7 @@ data class WallpaperState(
  */
 @Singleton
 class WallpaperRepository @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val providers: Set<@JvmSuppressWildcards WallpaperProvider>,
     private val settingsRepository: SettingsRepository,
 ) {
@@ -50,7 +51,9 @@ class WallpaperRepository @Inject constructor(
         }
         .distinctUntilChanged()
         .flatMapLatest { config ->
-            rotate(providers.firstOrNull { it.id == config.providerId }, config)
+            rotate(providers.firstOrNull { it.id == config.providerId }, config) {
+                com.likhtar.home.core.data.awaitOnline(context)
+            }
         }
 
     internal data class Config(
@@ -69,12 +72,20 @@ class WallpaperRepository @Inject constructor(
          * Ротація набору одного джерела. Виділено окремо, щоб її можна було перевірити
          * тестом на віртуальному часі, а не чеканням реальних хвилин.
          */
-        internal fun rotate(provider: WallpaperProvider?, config: Config): Flow<WallpaperState> = flow {
-        val items = provider?.wallpapers().orEmpty()
+        internal fun rotate(
+            provider: WallpaperProvider?,
+            config: Config,
+            /** Дочекатися мережі: порожній набір на старті — зазвичай Wi-Fi, що ще не піднявся. */
+            awaitOnline: suspend () -> Unit = {},
+        ): Flow<WallpaperState> = flow {
+        var items = provider?.wallpapers().orEmpty()
 
         if (provider == null || items.isEmpty()) {
             emit(WallpaperState(null, config.dimPercent, config.showAttribution))
-            return@flow
+            if (provider == null) return@flow
+            awaitOnline()
+            items = provider.wallpapers()
+            if (items.isEmpty()) return@flow
         }
 
         var index = 0

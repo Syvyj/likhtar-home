@@ -25,7 +25,7 @@ import javax.inject.Singleton
 class HomeTakeover @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    enum class Problem { DEBUGGING_OFF, NOT_APPROVED, NO_RESPONSE, WIRELESS_TLS, WIFI_OWNED, WIFI_UNKNOWN, REFUSED, OTHER }
+    enum class Problem { DEBUGGING_OFF, PORT_CLOSED, NOT_APPROVED, NO_RESPONSE, WIRELESS_TLS, WIFI_OWNED, WIFI_UNKNOWN, REFUSED, OTHER }
 
     private val prefs get() = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -76,12 +76,44 @@ class HomeTakeover @Inject constructor(
         }
     }
 
+    /**
+     * Сторож: деякі виробники вмикають стоковий лаунчер своїм сервісом уже після завантаження
+     * (на проєкторах XGIMI — `xrmservice`, ~20 с після старту), коли [reapplyIfNeeded] давно
+     * минув. Слухаємо «пакет змінено» для того, що ми вимкнули, і вимикаємо знову. Реєструється
+     * з процесу лаунчера, а він живий, поки він — домашній екран.
+     */
+    fun watch() {
+        val filter = android.content.IntentFilter(Intent.ACTION_PACKAGE_CHANGED).apply { addDataScheme("package") }
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(c: Context, intent: Intent) {
+                val pkg = intent.data?.schemeSpecificPart ?: return
+                if (!isActive || pkg !in prefs.getStringSet(KEY_DISABLED, emptySet()).orEmpty()) return
+                val state = runCatching { context.packageManager.getApplicationEnabledSetting(pkg) }.getOrNull()
+                if (state == PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER) return
+                Log.i(TAG, "$pkg знову ввімкнено ззовні — забираємо домашній екран назад")
+                val pending = goAsync()
+                Thread {
+                    try { reapplyIfNeeded() } finally { pending.finish() }
+                }.start()
+            }
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            context.registerReceiver(receiver, filter)
+        }
+    }
+
     /** Аварійне повернення (запобіжник падінь): коротко, без питань на екрані. */
     fun revertQuietly(): Problem? = withAdb(QUIET_MS, {}) { adb -> restore(adb) }
 
     private fun restore(adb: LocalAdb): Problem? {
         val disabled = prefs.getStringSet(KEY_DISABLED, emptySet()).orEmpty()
         val original = prefs.getString(KEY_ORIGINAL, "").orEmpty().takeIf(::safe)
+        // Спершу знімаємо прапорець: інакше сторож ([watch]) побачив би ввімкнений лаунчер
+        // і вимкнув би його назад посеред повернення.
+        prefs.edit().putBoolean(KEY_ACTIVE, false).commit()
         disabled.filter { it != SETUP }.forEach { adb.shell("pm enable $it") }
         if (original != null) {
             adb.shell("cmd package set-home-activity '$original'")
@@ -100,6 +132,7 @@ class HomeTakeover @Inject constructor(
         Log.w(TAG, "ADB: ${e.reason}")
         when (e.reason) {
             LocalAdb.Reason.DEBUGGING_OFF -> Problem.DEBUGGING_OFF
+            LocalAdb.Reason.PORT_CLOSED -> Problem.PORT_CLOSED
             LocalAdb.Reason.NOT_APPROVED, LocalAdb.Reason.REJECTED -> Problem.NOT_APPROVED
             LocalAdb.Reason.WIRELESS_TLS -> Problem.WIRELESS_TLS
             else -> Problem.NO_RESPONSE
