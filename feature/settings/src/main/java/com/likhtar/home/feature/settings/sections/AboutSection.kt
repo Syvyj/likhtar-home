@@ -89,7 +89,8 @@ internal fun AboutSection(appUpdate: com.likhtar.home.core.data.AppUpdate) {
         var checking by remember { mutableStateOf(false) }
         var checked by remember { mutableStateOf(false) }
         var dialog by remember { mutableStateOf(false) }
-        var error by remember { mutableStateOf<String?>(null) }
+        val error by appUpdate.error.collectAsStateWithLifecycle()
+        val awaiting by appUpdate.awaitingPermission.collectAsStateWithLifecycle()
         ValueRow(
             text = stringResource(R.string.settings_about_update),
             value = when {
@@ -115,8 +116,10 @@ internal fun AboutSection(appUpdate: com.likhtar.home.core.data.AppUpdate) {
                 notes = r.notes,
                 progress = progress,
                 error = error,
-                onUpdate = { scope.launch { error = appUpdate.install(r) } },
-                onDismiss = { dialog = false },
+                onUpdate = { scope.launch { appUpdate.install(r) } },
+                onDismiss = { dialog = false; appUpdate.clearError() },
+                awaitingPermission = awaiting,
+                fallbackUrl = com.likhtar.home.core.data.AppUpdate.SITE,
             )
         }
     }

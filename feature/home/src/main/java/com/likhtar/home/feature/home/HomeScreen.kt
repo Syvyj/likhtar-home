@@ -123,6 +123,7 @@ fun HomeScreen(
     val update by viewModel.update.collectAsStateWithLifecycle()
     val updateProgress by viewModel.updateProgress.collectAsStateWithLifecycle()
     val updateError by viewModel.updateError.collectAsStateWithLifecycle()
+    val updateAwaiting by viewModel.updateAwaitingPermission.collectAsStateWithLifecycle()
     var updateOpen by remember { mutableStateOf(false) }
     update?.takeIf { updateOpen }?.let { release ->
         com.likhtar.home.core.designsystem.UpdateDialog(
@@ -131,7 +132,9 @@ fun HomeScreen(
             progress = updateProgress,
             error = updateError,
             onUpdate = { viewModel.installUpdate(release) },
-            onDismiss = { updateOpen = false },
+            onDismiss = { updateOpen = false; viewModel.clearUpdateError() },
+            awaitingPermission = updateAwaiting,
+            fallbackUrl = com.likhtar.home.core.data.AppUpdate.SITE,
         )
     }
 

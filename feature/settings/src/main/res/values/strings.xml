@@ -365,6 +365,8 @@
     <string name="settings_tv_takeover_working">Working…</string>
     <string name="settings_tv_takeover_approve">On the screen: “Allow USB debugging?” — tick “Always allow” and press OK.</string>
     <string name="settings_tv_takeover_revert">Bring back the stock home screen</string>
+    <string name="settings_release_home">Stop being the home screen</string>
+    <string name="settings_release_home_hint">Opens the system settings where you pick another home screen. If the TV asks what to open on Home, choose your previous launcher and Always.</string>
     <string name="settings_tv_takeover_uninstall_warning">Uninstalling Likhtar? Press this button first — otherwise the TV is left without a home screen.</string>
     <string name="settings_tv_takeover_debugging_off">Debugging is off — turn on “USB debugging” (steps above).</string>
     <string name="settings_tv_takeover_port_closed">USB debugging is on, but this TV doesn\'t open it on the network port Likhtar needs. Enable \"ADB over network\" in Developer options if it\'s there, or once from a phone or computer (e.g. ATV Toolbox): adb tcpip 5555 — then press the button again.</string>

@@ -9,6 +9,8 @@
     <string name="ds_update_later">Пізніше</string>
     <string name="ds_update_downloading">Завантаження… %1$d%%</string>
     <string name="ds_update_failed">Не оновилось: %1$s</string>
+    <string name="ds_update_permission">Дозвольте Likhtar встановлювати застосунки на екрані, що відкрився, і поверніться: оновлення продовжиться саме.</string>
+    <string name="ds_update_fallback">Або оновіть так само, як ставили: відкрийте %1$s на телефоні чи комп\'ютері й поставте новий APK поверх старого. Налаштування лишаться.</string>
     <string name="ds_save">Зберегти</string>
     <string name="ds_cancel">Скасувати</string>
     <string name="ds_clear">Очистити</string>

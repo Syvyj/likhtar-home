@@ -365,6 +365,8 @@
     <string name="settings_tv_takeover_working">Chwileczkę…</string>
     <string name="settings_tv_takeover_approve">Na ekranie — „Zezwolić na debugowanie USB?”: zaznacz „Zawsze zezwalaj” i naciśnij OK.</string>
     <string name="settings_tv_takeover_revert">Przywróć fabryczny ekran główny</string>
+    <string name="settings_release_home">Przestań być ekranem głównym</string>
+    <string name="settings_release_home_hint">Otworzy ustawienia systemowe, w których wybiera się inny ekran główny. Jeśli telewizor zapyta, czym otwierać „Ekran główny”, wybierz poprzedni launcher i „Zawsze”.</string>
     <string name="settings_tv_takeover_uninstall_warning">Odinstalowujesz Likhtar? Najpierw naciśnij ten przycisk — inaczej telewizor zostanie bez ekranu głównego.</string>
     <string name="settings_tv_takeover_debugging_off">Debugowanie jest wyłączone — włącz „Debugowanie USB” (kroki wyżej).</string>
     <string name="settings_tv_takeover_port_closed">Debugowanie USB jest włączone, ale ten telewizor nie otwiera portu sieciowego, którego potrzebuje Likhtar. Włącz „ADB przez sieć” w opcjach programisty, jeśli jest, albo raz z telefonu lub komputera (np. ATV Toolbox): adb tcpip 5555 — i naciśnij przycisk ponownie.</string>

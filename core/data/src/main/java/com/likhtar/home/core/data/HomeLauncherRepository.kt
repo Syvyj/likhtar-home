@@ -170,6 +170,23 @@ class HomeLauncherRepository @Inject constructor(
     }
 
     /**
+     * «Перестати бути домашнім екраном» для тих, хто обрав нас системним вибором, а не
+     * перехопленням ([takeover]): забуваємо своє «Завжди» й ведемо туди, де HOME віддають
+     * іншому. Роль HOME застосунок сам віддати не може — лише показати, де це зробити.
+     * Без ролі (Android 9 і старші) після скидання HOME знову спитає, чим відкривати.
+     */
+    fun releaseIntents(): List<Intent> {
+        @Suppress("DEPRECATION")
+        runCatching { context.packageManager.clearPackagePreferredActivities(context.packageName) }
+        return buildList {
+            add(Intent(Settings.ACTION_HOME_SETTINGS))
+            add(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
+            if (!holdsHomeRole()) add(Intent(HOME_INTENT).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            add(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
+        }.map { it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+    }
+
+    /**
      * Чи зможемо піднятися самі після ввімкнення приставки.
      *
      * Дозвіл «показ поверх інших додатків» тут потрібен не для оверлеїв: він єдине

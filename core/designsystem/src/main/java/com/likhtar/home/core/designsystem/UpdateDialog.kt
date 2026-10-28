@@ -24,6 +24,10 @@ fun UpdateDialog(
     error: String?,
     onUpdate: () -> Unit,
     onDismiss: () -> Unit,
+    /** Відкрили системний дозвіл ставити застосунки: оновлення продовжиться після повернення. */
+    awaitingPermission: Boolean = false,
+    /** Сайт із APK — QR під помилкою: з телефона завантажити й поставити, як уперше. */
+    fallbackUrl: String? = null,
 ) {
     LikhtarDialog(onDismiss = onDismiss, width = 640.dp) {
         Text(stringResource(R.string.ds_update_title, version), style = LikhtarType.PageTitle, color = LikhtarColors.TextPrimary)
@@ -34,6 +38,14 @@ fun UpdateDialog(
             modifier = Modifier.padding(top = 10.dp, bottom = 14.dp).heightIn(max = 260.dp).verticalScroll(rememberScrollState()),
         )
         error?.let { Text(stringResource(R.string.ds_update_failed, it), style = LikhtarType.Label, color = LikhtarColors.Amber, modifier = Modifier.padding(bottom = 10.dp)) }
+        if (error != null && fallbackUrl != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(bottom = 14.dp)) {
+                QrCode(fallbackUrl, 96.dp)
+                Text(stringResource(R.string.ds_update_fallback, fallbackUrl), style = LikhtarType.Body2, color = LikhtarColors.TextSecondary)
+            }
+        } else if (awaitingPermission && progress == null) {
+            Text(stringResource(R.string.ds_update_permission), style = LikhtarType.Label, color = LikhtarColors.TextSecondary, modifier = Modifier.padding(bottom = 10.dp))
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (progress != null) {
                 Text(stringResource(R.string.ds_update_downloading, (progress * 100).toInt()), style = LikhtarType.Label, color = LikhtarColors.TextPrimary, modifier = Modifier.padding(12.dp))

@@ -365,6 +365,8 @@
     <string name="settings_tv_takeover_working">Зачекайте…</string>
     <string name="settings_tv_takeover_approve">На екрані — «Дозволити налагодження USB?»: позначте «Завжди дозволяти» і натисніть OK.</string>
     <string name="settings_tv_takeover_revert">Повернути стоковий домашній екран</string>
+    <string name="settings_release_home">Перестати бути домашнім екраном</string>
+    <string name="settings_release_home_hint">Відкриє системні налаштування, де обирають інший домашній екран. Якщо телевізор спитає, чим відкривати «Додому», виберіть попередній лаунчер і «Завжди».</string>
     <string name="settings_tv_takeover_uninstall_warning">Видаляєте Likhtar? Спершу натисніть цю кнопку — інакше телевізор лишиться без домашнього екрана.</string>
     <string name="settings_tv_takeover_debugging_off">Налагодження вимкнене — увімкніть «Налагодження USB» (кроки вище).</string>
     <string name="settings_tv_takeover_port_closed">Налагодження USB увімкнене, але цей телевізор не відкриває для нього мережевий порт, потрібний Ліхтарю. Увімкніть «ADB по мережі» в параметрах розробника, якщо такий пункт є, або один раз з телефона чи комп\'ютера (напр. ATV Toolbox): adb tcpip 5555 — і натисніть кнопку ще раз.</string>

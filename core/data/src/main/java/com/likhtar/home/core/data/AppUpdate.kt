@@ -1,9 +1,12 @@
 package com.likhtar.home.core.data
 
+import android.app.Activity
+import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import androidx.core.content.FileProvider
@@ -12,7 +15,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,6 +48,16 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
     /** Завантаження APK, 0–1; `null` — не завантажуємо. */
     val progress: StateFlow<Float?> = _progress.asStateFlow()
 
+    private val _error = MutableStateFlow<String?>(null)
+    /** Чому не оновилось — для вікна оновлення; `null` — помилки немає. */
+    val error: StateFlow<String?> = _error.asStateFlow()
+
+    private val _awaitingPermission = MutableStateFlow(false)
+    /** Відкрили дозвіл «встановлювати застосунки» — щойно людина повернеться з ним, продовжимо самі. */
+    val awaitingPermission: StateFlow<Boolean> = _awaitingPermission.asStateFlow()
+    @Volatile private var waiting: AppRelease? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     val installed: String by lazy {
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
     }
@@ -49,34 +65,64 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
     init {
         // Знайдене минулого разу — одразу, без мережі: кнопка не зникає до наступної перевірки.
         prefs.getString(KEY_RELEASE, null)?.let(::decode)?.takeIf { newer(it.version, installed) }?.let { _available.value = it }
+        // Повернулись із системного дозволу — оновлення йде далі саме, без другого «Оновити».
+        (context.applicationContext as? Application)?.registerActivityLifecycleCallbacks(
+            object : Application.ActivityLifecycleCallbacks {
+                override fun onActivityResumed(activity: Activity) {
+                    val release = waiting ?: return
+                    if (!canInstall()) return
+                    waiting = null
+                    _awaitingPermission.value = false
+                    scope.launch { install(release) }
+                }
+                override fun onActivityCreated(activity: Activity, state: Bundle?) = Unit
+                override fun onActivityStarted(activity: Activity) = Unit
+                override fun onActivityPaused(activity: Activity) = Unit
+                override fun onActivityStopped(activity: Activity) = Unit
+                override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) = Unit
+                override fun onActivityDestroyed(activity: Activity) = Unit
+            },
+        )
     }
+
+    private fun canInstall() = Build.VERSION.SDK_INT < Build.VERSION_CODES.O || context.packageManager.canRequestPackageInstalls()
+
+    fun clearError() { _error.value = null }
 
     /** Перевірити, якщо минула доба (або [force]). `true` — є новіша. */
     suspend fun check(force: Boolean = false): Boolean = withContext(Dispatchers.IO) {
         if (!Distribution.store) return@withContext false
         val now = System.currentTimeMillis()
         if (!force && now - prefs.getLong(KEY_CHECKED, 0) < CHECK_MS) return@withContext _available.value != null
-        val release = runCatching {
+        val result = runCatching {
             http(LATEST, TIMEOUT_MS, headers = mapOf("Accept" to "application/vnd.github+json")) { c ->
-                if (c.responseCode != 200) null else parse(c.text())
+                if (c.responseCode != 200) error("GitHub відповів ${c.responseCode}") else parse(c.text())
             }
-        }.onFailure { Log.w(TAG, "перевірка оновлень", it) }.getOrNull()
+        }.onFailure { Log.w(TAG, "перевірка оновлень", it) }
+        // Не спитали (нема мережі, GitHub обмежив запити) — це не «перевірено»: наступне
+        // ввімкнення спитає знову, а не через добу.
+        if (result.isFailure) return@withContext _available.value != null
         prefs.edit().putLong(KEY_CHECKED, now).apply()
-        val fresh = release?.takeIf { newer(it.version, installed) }
+        val fresh = result.getOrNull()?.takeIf { newer(it.version, installed) }
         prefs.edit().putString(KEY_RELEASE, fresh?.let(::encode)).apply()
         _available.value = fresh
         fresh != null
     }
 
     /**
-     * Завантажити APK і відкрити встановлення. Текст помилки або `null`, якщо вікно встановлення
-     * відкрилось (чи система спершу попросила дозволу ставити застосунки).
+     * Завантажити APK і відкрити встановлення. Помилку кладе в [error]. Без дозволу ставити
+     * застосунки спершу відкриває його, а встановлення продовжує саме, коли людина повернеться.
      */
-    suspend fun install(release: AppRelease): String? = withContext(Dispatchers.IO) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
+    suspend fun install(release: AppRelease): Unit = withContext(Dispatchers.IO) {
+        _error.value = null
+        if (!canInstall()) {
             val ask = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            return@withContext runCatching { context.startActivity(ask) }.exceptionOrNull()?.message
+            runCatching { context.startActivity(ask) }
+                .onSuccess { waiting = release; _awaitingPermission.value = true }
+                // Деякі телевізори цього екрана не мають — тоді лишається APK із сайту (QR у вікні).
+                .onFailure { _error.value = it.message ?: it.javaClass.simpleName }
+            return@withContext
         }
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         val apk = File(dir, "likhtar-home.apk")
@@ -108,10 +154,9 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
                     .setDataAndType(uri, "application/vnd.android.package-archive")
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK),
             )
-            null
         } catch (e: Exception) {
             Log.w(TAG, "оновлення", e)
-            e.message ?: e.javaClass.simpleName
+            _error.value = e.message ?: e.javaClass.simpleName
         } finally {
             _progress.value = null
         }
@@ -125,6 +170,8 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
 
     companion object {
         private const val TAG = "LikhtarUpdate"
+        /** Сайт із APK — запасний шлях, коли телевізор не дає встановити з лаунчера. */
+        const val SITE = "https://likhtar.syvyj.dev/"
         private const val LATEST = "https://api.github.com/repos/Syvyj/likhtar-home/releases/latest"
         private const val APK_NAME = "likhtar-home.apk"
         private const val CHECK_MS = 24 * 60 * 60_000L

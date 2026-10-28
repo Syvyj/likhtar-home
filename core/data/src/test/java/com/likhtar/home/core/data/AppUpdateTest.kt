@@ -11,6 +11,8 @@ class AppUpdateTest {
     fun `номери порівнюються числами, а не рядками`() {
         assertTrue(AppUpdate.newer("0.1.10", "0.1.9"))
         assertTrue(AppUpdate.newer("0.2.0", "0.1.4"))
+        assertTrue(AppUpdate.newer("0.1.9.1", "0.1.9"))
+        assertTrue(AppUpdate.newer("0.2.0", "0.1.9.1"))
         assertFalse(AppUpdate.newer("0.1.4", "0.1.4"))
         assertFalse(AppUpdate.newer("0.1.3", "0.1.4"))
         assertFalse(AppUpdate.newer("0.1.0", "0.1.0-alpha01"))

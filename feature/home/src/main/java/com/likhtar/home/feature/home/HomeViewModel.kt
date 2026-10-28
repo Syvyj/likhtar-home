@@ -96,11 +96,14 @@ class HomeViewModel @Inject constructor(
     /** Новіша версія з GitHub — пігулкою над LIKHTAR HOME; `null` — оновлювати нічого. */
     val update = appUpdate.available
     val updateProgress = appUpdate.progress
-    val updateError = MutableStateFlow<String?>(null)
+    val updateError = appUpdate.error
+    val updateAwaitingPermission = appUpdate.awaitingPermission
 
     fun installUpdate(release: com.likhtar.home.core.data.AppRelease) {
-        viewModelScope.launch { updateError.value = appUpdate.install(release) }
+        viewModelScope.launch { appUpdate.install(release) }
     }
+
+    fun clearUpdateError() = appUpdate.clearError()
 
     /** Радар української: тайтл, на який чекали, уже з озвучкою — перша картка «Продовжити». */
     private val uaArrival = MutableStateFlow<ResumeCard?>(null)

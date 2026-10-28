@@ -169,6 +169,21 @@ fun HomeLauncherOnboarding(
                 )
                 TvTakeoverStep(repository) { status = repository.status() }
             }
+            // Домашнім зробили системним вибором — повернути інший лаунчер теж мусить бути
+            // можна звідси, а не лише після перехоплення.
+            if (!repository.takeover.isActive) {
+                ActionButton(
+                    text = stringResource(R.string.settings_release_home),
+                    onClick = { launchFirstAvailable(context, repository.releaseIntents()) },
+                    modifier = Modifier.width(300.dp),
+                )
+                Text(
+                    text = stringResource(R.string.settings_release_home_hint),
+                    style = LikhtarType.Body2,
+                    color = LikhtarColors.TextTertiary,
+                    modifier = Modifier.width(470.dp),
+                )
+            }
             Text(
                 text = stringResource(R.string.settings_onboarding_done_note),
                 style = LikhtarType.Body2,

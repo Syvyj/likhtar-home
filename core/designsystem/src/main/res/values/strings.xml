@@ -9,6 +9,8 @@
     <string name="ds_update_later">Later</string>
     <string name="ds_update_downloading">Downloading… %1$d%%</string>
     <string name="ds_update_failed">Did not update: %1$s</string>
+    <string name="ds_update_permission">Allow installing apps for Likhtar on the screen that opened and come back: the update will continue by itself.</string>
+    <string name="ds_update_fallback">Or update the way you installed it: open %1$s on your phone or computer and install the new APK over the old one. Settings stay.</string>
     <string name="ds_save">Save</string>
     <string name="ds_cancel">Cancel</string>
     <string name="ds_clear">Clear</string>
