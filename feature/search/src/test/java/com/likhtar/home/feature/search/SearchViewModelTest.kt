@@ -195,6 +195,16 @@ class SearchViewModelTest {
         }
     }
 
+    @Test
+    fun yearInQueryBeatsAiBest() {
+        val film = item(220, "East of Eden").copy(year = "1955")
+        val series = item(258165, "East of Eden").copy(kind = TitleKind.TV, year = "2026")
+        val state = SearchUiState(query = "East of Eden 2026", ai = listOf(film, series))
+        org.junit.Assert.assertEquals(series, state.best)
+        org.junit.Assert.assertEquals(film, SearchUiState(query = "East of Eden", ai = listOf(film, series)).best)
+        org.junit.Assert.assertEquals(series, SearchUiState(query = "серіал East of Eden", ai = listOf(film, series)).best)
+    }
+
     private fun TestScope.collectState(viewModel: SearchViewModel): Job =
         launch(dispatcher) { viewModel.uiState.collect {} }.also { testScheduler.runCurrent() }
 

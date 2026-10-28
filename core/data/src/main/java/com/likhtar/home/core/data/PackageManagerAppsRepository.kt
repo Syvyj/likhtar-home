@@ -1,6 +1,8 @@
 package com.likhtar.home.core.data
 
 import com.likhtar.home.core.model.StreamingService
+import android.app.Activity
+import android.app.Application
 import android.app.SearchManager
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -12,6 +14,8 @@ import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
+import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -46,6 +50,23 @@ class PackageManagerAppsRepository @Inject constructor(
     private val packageManager: PackageManager get() = context.packageManager
 
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /** Коли наш екран востаннє сховався — мірило, як швидко показався запущений застосунок. */
+    @Volatile private var stoppedAt = 0L
+
+    init {
+        (context.applicationContext as? Application)?.registerActivityLifecycleCallbacks(
+            object : Application.ActivityLifecycleCallbacks {
+                override fun onActivityStopped(activity: Activity) { stoppedAt = SystemClock.uptimeMillis() }
+                override fun onActivityCreated(activity: Activity, state: Bundle?) = Unit
+                override fun onActivityStarted(activity: Activity) = Unit
+                override fun onActivityResumed(activity: Activity) = Unit
+                override fun onActivityPaused(activity: Activity) = Unit
+                override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) = Unit
+                override fun onActivityDestroyed(activity: Activity) = Unit
+            },
+        )
+    }
 
     /**
      * Сигнали «пакети змінилися». onReceive нічого не рахує — він приходить на main
@@ -148,10 +169,34 @@ class PackageManagerAppsRepository @Inject constructor(
             )
             return true
         }
-        val intent = parsed.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        // Картка TMDB («Відкрити будь-де») — без CLEAR_TASK: застосунок, що знає такі посилання
+        // (сторонні каталоги), бере їх у onNewIntent, а свіже завдання перезапускало його з нуля, і він
+        // губив картку — відкривав головну або взагалі інший тайтл.
+        val tmdbCard = parsed.data?.host?.endsWith("themoviedb.org") == true
+        val intent = parsed.addFlags(if (tmdbCard) Intent.FLAG_ACTIVITY_NEW_TASK else Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         // Порожній рядок означає «конкретного застосунку не знаємо» — хай вибирає система.
         if (!packageName.isNullOrBlank()) intent.setPackage(packageName)
+        val target = intent.component?.packageName ?: intent.`package`
+        // Netflix на ТБ без `source=30` посилання на тайтл ігнорує й відкриває свою головну.
+        if (target == NETFLIX) intent.putExtra("source", "30")
+        val startedAt = SystemClock.uptimeMillis()
         context.startActivity(intent)
+        // Застосунок на веб-основі з холодного старту вантажиться секунд десять, показує свою
+        // головну, а картку губить. Повтор, коли він уже готовий, відкриває саме тайтл. Живому —
+        // без повтору: друга картка лягла б поверх першої, і «Назад» показував би ту саму.
+        // Чужі процеси Android не показує, тож холодний пізнаємо за швидкістю: наш екран
+        // ховається, коли застосунок намалював свій. Живий — ~0,6 с, холодний — ~1,5 с.
+        if (tmdbCard) {
+            val again = Intent(intent)
+            Handler(Looper.getMainLooper()).postDelayed({
+                val shown = stoppedAt - startedAt
+                Log.i(TAG, "картка $target: застосунок показався за $shown мс")
+                // Людина вже повернулась у лаунчер — не висмикуємо її назад.
+                if (shown >= COLD_START_MS && !launcherInFront()) {
+                    runCatching { context.startActivity(again) }.onFailure { Log.w(TAG, "повтор картки $target", it) }
+                }
+            }, COLD_CARD_RETRY_MS)
+        }
         // MEGOGO з холодного старту йде через вибір профілю й губить посилання — лишається
         // головна. Те саме посилання за 4 с відкриває фільм; живому MEGOGO повтор лише
         // перевідкриває ту саму сторінку (CLEAR_TASK). Перевірено на приставці 24.09.
@@ -415,9 +460,17 @@ class PackageManagerAppsRepository @Inject constructor(
 
     private fun resourceUri(packageName: String, resId: Int) = "android.resource://$packageName/$resId"
 
+    private fun launcherInFront(): Boolean = runCatching {
+        val am = context.getSystemService(android.app.ActivityManager::class.java)
+        am.runningAppProcesses.orEmpty().any {
+            it.pid == android.os.Process.myPid() && it.importance == android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+        }
+    }.getOrDefault(false)
+
     private companion object {
         const val TAG = "LikhtarApps"
         val SWEET_TV = StreamingService.SWEET.packageName
+        val NETFLIX = StreamingService.NETFLIX.packageName
 
         /** Офіційний YouTube: спершу TV-версія, далі звичайна; жодної — системний вибір. */
         val YOUTUBE_PACKAGES = StreamingService.YOUTUBE.packages
@@ -425,6 +478,10 @@ class PackageManagerAppsRepository @Inject constructor(
 
         /** Скільки MEGOGO на холодному старті проходить вибір профілю. */
         const val MEGOGO_RETRY_MS = 4000L
+        /** Скільки холодний застосунок вантажиться до готовності прийняти картку. */
+        const val COLD_CARD_RETRY_MS = 12_000L
+        /** Довше за це застосунок показувався — стартував з нуля (живий ~0,6 с, холодний ~1,5 с). */
+        const val COLD_START_MS = 1000L
 
         /** Будь-яке відео-посилання: потрібне лише щоб система назвала своїх обробників. */
         val SAMPLE_VIDEO: Uri = Uri.parse("http://likhtar.local/sample.mp4")

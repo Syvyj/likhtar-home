@@ -79,7 +79,24 @@ data class SearchUiState(
     val descriptive: Boolean get() = query.trim().split(WORDS).size >= DESCRIPTION_WORDS
 
     /** Найкращий збіг — великою карткою над рядами. */
-    val best: CatalogItem? get() = (if (descriptive) ai.firstOrNull() else null) ?: results.firstOrNull() ?: ai.firstOrNull()
+    val best: CatalogItem? get() = hinted ?: (if (descriptive) ai.firstOrNull() else null) ?: results.firstOrNull() ?: ai.firstOrNull()
+
+    /**
+     * Рік чи «серіал» у запиті — точніша підказка за вибір моделі: на «East of Eden 2026»
+     * вона клала в банер фільм 1955-го, а серіал 2026-го — лише в ряд.
+     */
+    private val hinted: CatalogItem?
+        get() {
+            val year = YEAR.find(query)?.value
+            val words = query.lowercase().split(WORDS).toSet()
+            val kind = when {
+                words.any { it in TV_WORDS } -> TitleKind.TV
+                words.any { it in MOVIE_WORDS } -> TitleKind.MOVIE
+                else -> null
+            }
+            if (year == null && kind == null) return null
+            return (if (descriptive) ai + results else results + ai).firstOrNull { (year == null || it.year == year) && (kind == null || it.kind == kind) }
+        }
     val aiRest: List<CatalogItem> get() = ai.filter { it.id != best?.id }
     private val rest: List<CatalogItem> get() = results.filter { it.id != best?.id }
     val movies: List<CatalogItem> get() = rest.filter { it.kind == TitleKind.MOVIE && it.tmdbId !in shows }
@@ -88,6 +105,9 @@ data class SearchUiState(
 
     internal companion object {
         private val WORDS = Regex("\\s+")
+        private val YEAR = Regex("""\b(19|20)\d{2}\b""")
+        private val TV_WORDS = setOf("серіал", "сериал", "series", "show", "шоу")
+        private val MOVIE_WORDS = setOf("фільм", "фильм", "movie", "film", "кіно")
         const val DESCRIPTION_WORDS = 3
     }
 }

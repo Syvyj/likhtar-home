@@ -139,6 +139,11 @@ class InstalledAppSearch @Inject constructor(
                 tvAppsCache = context.packageManager
                     .queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0)
                     .mapTo(HashSet()) { it.activityInfo.packageName }
+                // Плеєри (Nova, ViMu) мають пошук, але лише по своїх файлах — фільму там немає.
+                // Пізнаємо їх за `video/*`: жоден застосунок-джерело файли не відкриває.
+                tvAppsCache -= context.packageManager
+                    .queryIntentActivities(Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse("file:///x.mkv"), "video/*"), 0)
+                    .map { it.activityInfo.packageName }.toSet()
                 tvAppsAt = now
             }
             return tvAppsCache

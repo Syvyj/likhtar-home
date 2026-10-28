@@ -26,6 +26,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.unit.dp
@@ -106,7 +109,7 @@ internal fun PosterHead(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(bottom = 140.dp)
-                .width(400.dp),
+                .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
             // .logo: 600×150 px, contain, ліворуч по центру.
@@ -116,6 +119,7 @@ internal fun PosterHead(
                 height = 75.dp,
                 localTitle = true,
                 widthFraction = 0.75f,
+                modifier = Modifier.width(400.dp),
                 fallbackStyle = if (item.title.length <= 10) LikhtarType.HeroTitle.copy(fontSize = 48.sp, lineHeight = 50.sp)
                 else LikhtarType.HeroTitle.copy(fontSize = 30.sp, lineHeight = 33.sp),
                 alignment = Alignment.CenterStart,
@@ -125,6 +129,7 @@ internal fun PosterHead(
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalArrangement = Arrangement.spacedBy(5.dp),
+                modifier = Modifier.width(400.dp),
             ) {
                 if (uaAudio) {
                     ProtoUaChip(
@@ -174,11 +179,7 @@ internal fun PosterHead(
                 .distinctBy { it.launch?.packageName ?: it.label }
 
             // .actions: gap 16 px, margin-top 8 px; кнопки — .btn (76 px, поле 36, 26 px).
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(top = 4.dp),
-            ) {
+            HeroActions(narrow = 400.dp, gap = 8.dp, modifier = Modifier.padding(top = 4.dp)) {
                 // Початковий фокус — на першу кнопку, яка справді є: у публічній збірці «Дивитись»
                 // немає, і сторінка стояла зовсім без фокуса — пульт нічого не робив.
                 var firstTaken = false
@@ -358,3 +359,36 @@ internal fun leadSentences(overview: String, count: Int = 2): String {
  * тут ідеться про серіал, який обірвали, і людині це треба знати до першої серії.
  */
 
+/**
+ * Дії шапки: перший ряд — у ширину колонки ([narrow]), усе, що не влізло, — далі повною шириною.
+ * FlowRow на 400 dp ріс угору третім-четвертим рядом і виштовхував знак назви за край екрана.
+ */
+@Composable
+private fun HeroActions(narrow: Dp, gap: Dp, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Layout(content, modifier) { measurables, constraints ->
+        val gapPx = gap.roundToPx()
+        val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0, minHeight = 0)) }
+        val rows = mutableListOf(mutableListOf<Placeable>())
+        var x = 0
+        placeables.forEach { p ->
+            val limit = if (rows.size == 1) narrow.roundToPx().coerceAtMost(constraints.maxWidth) else constraints.maxWidth
+            if (rows.last().isNotEmpty() && x + gapPx + p.width > limit) {
+                rows += mutableListOf<Placeable>()
+                x = 0
+            }
+            x += (if (rows.last().isEmpty()) 0 else gapPx) + p.width
+            rows.last() += p
+        }
+        val filled = rows.filter { it.isNotEmpty() }
+        val width = filled.maxOfOrNull { row -> row.sumOf { it.width } + gapPx * (row.size - 1) } ?: 0
+        val height = filled.sumOf { row -> row.maxOf { it.height } } + gapPx * (filled.size - 1).coerceAtLeast(0)
+        layout(width.coerceIn(constraints.minWidth, constraints.maxWidth), height.coerceIn(constraints.minHeight, constraints.maxHeight)) {
+            var y = 0
+            filled.forEach { row ->
+                var rx = 0
+                row.forEach { it.placeRelative(rx, y); rx += it.width + gapPx }
+                y += row.maxOf { it.height } + gapPx
+            }
+        }
+    }
+}
