@@ -998,7 +998,7 @@ private fun GameTile(game: RetroGame, onClick: () -> Unit, modifier: Modifier = 
 private fun CloudTile(cloud: CloudGame, installed: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     FocusableSurface(
         onClick = onClick,
-        modifier = modifier.size(GameTileHeight * 16 / 9, GameTileHeight).focusGlow(9.dp),
+        modifier = modifier.size(CloudTileHeight * 16 / 9, CloudTileHeight).focusGlow(9.dp),
         shape = RoundedCornerShape(9.dp),
         background = cloud.color,
         focusedBackground = cloud.color,
@@ -1165,6 +1165,7 @@ private fun CloudHero(cloud: CloudGame, installed: Boolean) {
     }
 }
 
-private val GameTileHeight = 112.dp
+private val GameTileHeight = 149.dp
+private val CloudTileHeight = 112.dp
 private const val ONE_ROW_ROMS = 12
-private val GameTileWidth = 82.dp
+private val GameTileWidth = 109.dp

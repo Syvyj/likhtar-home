@@ -98,7 +98,8 @@ fun WallpaperBackground(
         val result = coil3.SingletonImageLoader.get(context).execute(coil3.request.ImageRequest.Builder(context).data(imageUri).build())
         if (result is coil3.request.SuccessResult || shown == null) shown = imageUri
     }
-    Box(modifier = modifier.fillMaxSize().let { if (scrim == null) it else it.background(LikhtarColors.Background) }) {
+    // Графіт і без шпалери: розділ, що малює лише під меню («Ігри»), інакше лишав чорну смугу вгорі.
+    Box(modifier = modifier.fillMaxSize().background(LikhtarColors.Background)) {
         if (scrim != null) {
             when {
                 shown != null -> AsyncImage(

@@ -54,6 +54,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
@@ -415,9 +418,29 @@ private fun ClockBlock(
     modifier: Modifier = Modifier,
 ) {
     // Без бурштинової лінії збоку (прототип): світло на Головній одне — під фокусом.
+    // Дата — рівно під чорнилом першої цифри: у великої цифри свій лівий відступ гліфа,
+    // і дата від краю блоку стояла лівіше за годинник.
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val fonts = androidx.compose.ui.platform.LocalFontFamilyResolver.current
+    val inkStart = remember(time.firstOrNull()) {
+        val typeface = fonts.resolve(HomeClockStyle.fontFamily, HomeClockStyle.fontWeight ?: FontWeight.Normal).value as? android.graphics.Typeface
+        val paint = android.graphics.Paint().apply {
+            this.typeface = typeface
+            textSize = with(density) { HomeClockStyle.fontSize.toPx() }
+            HomeClockStyle.fontFeatureSettings?.let { fontFeatureSettings = it }
+        }
+        val ink = android.graphics.Rect()
+        if (time.isNotEmpty()) paint.getTextBounds(time, 0, 1, ink)
+        with(density) { ink.left.coerceAtLeast(0).toDp() }
+    }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(text = time, style = HomeClockStyle, color = LikhtarColors.Ink)
-        Text(text = date, style = LikhtarType.Lead.copy(shadow = TextShade.copy(blurRadius = 10f)), color = LikhtarColors.Ink)
+        Text(
+            text = date,
+            style = LikhtarType.Lead.copy(shadow = TextShade.copy(blurRadius = 10f)),
+            color = LikhtarColors.Ink,
+            modifier = Modifier.padding(start = inkStart),
+        )
     }
 }
 
@@ -673,7 +696,13 @@ private fun Modifier.lightSource(): Modifier {
 }
 
 @Composable
-private fun ContextSection(label: String?, content: @Composable RowScope.() -> Unit) {
+private fun ContextSection(
+    label: String?,
+    /** Перша картка ряду; з нею ряд іде по колу — останню ряд позначає сам через `last`. */
+    first: FocusRequester? = null,
+    content: @Composable RowScope.(edges: RowEdges) -> Unit,
+) {
+    val edges = remember(first) { RowEdges(first, FocusRequester(), com.likhtar.home.core.designsystem.RowWrap()) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         label?.let {
             Text(text = it, style = ShelfTitleStyle, color = Color.White)
@@ -688,9 +717,10 @@ private fun ContextSection(label: String?, content: @Composable RowScope.() -> U
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .bleed(ScrollEdge)
+                .onPreviewKeyEvent(edges.wrap::onKey)
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = ScrollEdge),
-            content = content,
+            content = { content(edges) },
         )
     }
 }
@@ -711,13 +741,22 @@ private fun HomeContextRow(
     crossZone: Modifier,
 ) {
     // «Ліхтарик підкаже» (прототип): готові запити одразу запускають Ліхтарика.
-    // «Налаштування» лишаються завжди: вимкнувши Ліхтарик, людина мусить мати чим його повернути.
     var firstTaken = false
+    // Перша пігулка — вхід у ряд; її «вліво» веде на останню (ряд по колу, див. ContextSection).
+    var edgesHere: RowEdges? = null
     val firstOnce: () -> Modifier = {
-        if (firstTaken) crossZone else { firstTaken = true; crossZone.focusRequester(first) }
+        if (firstTaken) crossZone else { firstTaken = true; crossZone.focusRequester(first).let { m -> edgesHere?.let { m.rowStart(it) } ?: m } }
     }
-    ContextSection(label = if (showTorch) stringResource(R.string.home_torch_suggests) else null) {
-        // Нова версія — першою: її видно щоразу, коли фокус на LIKHTAR HOME, а це старт Головної.
+    ContextSection(label = if (showTorch) stringResource(R.string.home_torch_suggests) else null, first = first) { edges ->
+        edgesHere = edges
+        // Порядок: сам Ліхтарик, «Підтримати автора», а далі решта — нова версія, підказки й
+        // налаштування.
+        if (showTorch) {
+            HomePill(text = stringResource(R.string.home_open_torch), icon = R.drawable.ic_dock_search, onClick = onOpenTorch, modifier = firstOnce())
+        }
+        var support by remember { mutableStateOf(false) }
+        HomePill(text = stringResource(R.string.home_support), icon = com.likhtar.home.core.designsystem.R.drawable.ic_solar_heart, onClick = { support = true }, modifier = firstOnce())
+        if (support) com.likhtar.home.core.designsystem.SupportDialog(onDismiss = { support = false })
         update?.let {
             HomePill(text = stringResource(R.string.home_update, it.version), icon = com.likhtar.home.core.designsystem.R.drawable.ic_solar_download, onClick = onUpdate, modifier = firstOnce())
         }
@@ -725,9 +764,7 @@ private fun HomeContextRow(
             // «Новинки українською» — лише українському інтерфейсу: поляк бачив «Nowości po ukraińsku»
             // поруч із власними підказками, як решту українського пласта.
             val ukrainian = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "uk"
-            // Перша — сам Ліхтарик; далі три випадкові запити з набору, щоразу інші, коли рядок
-            // з'являється.
-            HomePill(text = stringResource(R.string.home_open_torch), icon = R.drawable.ic_dock_search, onClick = onOpenTorch, modifier = firstOnce())
+            // Три випадкові запити з набору, щоразу інші, коли рядок з'являється.
             val pool = androidx.compose.ui.res.stringArrayResource(R.array.home_asks).toList() +
                 listOfNotNull(stringResource(R.string.home_ask_ukrainian).takeIf { ukrainian })
             val asks = remember { pool.shuffled().take(ASKS_SHOWN) }
@@ -735,11 +772,8 @@ private fun HomeContextRow(
                 HomePill(text = text, icon = R.drawable.ic_magic, onClick = { onAsk(text) }, modifier = firstOnce())
             }
         }
-        HomePill(text = stringResource(R.string.home_settings), icon = R.drawable.ic_settings_solar, onClick = onOpenSettings, modifier = firstOnce())
-        // Підтримати автора — поруч із налаштуваннями: тихо, без нагадувань.
-        var support by remember { mutableStateOf(false) }
-        HomePill(text = stringResource(R.string.home_support), icon = com.likhtar.home.core.designsystem.R.drawable.ic_solar_heart, onClick = { support = true }, modifier = firstOnce())
-        if (support) com.likhtar.home.core.designsystem.SupportDialog(onDismiss = { support = false })
+        // «Налаштування» лишаються завжди: вимкнувши Ліхтарик, людина мусить мати чим його повернути.
+        HomePill(text = stringResource(R.string.home_settings), icon = R.drawable.ic_settings_solar, onClick = onOpenSettings, modifier = firstOnce().rowEnd(edges))
     }
 }
 
@@ -842,7 +876,7 @@ private fun ChannelsContextRow(
     first: FocusRequester,
     crossZone: Modifier,
 ) {
-    ContextSection(label = stringResource(R.string.home_recent_channels)) {
+    ContextSection(label = stringResource(R.string.home_recent_channels), first = first) { edges ->
         if (channels.isEmpty()) {
             ContextHint(stringResource(R.string.home_recent_channels_empty))
         } else {
@@ -851,7 +885,7 @@ private fun ChannelsContextRow(
                     channel = channel,
                     pinned = channel.url in pinned,
                     onClick = { onOpen(channel) },
-                    modifier = crossZone.thenFirst(index, first),
+                    modifier = crossZone.thenFirst(index, first).thenEdge(index, channels.lastIndex, edges),
                 )
             }
         }
@@ -925,15 +959,15 @@ private fun SearchContextRow(
     first: FocusRequester,
     crossZone: Modifier,
 ) {
-    ContextSection(label = stringResource(R.string.home_recent_searches)) {
+    ContextSection(label = stringResource(R.string.home_recent_searches), first = first) { edges ->
         HomePill(
             text = stringResource(R.string.home_new_search),
             icon = R.drawable.ic_dock_search,
             onClick = { onSearch("") },
-            modifier = crossZone.focusRequester(first),
+            modifier = crossZone.focusRequester(first).thenEdge(0, queries.size, edges),
         )
-        queries.forEach { query ->
-            HomePill(text = query, icon = R.drawable.ic_history, onClick = { onSearch(query) }, modifier = crossZone)
+        queries.forEachIndexed { index, query ->
+            HomePill(text = query, icon = R.drawable.ic_history, onClick = { onSearch(query) }, modifier = crossZone.thenEdge(index + 1, queries.size, edges))
         }
     }
 }
@@ -946,7 +980,7 @@ private fun SmartHomeContextRow(
     first: FocusRequester,
     crossZone: Modifier,
 ) {
-    ContextSection(label = stringResource(R.string.home_smart_now)) {
+    ContextSection(label = stringResource(R.string.home_smart_now), first = first) { edges ->
         if (devices.isEmpty()) {
             ContextHint(stringResource(R.string.home_smart_empty))
         } else {
@@ -958,7 +992,7 @@ private fun SmartHomeContextRow(
                     small = deviceStateLabel(device),
                     lit = on,
                     onClick = onOpen,
-                    modifier = crossZone.thenFirst(index, first),
+                    modifier = crossZone.thenFirst(index, first).thenEdge(index, devices.lastIndex, edges),
                 )
             }
         }
@@ -1060,7 +1094,7 @@ private fun CinemaContextRow(
     first: FocusRequester,
     crossZone: Modifier,
 ) {
-    ContextSection(label = stringResource(R.string.home_continue_watching)) {
+    ContextSection(label = stringResource(R.string.home_continue_watching), first = first) { edges ->
         if (cards.isEmpty()) {
             ContextHint(stringResource(R.string.home_continue_watching_empty))
         } else {
@@ -1071,10 +1105,10 @@ private fun CinemaContextRow(
                 ContinueCard(
                     card = card,
                     onClick = { onOpen(card) },
-                    modifier = crossZone.thenFirst(index, first),
+                    modifier = crossZone.thenFirst(index, first).thenEdge(index, Int.MAX_VALUE, edges),
                 )
             }
-            ContinueAllCard(onClick = onOpenHistory, modifier = crossZone)
+            ContinueAllCard(onClick = onOpenHistory, modifier = crossZone.rowEnd(edges))
         }
     }
 }
@@ -1090,12 +1124,13 @@ private fun RealityContextRow(
     first: FocusRequester,
     crossZone: Modifier,
 ) {
-    ContextSection(label = stringResource(R.string.home_continue_reality)) {
+    ContextSection(label = stringResource(R.string.home_continue_reality), first = first) { edges ->
         if (cards.isEmpty()) {
             ContextHint(stringResource(R.string.home_continue_reality_empty))
         } else {
-            cards.take(CONTINUE_CARDS + 1).forEachIndexed { index, card ->
-                ContinueCard(card = card, onClick = { onOpen(card) }, modifier = crossZone.thenFirst(index, first))
+            val shown = cards.take(CONTINUE_CARDS + 1)
+            shown.forEachIndexed { index, card ->
+                ContinueCard(card = card, onClick = { onOpen(card) }, modifier = crossZone.thenFirst(index, first).thenEdge(index, shown.lastIndex, edges))
             }
         }
     }
@@ -1218,7 +1253,7 @@ private fun AppsContextRow(
     crossZone: Modifier,
     label: Int = R.string.home_your_apps,
 ) {
-    ContextSection(label = stringResource(label)) {
+    ContextSection(label = stringResource(label), first = first) { edges ->
         if (apps.isEmpty()) {
             ContextHint(stringResource(R.string.home_your_apps_empty))
         } else {
@@ -1226,7 +1261,7 @@ private fun AppsContextRow(
                 AppCard(
                     app = app,
                     onClick = { onLaunch(app) },
-                    modifier = crossZone.thenFirst(index, first),
+                    modifier = crossZone.thenFirst(index, first).thenEdge(index, apps.lastIndex, edges),
                 )
             }
         }
@@ -1313,6 +1348,31 @@ private val HourTempStyle = TextStyle(
 /** Реквестер вішаємо лише на першу картку ряду — саме на неї веде ↑ з доку. */
 private fun Modifier.thenFirst(index: Int, first: FocusRequester): Modifier =
     if (index == 0) this.focusRequester(first) else this
+
+/**
+ * Краї ряду над доком (див. ContextSection): «вліво» з першої картки — на останню, «вправо»
+ * з останньої — на першу, але лише окремим натисканням: утримана стрілка стоїть на краю.
+ */
+class RowEdges(val first: FocusRequester?, val last: FocusRequester, val wrap: com.likhtar.home.core.designsystem.RowWrap)
+
+private fun Modifier.thenEdge(index: Int, lastIndex: Int, edges: RowEdges): Modifier = when {
+    lastIndex <= 0 -> this
+    index == 0 -> rowStart(edges)
+    index == lastIndex -> rowEnd(edges)
+    else -> this
+}
+
+private fun Modifier.rowStart(edges: RowEdges): Modifier = onPreviewKeyEvent { event ->
+    if (event.type != androidx.compose.ui.input.key.KeyEventType.KeyDown || event.key != androidx.compose.ui.input.key.Key.DirectionLeft) return@onPreviewKeyEvent false
+    if (edges.wrap.deliberate) runCatching { edges.last.requestFocus() }
+    true
+}
+
+private fun Modifier.rowEnd(edges: RowEdges): Modifier = focusRequester(edges.last).onPreviewKeyEvent { event ->
+    if (event.type != androidx.compose.ui.input.key.KeyEventType.KeyDown || event.key != androidx.compose.ui.input.key.Key.DirectionRight) return@onPreviewKeyEvent false
+    if (edges.wrap.deliberate) edges.first?.let { runCatching { it.requestFocus() } }
+    true
+}
 
 /** Запас ряду над доком під збільшення сфокусованої картки (див. ContextSection). */
 private val ScrollEdge = 16.dp

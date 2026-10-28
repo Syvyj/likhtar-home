@@ -29,6 +29,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.offset
@@ -86,6 +92,23 @@ fun LikhtarRail(
             keeper.target = -1
             keeper.lost = null
         }
+        // По колу: з останньої картки «вправо» — на першу, з першої «вліво» — на останню.
+        val wrap = remember { RowWrap() }
+        var wrapTo by remember { mutableStateOf<Int?>(null) }
+        LaunchedEffect(wrapTo) {
+            val to = wrapTo ?: return@LaunchedEffect
+            state.scrollToItem(to)
+            keeper.target = to
+            keeper.landed = false
+            repeat(FOCUS_FRAMES) {
+                if (keeper.landed) return@repeat
+                runCatching { keeper.refocus.requestFocus() }
+                withFrameNanos { }
+            }
+            keeper.target = -1
+            wrapTo = null
+        }
+        val edges = remember(state) { RailEdges(wrap, count = { state.layoutInfo.totalItemsCount }, jump = { wrapTo = it }) }
         var left by remember { mutableStateOf(false) }
         var hadFocus by remember { mutableStateOf(false) }
         LaunchedEffect(left) {
@@ -98,6 +121,7 @@ fun LikhtarRail(
             state = state,
             modifier = modifier
                 .bleedHorizontally(LikhtarDimens.FocusBleed)
+                .onPreviewKeyEvent(wrap::onKey)
                 .focusGroup()
                 .focusProperties {
                     enter = { direction ->
@@ -118,7 +142,7 @@ fun LikhtarRail(
                 },
             horizontalArrangement = Arrangement.spacedBy(gap),
             contentPadding = PaddingValues(horizontal = LikhtarDimens.FocusBleed),
-            content = { FirstMarked(this, first, keeper).content() },
+            content = { FirstMarked(this, first, keeper, edges).content() },
         )
     }
 }
@@ -165,6 +189,7 @@ private class FirstMarked(
     private val scope: LazyListScope,
     private val first: FocusRequester,
     private val keeper: FocusKeeper,
+    private val edges: RailEdges,
 ) : LazyListScope by scope {
     /** Позиція наступного елемента в ряду: `item` і `items` можуть чергуватись. */
     private var next = 0
@@ -173,7 +198,8 @@ private class FirstMarked(
         val pos = next++
         val first = first
         val keeper = keeper
-        scope.item(key, contentType) { RailSlot(pos, first, keeper) { content() } }
+        val edges = edges
+        scope.item(key, contentType) { RailSlot(pos, first, keeper, edges) { content() } }
     }
 
     override fun items(
@@ -186,13 +212,14 @@ private class FirstMarked(
         next += count
         val first = first
         val keeper = keeper
-        scope.items(count, key, contentType) { index -> RailSlot(start + index, first, keeper) { itemContent(index) } }
+        val edges = edges
+        scope.items(count, key, contentType) { index -> RailSlot(start + index, first, keeper, edges) { itemContent(index) } }
     }
 }
 
 /** Перша картка — вхід у ряд; кожна — точка, куди повернути фокус, якщо сусідню прибрали. */
 @Composable
-private fun RailSlot(pos: Int, first: FocusRequester, keeper: FocusKeeper, content: @Composable () -> Unit) {
+private fun RailSlot(pos: Int, first: FocusRequester, keeper: FocusKeeper, edges: RailEdges, content: @Composable () -> Unit) {
     var focusedHere by remember { mutableStateOf(false) }
     // Прибрану картку Compose спершу позбавляє фокуса, а тоді викидає. Тож «щойно втратила
     // фокус і за мить зникла» — це картку прибрали з ряду. Прокрутка так не робить: вона
@@ -204,6 +231,19 @@ private fun RailSlot(pos: Int, first: FocusRequester, keeper: FocusKeeper, conte
     }
     Box(
         Modifier
+            // Крайня картка: окреме «вліво/вправо» за край — на протилежний кінець ряду.
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                val count = edges.count()
+                val to = when {
+                    count < 2 -> null
+                    event.key == Key.DirectionLeft && pos == 0 -> count - 1
+                    event.key == Key.DirectionRight && pos == count - 1 -> 0
+                    else -> null
+                } ?: return@onPreviewKeyEvent false
+                if (edges.wrap.deliberate) edges.jump(to)
+                true
+            }
             .then(if (pos == 0) Modifier.focusRequester(first) else Modifier)
             .then(if (pos == keeper.target) Modifier.focusRequester(keeper.refocus) else Modifier)
             .onFocusChanged {
@@ -233,3 +273,30 @@ private class FocusKeeper {
 
 /** Скільки між «фокус пішов» і «картку викинули» вважати одним прибиранням. */
 private const val REMOVED_WITHIN_MS = 300L
+
+/**
+ * Перехід ряду по колу лише на окреме натискання: утримана стрілка (і фантомні повтори, що
+ * шле прошивка приставки на короткий клік) зупиняються на краю, а не крутять ряд без кінця.
+ * Рахуємо час між двома останніми натисканнями «вліво/вправо»: перше привело фокус на край,
+ * друге — те, що хоче за край.
+ */
+class RowWrap {
+    private var previous = 0L
+    private var last = 0L
+
+    fun onKey(event: KeyEvent): Boolean {
+        if (event.type == KeyEventType.KeyDown && (event.key == Key.DirectionLeft || event.key == Key.DirectionRight)) {
+            previous = last
+            last = android.os.SystemClock.uptimeMillis()
+        }
+        return false
+    }
+
+    val deliberate: Boolean get() = last - previous > WRAP_PAUSE_MS
+}
+
+/** Ряд для крайніх карток: скільки в ньому карток і як перейти на іншу за індексом. */
+private class RailEdges(val wrap: RowWrap, val count: () -> Int, val jump: (Int) -> Unit)
+
+/** Пауза на краю, після якої «ще раз вправо» — це вже бажання перейти на початок. */
+private const val WRAP_PAUSE_MS = 350L

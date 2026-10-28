@@ -116,13 +116,20 @@ class TmdbClient @Inject constructor(
                 format.format(back.time)
             }
         }
-        val query = buildQuery(key, resolved, config.locale())
-        val body = get("${config.tmdbApi()}/$path?$query") ?: return emptyList()
-
-        return runCatching { parseResults(body, defaultKind(path)) }
-            .onFailure { Log.w(TAG, "Не вдалося розібрати відповідь TMDB для $path", it) }
-            .getOrDefault(emptyList())
-            .take(limit)
+        // TMDB віддає по 20 на сторінку. Довгі списки («Відкрити всі») добираємо сторінками;
+        // ряди Кінозалу — однією, щоб екран не робив удвічі більше запитів.
+        val pages = if (limit <= ONE_PAGE_UP_TO) 1 else ((limit + PAGE_SIZE - 1) / PAGE_SIZE).coerceAtMost(MAX_PAGES)
+        val items = mutableListOf<CatalogItem>()
+        for (page in 1..pages) {
+            val query = buildQuery(key, if (page == 1) resolved else resolved + ("page" to "$page"), config.locale())
+            val body = get("${config.tmdbApi()}/$path?$query") ?: break
+            items += runCatching { parseResults(body, defaultKind(path)) }
+                .onFailure { Log.w(TAG, "Не вдалося розібрати відповідь TMDB для $path", it) }
+                .getOrDefault(emptyList())
+            val total = runCatching { JSONObject(body).optInt("total_pages", 1) }.getOrDefault(1)
+            if (page >= total || items.size >= limit) break
+        }
+        return items.distinctBy { it.id }.take(limit)
     }
 
     suspend fun search(query: String, limit: Int): List<CatalogItem> {
@@ -734,6 +741,11 @@ class TmdbClient @Inject constructor(
     }
 
     private companion object {
+        private const val PAGE_SIZE = 20
+        /** До стількох — одна сторінка: ряди Кінозалу (30) не множать запити. */
+        private const val ONE_PAGE_UP_TO = 40
+        /** 10 сторінок — 200 позицій, стеля «Відкрити всі». */
+        private const val MAX_PAGES = 10
         const val TAG = "LikhtarCatalog"
 
         /** Пауза перед повтором після невдалого з'єднання. */

@@ -192,13 +192,14 @@ class SectionRowsRepository @Inject constructor(
 
     private suspend fun fetch(name: String, limit: Int, onlyPlayable: Boolean, profile: String, apps: String, key: String): List<SectionRow> {
         if (com.likhtar.home.core.model.Distribution.store) {
-            return openRows(name).also { if (it.isNotEmpty()) synchronized(cache) { cache[key] = it } }
+            return openRows(name, if (limit > BRAND_LIMIT) limit else LIMIT).also { if (it.isNotEmpty()) synchronized(cache) { cache[key] = it } }
         }
         val base = config.streamsUrl() ?: return emptyList()
         val body = withContext(Dispatchers.IO) {
             val playable = if (onlyPlayable) "&playable=1" else ""
             val who = "&profile=" + java.net.URLEncoder.encode(profile, "UTF-8")
-            runCatching { httpGet("$base/api/rows?section=$name&limit=$limit$playable$who$apps", TIMEOUT_MS) }
+            // Сервер понад 120 не обрізає, а скидає на 30 — тож більше й не просимо.
+            runCatching { httpGet("$base/api/rows?section=$name&limit=${limit.coerceAtMost(SERVER_MAX_LIMIT)}$playable$who$apps", TIMEOUT_MS) }
                 .onFailure { Log.w(TAG, "Ряди розділу не приїхали", it) }
                 .getOrNull()
         } ?: return synchronized(cache) { cache[key].orEmpty() }
@@ -220,7 +221,8 @@ class SectionRowsRepository @Inject constructor(
      * найкраще; Реаліті — жанри TMDB неігрового. Регіон — країна людини (buildQuery).
      * Плитки сервісів і жанрів — теж звідси: [openBrandRows] будує їхні сторінки з TMDB.
      */
-    private suspend fun openRows(name: String): List<SectionRow> = kotlinx.coroutines.coroutineScope {
+    /** [rowLimit] — 30 для екрана Кінозалу; більше лише «Відкрити всі», тоді TMDB добирає сторінки. */
+    private suspend fun openRows(name: String, rowLimit: Int): List<SectionRow> = kotlinx.coroutines.coroutineScope {
         val country = settings.settings.first().locale.country
         val defs: List<Pair<String, List<Pair<String, Map<String, String>>>>> = when (name) {
             "cinema" -> buildList {
@@ -268,7 +270,7 @@ class SectionRowsRepository @Inject constructor(
             }.awaitAll().filterNotNull()
             synchronized(cachedGenres) { cachedGenres["cinema"] = genres }
         }
-        rowsOf(defs)
+        rowsOf(defs, rowLimit)
     }
 
     /** Плитки сервісів: спершу ті, чиї застосунки стоять на пристрої. */
@@ -306,7 +308,7 @@ class SectionRowsRepository @Inject constructor(
                 "discover/tv" to filter + mapOf("sort_by" to "vote_average.desc", "vote_count.gte" to "200"),
             ),
         )
-        return rowsOf(defs)
+        return rowsOf(defs, LIMIT)
     }
 
     /**
@@ -324,21 +326,21 @@ class SectionRowsRepository @Inject constructor(
         ),
     )
 
-    private suspend fun rowsOf(defs: List<Pair<String, List<Pair<String, Map<String, String>>>>>): List<SectionRow> = kotlinx.coroutines.coroutineScope {
+    private suspend fun rowsOf(defs: List<Pair<String, List<Pair<String, Map<String, String>>>>>, rowLimit: Int): List<SectionRow> = kotlinx.coroutines.coroutineScope {
         defs.map { (title, sources) ->
             async {
                 // Кілька джерел ряду (нові фільми й нові серіали сервісу) — навперемін.
                 val lists = sources.map { (path, params) ->
-                    val here = runCatching { tmdb.discover(path, params, LIMIT) }.getOrDefault(emptyList())
+                    val here = runCatching { tmdb.discover(path, params, rowLimit) }.getOrDefault(emptyList())
                     // Сервісу немає в країні людини — показуємо, що на ньому є (у США каталог
                     // найповніший); чим відкрити — уже справа людини.
                     if (here.isNotEmpty() || "with_watch_providers" !in params) here
                     else FALLBACK_REGIONS.firstNotNullOfOrNull { region ->
-                        runCatching { tmdb.discover(path, params + ("watch_region" to region), LIMIT) }.getOrNull()?.takeIf { it.isNotEmpty() }
+                        runCatching { tmdb.discover(path, params + ("watch_region" to region), rowLimit) }.getOrNull()?.takeIf { it.isNotEmpty() }
                     }.orEmpty()
                 }
                 val items = (0 until (lists.maxOfOrNull { it.size } ?: 0)).flatMap { i -> lists.mapNotNull { it.getOrNull(i) } }
-                    .distinctBy { it.id }.take(LIMIT)
+                    .distinctBy { it.id }.take(rowLimit)
                 SectionRow(title, items, russian = emptySet(), ukrainian = emptySet(), open = emptyMap(), extKeys = emptyMap())
             }
         }.awaitAll().filter { it.items.isNotEmpty() }
@@ -383,7 +385,8 @@ class SectionRowsRepository @Inject constructor(
         const val BRAND_LIMIT = 60
 
         /** «Відкрити всі»: ряд цілим, розбитий на частини. */
-        const val OPEN_ALL_LIMIT = 120
+        const val OPEN_ALL_LIMIT = 200
+        private const val SERVER_MAX_LIMIT = 120
 
         /** Тридцять карток на ряд: видимих десять, решта — «Відкрити всі» без другого запиту. */
         const val LIMIT = 30

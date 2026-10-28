@@ -56,6 +56,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.compose.NavHost
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -116,22 +117,29 @@ fun LikhtarApp(
     val showHomeOnboarding by viewModel.homeOnboarding.collectAsStateWithLifecycle()
     val showFirstRun by viewModel.firstRun.collectAsStateWithLifecycle()
 
+    // «Назад» із кореня Кінозалу — це «скинути»: його сторінки тоді не зберігаємо.
+    var keepCinema by remember { mutableStateOf(true) }
     val navigateTo: (LikhtarSection) -> Unit = { section ->
         // `|| onDetailRoute` обов'язкове: для підсторінок (фільм, каталог) fromRoute віддає
         // null, і currentSection «схлопується» в HOME. Без цієї умови перехід на Головну
         // зі сторінки фільму вважався б переходом у самого себе й не робив нічого.
         if (section != currentSection || onDetailRoute) {
+            // Кінозал у стеку (сам чи з підсторінками)? getBackStackEntry кидає, якщо його там немає.
+            val leavingCinema = runCatching { navController.getBackStackEntry(LikhtarSection.CINEMA.route) }.isSuccess
+            val save = leavingCinema && keepCinema
+            keepCinema = true
             navController.navigate(section.route) {
-                // Стек тримаємо рівно з одного запису: попереднього розділу не існує, тому
-                // Back завжди веде на Головну, а не назад по історії переходів.
+                // Стартовий розділ лежить на дні стека, над ним — рівно один розділ і його
+                // підсторінки: попереднього розділу не існує, тож Back веде на старт, а не
+                // назад по історії. Не inclusive — інакше старт виноситься зі стека, наступний
+                // popUpTo не знаходить ціль і МОВЧКИ нічого не робить, розділи накопичуються
+                // й тримають свої дані в пам'яті (саме так лаунчер колись «важчав»).
                 //
-                // popUpTo саме на граф. На startDestination це не працює: перший же перехід
-                // виносить його зі стека (inclusive), далі popUpTo не знаходить ціль і
-                // МОВЧКИ нічого не робить — розділи починають накопичуватись, Back водить
-                // по всьому, що відкривали, а кожен незакритий екран тримає свої дані в
-                // пам'яті. Саме через це лаунчер «важчав» від ходіння по розділах.
-                popUpTo(navController.graph.id) { inclusive = true }
+                // Кінозал, полишений заради іншого розділу, зберігає свої сторінки (добірку,
+                // фільм) і повертає їх, коли його відкрити знову — як вкладки в застосунках.
+                popUpTo(navController.graph.findStartDestination().id) { saveState = save }
                 launchSingleTop = true
+                restoreState = section == LikhtarSection.CINEMA
             }
         }
     }
@@ -190,7 +198,10 @@ fun LikhtarApp(
     BackHandler(enabled = true) {
         when {
             onDetailRoute -> navController.popBackStack()
-            currentSection != LikhtarSection.HOME -> navigateTo(LikhtarSection.HOME)
+            currentSection != LikhtarSection.HOME -> {
+                keepCinema = currentSection != LikhtarSection.CINEMA
+                navigateTo(LikhtarSection.HOME)
+            }
         }
     }
 
@@ -329,6 +340,8 @@ fun LikhtarApp(
             LikhtarSection.REALITY,
             // Ліхтарик — постери й банер, як у Кінозалі: шпалера з підписом під ним — шум.
             LikhtarSection.SEARCH,
+            // «Ігри» мають власне тло й шапку з кадром гри — шпалера й підпис до фото там зайві.
+            LikhtarSection.GAMES,
         )
         )
     WallpaperBackground(
@@ -345,7 +358,7 @@ fun LikhtarApp(
                 WallpaperScrim.HOME
             (if (onDetailRoute) LikhtarSection.CINEMA else currentSection) == LikhtarSection.CINEMA ->
                 WallpaperScrim.HERO
-            currentSection == LikhtarSection.APPS || currentSection == LikhtarSection.GAMES -> WallpaperScrim.APPS
+            currentSection == LikhtarSection.APPS -> WallpaperScrim.APPS
             else -> WallpaperScrim.CONTENT
         },
         // Налаштування мають власний суцільний фон, тому шпалери під ними не видно —
