@@ -18,6 +18,9 @@ Turn on the TV, pick a mood, press OK.
 
 **No ads · no tracking · no account · no root · no computer needed · one button to undo**
 
+**Set up from your phone.** A small phone app installs Likhtar over Wi-Fi, and a QR code lets you arrange
+sections, rows and services from the sofa. No computer, no typing with the remote.
+
 Listed in the [CleanYourTV Showcase](https://github.com/Gathin23/cleanyourtv/blob/main/SHOWCASE.md)
 
 <img src="docs/banner-en.webp" alt="Likhtar Home — Likhtaryk, Cinema, opens anywhere, Jellyfin & Plex, Live TV, smart home, phone as a keyboard, your own AI" width="100%">
@@ -33,7 +36,7 @@ Listed in the [CleanYourTV Showcase](https://github.com/Gathin23/cleanyourtv/blo
 - 📺 **Live TV** — your own M3U playlist with a programme guide
 - 🏠 **Smart home** — Home Assistant rooms on the big screen, by remote or voice
 - 🎮 **Games** — Boosteroid, Xbox Cloud, GeForce NOW and PS Remote Play in one row, your ROMs with box art in one press of RetroArch, and every game you have installed (turn it on in Settings)
-- 📱 **Phone as a keyboard** — scan a QR code: long addresses, passwords and files go from phone to TV
+- 📱 **Your phone does the fiddly part** — installs Likhtar over Wi-Fi; by QR it arranges sections, rows and services, types passwords and sends files
 - ✨ **Your own AI** — *"something like Interstellar, but lighter"*, with your key or a local model
 
 | You want to… | Do this |
@@ -173,13 +176,19 @@ This repository starts fresh with the launcher's first public release.
 
 ## Install
 
-1. Download the latest APK from [**Releases**](https://github.com/Syvyj/likhtar-home/releases/latest).
-2. Install it on your TV — with the *Downloader* app, from a USB stick, or with
-   `adb install likhtar-home.apk`.
-   Or from an Android phone: install **Likhtar Installer** (`likhtar-installer.apk` from the same
-   release), turn on *USB debugging* in the TV's developer options, press *Find the TV*, then
-   *Install*. It downloads the latest Likhtar and puts it on the TV over your Wi-Fi.
-3. Open Likhtar Home and follow the prompt to make it your home screen. Google TV tries hard to
+### From your phone (easiest)
+
+1. On the TV: *Settings → System → About*, press OK on *Android TV OS build* seven times. Then in
+   *Developer options* turn on *USB debugging* (on some TVs it's called *Network debugging*).
+2. On an Android phone on the same Wi-Fi, install [**Likhtar Installer**](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-installer.apk).
+   Press *Find the TV*, then *Install*, and allow debugging when the TV asks.
+3. Likhtar opens on the TV and offers to become your home screen. That's it.
+
+### Or the classic way
+
+1. Download [**likhtar-home.apk**](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-home.apk) and install it with the *Downloader* app, from
+   a USB stick, or with `adb install likhtar-home.apk`.
+2. Open Likhtar Home and follow the prompt to make it your home screen. Google TV tries hard to
    keep its own launcher, so Likhtar walks you through a one-time setup on the TV itself — no
    computer needed.
 
