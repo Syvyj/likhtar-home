@@ -222,6 +222,9 @@ Tried it on another TV or box? Open an issue with the model and what worked — 
 
 ## For developers
 
+Bug reports, device reports, fixes and translations are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md)
+and [Issues](https://github.com/Syvyj/likhtar-home/issues).
+
 ### Building from source
 
 Requirements: Android Studio (latest stable), JDK 17.

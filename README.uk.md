@@ -228,6 +228,9 @@ Netflix, Disney+, YouTube, плеєр вашого провайдера. ТВ Е
 
 ## Для розробників
 
+Повідомлення про баги й пристрої, виправлення й переклади вітаються: див. [CONTRIBUTING.md](CONTRIBUTING.md)
+і [Issues](https://github.com/Syvyj/likhtar-home/issues).
+
 ### Збирання з коду
 
 Потрібні: Android Studio (остання стабільна), JDK 17.
