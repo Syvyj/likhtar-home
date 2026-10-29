@@ -14,62 +14,52 @@ Turn on the TV, pick a mood, press OK.
 | ![Stock Google TV home screen with a sponsored banner](docs/screenshots/1920x1080/00-stock-google-tv.png) | ![Likhtar Home on a TV](docs/screenshots/1920x1080/01-home.png) |
 | *A sponsored banner, rows picked for you* | *Your wallpaper, the time, and your sections in the dock* |
 
-`Android TV / Google TV` · `Android 7.0+` · `6.4 MB` · `GPL-3.0`
+### [Install from your phone](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-installer.apk) &nbsp;·&nbsp; [Download the TV app](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-home.apk)
+
+<sub>Phone: a small Android app finds the TV on your Wi‑Fi and installs Likhtar. TV: the APK for Downloader, a USB stick or <code>adb install</code>. <a href="#install">How to install</a></sub>
+
+[![Latest release](https://img.shields.io/github/v/release/Syvyj/likhtar-home?label=latest&color=f2a93b)](https://github.com/Syvyj/likhtar-home/releases/latest) `Android TV / Google TV` · `Android 7.0+` · `6.4 MB` · `GPL-3.0`
 
 **No ads · no tracking · no account · no root · no computer needed · one button to undo**
-
-<br>
-
-## Your phone does the hard part
-
-| **Install without a computer** | **Make it yours from the sofa** |
-|:---:|:---:|
-| A small Android app finds the TV on your Wi‑Fi<br>and installs Likhtar. No USB stick, no Downloader. | Scan a QR code to reorder sections, pick Cinema rows<br>and hide the services you don't use. No typing with the remote. |
-| [**Get Likhtar Installer**](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-installer.apk) | [**How to install**](#install) |
 
 <img src="docs/banner-en.webp" alt="Likhtar Home — Likhtaryk, Cinema, opens anywhere, Jellyfin & Plex, Live TV, smart home, phone as a keyboard, your own AI" width="100%">
 
 </div>
 
-### What's inside
-
-- 🏮 **Likhtaryk** — pick a format and a mood, get tonight's films without what you've already seen
-- 🎬 **Cinema** — what's new in your country and a page for every streaming service
-- ▶️ **Opens anywhere** — a title opens in the app that has it: Netflix, YouTube or any app you've installed
-- 🗂 **Your Jellyfin & Plex** — your own films on their title pages, *Continue watching* synced both ways
-- 📺 **Live TV** — your own M3U playlist with a programme guide
-- 🏠 **Smart home** — Home Assistant rooms on the big screen, by remote or voice
-- 🎮 **Games** — Boosteroid, Xbox Cloud, GeForce NOW and PS Remote Play in one row, your ROMs with box art in one press of RetroArch, and every game you have installed (turn it on in Settings)
-- 📱 **Your phone does the hard part** — installs Likhtar over Wi-Fi; by QR it arranges sections, rows and services, types passwords and sends files
-- ✨ **Your own AI** — *"something like Interstellar, but lighter"*, with your key or a local model
-
-| You want to… | Do this |
-|---|---|
-| Just try it | [Install the APK](#install) and open it like any app. Nothing on the TV changes. |
-| Make it your home screen | Press *Make Likhtar your home screen* inside the app. One confirmation on the TV, no computer. |
-| Go back to stock | *Settings → Remote and startup → Bring back the stock home screen.* One button. |
-| Ask for films in your own words | Connect your own AI from your phone (optional) — any country, no Google account. |
-
----
-
-## Why another launcher?
+## Why Likhtar?
 
 Stock TV home screens are storefronts. They are built to sell you the next subscription, so the
 thing you actually want — *something good to watch, right now* — is buried under ads, autoplaying
-trailers and rows you never asked for.
+trailers and rows you never asked for. *Likhtar* means "lantern" in Ukrainian: a warm, quiet light in
+the corner of the living room that shows you the way to tonight's film and then gets out of the way.
+It is not just another grid of app icons.
 
-*Likhtar* means "lantern" in Ukrainian. The idea is simple: a warm, quiet light in the corner of the
-living room that shows you the way to tonight's film and then gets out of the way.
+### A calm home screen
 
-- **Remote first.** Every screen is designed for a D‑pad from the sofa, three metres away. Focus never
-  gets lost, rows never jump, long‑press works even on remotes that don't send key repeats.
-- **Calm by default.** Warm graphite and amber, big type, no autoplay noise. Your wallpaper and the
-  clock are the home screen; everything else is one press away.
-- **It opens things where they live.** Netflix titles open in Netflix, YouTube in YouTube, your
-  channels in your player. Likhtar is the map, not another walled garden — and it never plays or
-  hosts pirated streams.
+Your wallpaper, the clock and your sections in the dock; everything else is one press away. Warm
+graphite and amber, big type, no autoplay noise. Every screen is built for a D‑pad from the sofa:
+focus never gets lost, rows never jump.
 
-## A quick tour
+### Something to watch tonight
+
+**Likhtaryk** picks films and series by format and mood, skipping what you've already seen.
+**Cinema** shows what's new in your country and a page for every streaming service. A title opens
+where it lives — Netflix in Netflix, YouTube in YouTube — and Likhtar never plays or hosts pirated
+streams. Want to ask in your own words? [Connect your own AI](#ai-on-your-terms-optional), if you like.
+
+### Set up your TV from your phone
+
+A small Android app finds the TV on your Wi‑Fi and installs Likhtar, no computer or USB stick. After
+that, scan a QR code to reorder sections, choose which Cinema rows and streaming services show,
+type passwords and playlist addresses, and send files. Nothing is typed with the remote.
+
+### Everything else in one place
+
+Your **Jellyfin** and **Plex** libraries with *Continue watching* synced both ways, **Live TV** from your
+own M3U playlist with a programme guide, **Home Assistant** rooms by remote or voice, **games** from
+the cloud and your own ROMs, and your apps sorted for you.
+
+## See it in action
 
 | | |
 |---|---|
@@ -80,15 +70,99 @@ living room that shows you the way to tonight's film and then gets out of the wa
 | ![Reality](docs/screenshots/1920x1080/10-reality.png) | **Reality.** The shows everyone talks about, gathered in one shelf instead of scattered across five apps. |
 | ![Smart home](docs/screenshots/1920x1080/16-smart-home.png) | **Smart home, from the sofa.** Your Home Assistant rooms and devices on the big screen: lights, blinds, the air conditioner, the kettle, scenes like *Movie night*. Toggle them with the remote, or just say what you want — the request goes to your own Home Assistant Assist. |
 | ![Send from your phone](docs/screenshots/1920x1080/17-send-from-phone.png) | **Send anything from your phone.** Scan the QR code and drop a video, a photo, an APK or a link onto the TV — no app, no cable, no cloud. Even a full-length film goes straight to the TV's Downloads and opens in the right player or installer. |
-| ![Games](docs/screenshots/1920x1080/18-games.png) | **Games, in their own section.** Cloud gaming first: Boosteroid, Xbox Cloud Gaming, GeForce NOW and PS Remote Play open in one press, or take you to their store page if they are not installed yet. Put ROM files into a `ROMs` folder (on the TV, a USB stick, or send them from your phone) and they show up as boxes with art from the libretro database, with a real frame from the game behind the title. OK starts the game in RetroArch with the right core, no menus; *Continue playing* keeps what you played last on top. Installed games and emulators sit below, and any app can be moved here with a long press → *Category*. Off by default: *Settings → Home → Games*. |
+| ![Games](docs/screenshots/1920x1080/18-games.png) | **Games, in their own section.** Cloud gaming (Boosteroid, Xbox Cloud Gaming, GeForce NOW, PS Remote Play) in one press, and your own ROMs with box art, started in RetroArch with no menus. Off by default; details in [docs/games.md](docs/games.md). |
 | ![Apps](docs/screenshots/1920x1080/11-apps.png) | **Your apps, sorted for you.** Grouped automatically, with what's new inside each service shown right on the tile. Hide, pin or lock any app with a PIN. |
-| ![From your phone](docs/screenshots/1920x1080/15-from-phone-qr.png) | **Settings from your phone.** Scan a QR code and type long addresses, keys and passwords on your phone instead of hunting letters with the remote. The same page arranges the TV: the order of sections, which Cinema rows show and in what order, which streaming services appear, the title under or over the film's logo, and text straight into the TV's clipboard. |
+| ![From your phone](docs/screenshots/1920x1080/15-from-phone-qr.png) | **Settings from your phone.** Scan a QR code: type passwords and addresses on the phone, reorder sections, choose Cinema rows and streaming services, paste text into the TV's clipboard. |
 
 Also inside: a **media library** for your **Jellyfin** and **Plex** servers (Continue watching and
 watched marks stay in sync both ways), DLNA servers and SMB shares, weather on the home
 screen, idle-mode wallpapers, profiles with PIN locks, and remote-key remapping.
 
-## Bring your own AI (optional)
+## Install
+
+### From your phone (easiest)
+
+1. On the TV: *Settings → System → About*, press OK on *Android TV OS build* seven times. Then in
+   *Developer options* turn on *USB debugging* (on some TVs it's called *Network debugging*).
+2. On an Android phone on the same Wi-Fi, install [**Likhtar Installer**](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-installer.apk).
+   Press *Find the TV*, then *Install*, and allow debugging when the TV asks.
+3. Likhtar opens on the TV and offers to become your home screen. That's it.
+
+TVs that only allow wireless debugging with pairing are not supported by the installer yet; use the
+classic way.
+
+### Or the classic way
+
+1. Download [**likhtar-home.apk**](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-home.apk) and install it with the *Downloader* app, from
+   a USB stick, or with `adb install likhtar-home.apk`.
+2. Open Likhtar Home and follow the prompt to make it your home screen. Google TV tries hard to
+   keep its own launcher, so Likhtar walks you through a one-time setup on the TV itself — no
+   computer needed.
+
+| You want to… | Do this |
+|---|---|
+| Just try it | Install it and open it like any app. Nothing on the TV changes. |
+| Make it your home screen | Press *Make Likhtar your home screen* inside the app. One confirmation on the TV, no computer. |
+| Go back to stock | *Settings → Remote and startup → Bring back the stock home screen.* One button. |
+
+Requires Android TV or Google TV 7.0 or newer; the UI is laid out for 1080p and scales to 720p and
+4K. The devices we have tested are [listed below](#tested-on). How a TV lets another app become the
+home screen differs between manufacturers, so the switch can behave differently on yours.
+
+## Safe to try, easy to undo
+
+Becoming the home screen on Google TV is the scary part, so here is exactly what happens.
+
+- **Nothing is uninstalled.** Likhtar sets itself as the home activity and *disables* — not removes —
+  the stock Google TV launcher and its setup wizard. Nothing else is touched.
+- **It talks to the TV, not to the internet.** The switch uses the TV's own debugging connection
+  (`127.0.0.1`), so no computer and no cable are needed. You approve it once on screen.
+- **Your Wi-Fi is checked first.** If a saved network belongs to an app that would be disabled, Likhtar
+  refuses to continue — disabling it could forget your Wi-Fi.
+- **One button back.** *Settings → Remote and startup → Bring back the stock home screen* re-enables
+  everything in the reverse order.
+- **A crash safety net.** If Likhtar crashes three times within five minutes, it tries to give the
+  home screen back to the stock launcher by itself. It covers the usual crash loop, not every
+  possible failure, so the button above is still the way back.
+
+> ⚠️ **Before uninstalling Likhtar, press *Bring back the stock home screen* first.** Android gives an
+> app no chance to undo its changes while it is being removed.
+
+### Uninstalled it and got a black screen?
+
+Nothing is broken: the stock home screen is only switched off, so the TV has no home screen to show.
+Switch it back on in any of these ways:
+
+<details>
+<summary><b>Show the three ways back</b></summary>
+
+
+1. **Without a computer.** Open the TV settings — say *"Open settings"* to the Assistant (the
+   microphone button), or press the ⚙ Settings button if your remote has one. Go to *Apps → See all
+   apps → Show system apps*, open **Google TV Home** and **Google TV Setup** (names vary a little
+   between brands) and press **Enable** on each. Then press HOME or restart the TV.
+2. **From a computer** on the same network — USB debugging is still on:
+   ```bash
+   adb connect <TV address>:5555
+   adb shell pm enable com.google.android.tungsten.setupwraith
+   adb shell pm enable com.google.android.apps.tv.launcherx
+   ```
+   Accept the debugging prompt on the TV if it appears.
+3. **Or put Likhtar back** (`adb install likhtar-home.apk`), open it, press *Bring back the stock home
+   screen*, and only then uninstall it.
+
+</details>
+
+## Privacy, in plain words
+
+- Your history, lists, profiles, PINs and settings stay on the TV.
+- Keys, tokens, passwords and playlist addresses are stored encrypted.
+- Film data comes from TMDB through a small read-only Likhtar gateway, so there is no API key to
+  paste. Like any website it sees your IP address, the titles and searches being looked up — but
+  not your history, your lists, your settings or anything you ask the AI. Normal requests are not logged.
+- Full details: [docs/privacy-policy.md](docs/privacy-policy.md).
+
+## AI, on your terms (optional)
 
 Connect an AI model and just say what you're in the mood for: *"something like Interstellar, but
 lighter"*, *"a cosy series for a rainy weekend"*, *"what to watch with a seven-year-old"*. Likhtaryk
@@ -112,94 +186,6 @@ choose** — in your language, on any TV or box with Android TV, not just the la
 Without an AI connected, Likhtaryk still works: format and mood picks come from curated cards,
 and search runs on TMDB.
 
-## Privacy, in plain words
-
-- Your history, lists, profiles, PINs and settings stay on the TV.
-- Keys, tokens, passwords and playlist addresses are stored encrypted.
-- Film data comes from TMDB through a small read-only Likhtar gateway, so there is no API key to
-  paste. Like any website it sees your IP address, the titles and searches being looked up — but
-  not your history, your lists, your settings or anything you ask the AI. Normal requests are not logged.
-- Full details: [docs/privacy-policy.md](docs/privacy-policy.md).
-
-## Safe to try, easy to undo
-
-Becoming the home screen on Google TV is the scary part, so here is exactly what happens.
-
-- **Nothing is uninstalled.** Likhtar sets itself as the home activity and *disables* — not removes —
-  the stock Google TV launcher and its setup wizard. Nothing else is touched.
-- **It talks to the TV, not to the internet.** The switch uses the TV's own debugging connection
-  (`127.0.0.1`), so no computer and no cable are needed. You approve it once on screen.
-- **Your Wi-Fi is checked first.** If a saved network belongs to an app that would be disabled, Likhtar
-  refuses to continue — disabling it could forget your Wi-Fi.
-- **One button back.** *Settings → Remote and startup → Bring back the stock home screen* re-enables
-  everything in the reverse order.
-- **A crash safety net.** If Likhtar crashes three times within five minutes, it gives the home screen
-  back to the stock launcher by itself.
-
-> ⚠️ **Before uninstalling Likhtar, press *Bring back the stock home screen* first.** Android gives an
-> app no chance to undo its changes while it is being removed.
-
-### Uninstalled it and got a black screen?
-
-Nothing is broken: the stock home screen is only switched off, so the TV has no home screen to show.
-Switch it back on in any of these ways:
-
-1. **Without a computer.** Open the TV settings — say *"Open settings"* to the Assistant (the
-   microphone button), or press the ⚙ Settings button if your remote has one. Go to *Apps → See all
-   apps → Show system apps*, open **Google TV Home** and **Google TV Setup** (names vary a little
-   between brands) and press **Enable** on each. Then press HOME or restart the TV.
-2. **From a computer** on the same network — USB debugging is still on:
-   ```bash
-   adb connect <TV address>:5555
-   adb shell pm enable com.google.android.tungsten.setupwraith
-   adb shell pm enable com.google.android.apps.tv.launcherx
-   ```
-   Accept the debugging prompt on the TV if it appears.
-3. **Or put Likhtar back** (`adb install likhtar-home.apk`), open it, press *Bring back the stock home
-   screen*, and only then uninstall it.
-
-## How it grew
-
-Likhtar arrives while everyone is talking about freeing their TV — but it didn't start there, and it
-didn't start as a launcher. It grew one annoyance at a time, on a real TV in a real living room.
-
-| When | What happened |
-|---|---|
-| **Jan 2026** | *Studios Master*: a small plugin for the Lampa media app that gathered TMDB collections from big studios and streamers into its sidebar. Metadata only, about 400 lines of JavaScript. |
-| **Mar 2026** | *Likhtar* appears — a custom home page for that app with a hero banner, title logos and badges, focused on Ukrainian-language content. |
-| **Aug 5, 2026** | *Likhtaryk*, the film-picking assistant, is born inside the plugin — first running on a local model on a home PC. |
-| **Aug 11, 2026** | The plugin hits the limits of someone else's app. First commit of a native Android TV launcher in Kotlin and Compose. |
-| **Aug 12, 2026** | Live TV with a real channel grid and TV guide, and the Cinema section on a TMDB catalogue. |
-| **Sep 2026** | Reality section, title pages with episodes and franchises, the remote-first focus system rebuilt from scratch. Likhtaryk becomes a page of its own. |
-| **Oct 20, 2026** | A public build that needs no home server of its own, and settings from your phone by QR. |
-| **Oct 23, 2026** | Bring your own AI, encrypted secrets, and this README. |
-| **Oct 29, 2026** | Arrange the TV from your phone, and a phone app that installs Likhtar over Wi-Fi. |
-
-Where it began is still public: [the original plugin on GitHub](https://github.com/Syvyj/studios_4lampa).
-This repository starts fresh with the launcher's first public release.
-
-## Install
-
-### From your phone (easiest)
-
-1. On the TV: *Settings → System → About*, press OK on *Android TV OS build* seven times. Then in
-   *Developer options* turn on *USB debugging* (on some TVs it's called *Network debugging*).
-2. On an Android phone on the same Wi-Fi, install [**Likhtar Installer**](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-installer.apk).
-   Press *Find the TV*, then *Install*, and allow debugging when the TV asks.
-3. Likhtar opens on the TV and offers to become your home screen. That's it.
-
-### Or the classic way
-
-1. Download [**likhtar-home.apk**](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-home.apk) and install it with the *Downloader* app, from
-   a USB stick, or with `adb install likhtar-home.apk`.
-2. Open Likhtar Home and follow the prompt to make it your home screen. Google TV tries hard to
-   keep its own launcher, so Likhtar walks you through a one-time setup on the TV itself — no
-   computer needed.
-
-Works on TVs with Android TV or Google TV built in and on set-top boxes — anything running
-Android TV or Google TV, Android 7.0 or newer. The UI is laid out for
-1080p and scales to 720p and 4K.
-
 ## Questions people ask
 
 **Is it free?** Yes, and open source under GPL-3.0. No ads, no subscriptions, no paid tier.
@@ -221,12 +207,7 @@ settings are never touched.
 off and Likhtar stays your home screen; after an update you would press *Make it the home screen*
 again (Settings → Remote and startup).
 
-**How do I play my own games?** Turn on *Settings → Home → Games*, install RetroArch, and in RetroArch
-download the core for your console once (*Online Updater → Core Downloader*: Gambatte for Game Boy,
-FCEUmm for NES, Snes9x for SNES, Genesis Plus GX for Mega Drive). Put ROM files into a `ROMs` folder
-or send them from your phone. To see ROMs copied from a USB stick, allow Likhtar access to all files
-(*Settings → Home → Games from USB*; on Google TV it opens the system list, find Likhtar Home there).
-Likhtar does not include or download any games.
+**How do I play my own games?** See [docs/games.md](docs/games.md). Likhtar does not include or download any games.
 
 **Which languages?** The interface follows your TV: English, Ukrainian or Polish.
 
@@ -239,7 +220,9 @@ Likhtar does not include or download any games.
 
 Tried it on another TV or box? Open an issue with the model and what worked — the list grows with you.
 
-## Building from source
+## For developers
+
+### Building from source
 
 Requirements: Android Studio (latest stable), JDK 17.
 
@@ -261,6 +244,26 @@ LIKHTAR_KEY_PASSWORD=…
 
 The project is split into `app`, `core/*` (design system, data, catalogue, TV, smart home,
 wallpapers) and `feature/*` (one module per screen).
+
+## The story behind Likhtar
+
+Likhtar arrives while everyone is talking about freeing their TV — but it didn't start there, and it
+didn't start as a launcher. It grew one annoyance at a time, on a real TV in a real living room.
+
+| When | What happened |
+|---|---|
+| **Jan 2026** | *Studios Master*: a small plugin for the Lampa media app that gathered TMDB collections from big studios and streamers into its sidebar. Metadata only, about 400 lines of JavaScript. |
+| **Mar 2026** | *Likhtar* appears — a custom home page for that app with a hero banner, title logos and badges, focused on Ukrainian-language content. |
+| **Aug 5, 2026** | *Likhtaryk*, the film-picking assistant, is born inside the plugin — first running on a local model on a home PC. |
+| **Aug 11, 2026** | The plugin hits the limits of someone else's app. First commit of a native Android TV launcher in Kotlin and Compose. |
+| **Aug 12, 2026** | Live TV with a real channel grid and TV guide, and the Cinema section on a TMDB catalogue. |
+| **Sep 2026** | Reality section, title pages with episodes and franchises, the remote-first focus system rebuilt from scratch. Likhtaryk becomes a page of its own. |
+| **Oct 20, 2026** | A public build that needs no home server of its own, and settings from your phone by QR. |
+| **Oct 23, 2026** | Bring your own AI, encrypted secrets, and this README. |
+| **Oct 29, 2026** | Arrange the TV from your phone, and a phone app that installs Likhtar over Wi-Fi. |
+
+Where it began is still public: [the original plugin on GitHub](https://github.com/Syvyj/studios_4lampa).
+This repository starts fresh with the launcher's first public release.
 
 ## Support
 
