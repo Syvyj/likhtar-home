@@ -4,7 +4,7 @@
 
 # Likhtar Home
 
-**Your TV, minus the storefront.**
+**Films first. Apps second.**
 
 A home screen for Android TV and Google TV that answers one question — *what are we watching tonight?*
 Turn on the TV, pick a mood, press OK.
