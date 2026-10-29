@@ -20,12 +20,12 @@ Turn on the TV, pick a mood, press OK.
 
 <br>
 
-## 📲 Your phone does the fiddly part
+## Your phone does the hard part
 
-| 📥 **Install without a computer** | 🛋 **Make it yours from the sofa** |
+| **Install without a computer** | **Make it yours from the sofa** |
 |:---:|:---:|
 | A small Android app finds the TV on your Wi‑Fi<br>and installs Likhtar. No USB stick, no Downloader. | Scan a QR code to reorder sections, pick Cinema rows<br>and hide the services you don't use. No typing with the remote. |
-| [**⬇ Get Likhtar Installer**](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-installer.apk) | [**How to install ↓**](#install) |
+| [**Get Likhtar Installer**](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-installer.apk) | [**How to install**](#install) |
 
 <img src="docs/banner-en.webp" alt="Likhtar Home — Likhtaryk, Cinema, opens anywhere, Jellyfin & Plex, Live TV, smart home, phone as a keyboard, your own AI" width="100%">
 
@@ -40,7 +40,7 @@ Turn on the TV, pick a mood, press OK.
 - 📺 **Live TV** — your own M3U playlist with a programme guide
 - 🏠 **Smart home** — Home Assistant rooms on the big screen, by remote or voice
 - 🎮 **Games** — Boosteroid, Xbox Cloud, GeForce NOW and PS Remote Play in one row, your ROMs with box art in one press of RetroArch, and every game you have installed (turn it on in Settings)
-- 📱 **Your phone does the fiddly part** — installs Likhtar over Wi-Fi; by QR it arranges sections, rows and services, types passwords and sends files
+- 📱 **Your phone does the hard part** — installs Likhtar over Wi-Fi; by QR it arranges sections, rows and services, types passwords and sends files
 - ✨ **Your own AI** — *"something like Interstellar, but lighter"*, with your key or a local model
 
 | You want to… | Do this |
