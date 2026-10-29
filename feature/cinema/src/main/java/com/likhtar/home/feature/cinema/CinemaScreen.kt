@@ -19,6 +19,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.likhtar.home.core.catalog.arranged
 import com.likhtar.home.core.catalog.opensListing
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -257,7 +258,7 @@ fun CinemaScreen(
                     rails.scrollToItem(0)
                     contentFocusRequester.requestAfterFrame()
                 },
-                dataKey = state.rows to state.brands,
+                dataKey = Triple(state.rows, state.brands, state.rowOrder to state.hiddenRows),
             ) {
                 var first = true
                 var railCount = 0
@@ -524,7 +525,10 @@ fun CinemaScreen(
 
                 // Ряди сервера в його ж порядку: новинки, українська стрічка, далі
                 // стрімінги. «Закладки» — ярликом у «Продовжити перегляд».
-                val shownRows = state.rows.filterNot { it.tail || it.items.isEmpty() || (!state.showAnime && it.openBrand == "anime") }
+                // Свій порядок людини — поверх серверного (налаштування з телефона).
+                val shownRows = state.rows
+                    .filterNot { it.tail || it.items.isEmpty() || (!state.showAnime && it.openBrand == "anime") }
+                    .arranged(state.rowOrder, state.hiddenRows)
                 // «Жанри» — де сказав сервер (після «Бо вам сподобалось»);
                 // старий сервер мітки не шле — тоді після третього ряду, як було.
                 val genresAt = shownRows.indexOfFirst { it.genresAfter }.takeIf { it >= 0 } ?: 2

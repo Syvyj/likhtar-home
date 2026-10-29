@@ -18,6 +18,8 @@ Turn on the TV, pick a mood, press OK.
 
 **No ads · no tracking · no account · no root · no computer needed · one button to undo**
 
+Listed in the [CleanYourTV Showcase](https://github.com/Gathin23/cleanyourtv/blob/main/SHOWCASE.md)
+
 <img src="docs/banner-en.webp" alt="Likhtar Home — Likhtaryk, Cinema, opens anywhere, Jellyfin & Plex, Live TV, smart home, phone as a keyboard, your own AI" width="100%">
 
 </div>
@@ -73,7 +75,7 @@ living room that shows you the way to tonight's film and then gets out of the wa
 | ![Send from your phone](docs/screenshots/1920x1080/17-send-from-phone.png) | **Send anything from your phone.** Scan the QR code and drop a video, a photo, an APK or a link onto the TV — no app, no cable, no cloud. Even a full-length film goes straight to the TV's Downloads and opens in the right player or installer. |
 | ![Games](docs/screenshots/1920x1080/18-games.png) | **Games, in their own section.** Cloud gaming first: Boosteroid, Xbox Cloud Gaming, GeForce NOW and PS Remote Play open in one press, or take you to their store page if they are not installed yet. Put ROM files into a `ROMs` folder (on the TV, a USB stick, or send them from your phone) and they show up as boxes with art from the libretro database, with a real frame from the game behind the title. OK starts the game in RetroArch with the right core, no menus; *Continue playing* keeps what you played last on top. Installed games and emulators sit below, and any app can be moved here with a long press → *Category*. Off by default: *Settings → Home → Games*. |
 | ![Apps](docs/screenshots/1920x1080/11-apps.png) | **Your apps, sorted for you.** Grouped automatically, with what's new inside each service shown right on the tile. Hide, pin or lock any app with a PIN. |
-| ![From your phone](docs/screenshots/1920x1080/15-from-phone-qr.png) | **Settings from your phone.** Scan a QR code and type long addresses, keys and passwords on your phone instead of hunting letters with the remote. |
+| ![From your phone](docs/screenshots/1920x1080/15-from-phone-qr.png) | **Settings from your phone.** Scan a QR code and type long addresses, keys and passwords on your phone instead of hunting letters with the remote. The same page arranges the TV: the order of sections, which Cinema rows show and in what order, which streaming services appear, the title under or over the film's logo, and text straight into the TV's clipboard. |
 
 Also inside: a **media library** for your **Jellyfin** and **Plex** servers (Continue watching and
 watched marks stay in sync both ways), DLNA servers and SMB shares, weather on the home
@@ -164,6 +166,7 @@ didn't start as a launcher. It grew one annoyance at a time, on a real TV in a r
 | **Sep 2026** | Reality section, title pages with episodes and franchises, the remote-first focus system rebuilt from scratch. Likhtaryk becomes a page of its own. |
 | **Oct 20, 2026** | A public build that needs no home server of its own, and settings from your phone by QR. |
 | **Oct 23, 2026** | Bring your own AI, encrypted secrets, and this README. |
+| **Oct 29, 2026** | Arrange the TV from your phone, and a phone app that installs Likhtar over Wi-Fi. |
 
 Where it began is still public: [the original plugin on GitHub](https://github.com/Syvyj/studios_4lampa).
 This repository starts fresh with the launcher's first public release.
@@ -173,6 +176,9 @@ This repository starts fresh with the launcher's first public release.
 1. Download the latest APK from [**Releases**](https://github.com/Syvyj/likhtar-home/releases/latest).
 2. Install it on your TV — with the *Downloader* app, from a USB stick, or with
    `adb install likhtar-home.apk`.
+   Or from an Android phone: install **Likhtar Installer** (`likhtar-installer.apk` from the same
+   release), turn on *USB debugging* in the TV's developer options, press *Find the TV*, then
+   *Install*. It downloads the latest Likhtar and puts it on the TV over your Wi-Fi.
 3. Open Likhtar Home and follow the prompt to make it your home screen. Google TV tries hard to
    keep its own launcher, so Likhtar walks you through a one-time setup on the TV itself — no
    computer needed.

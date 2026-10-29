@@ -59,6 +59,9 @@ import kotlinx.coroutines.delay
  */
 val LocalVisibleSections = compositionLocalOf { LikhtarSection.entries.toList() }
 
+/** Українська назва під чужомовним знаком окремим рядком замість плашки на ньому (налаштування). */
+val LocalTitleUnderLogo = compositionLocalOf { false }
+
 /**
  * Чи лаунчер зараз «спить»: пульт давно не чіпали.
  *

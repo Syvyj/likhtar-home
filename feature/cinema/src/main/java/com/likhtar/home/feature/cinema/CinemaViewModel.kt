@@ -72,6 +72,9 @@ data class CinemaUiState(
      * порядок, що бачитиме будь-яка інша інсталяція.
      */
     val rows: List<SectionRow> = emptyList(),
+    /** Свій порядок і сховані ряди з налаштувань (ключі SectionRow.key). */
+    val rowOrder: List<String> = emptyList(),
+    val hiddenRows: Set<String> = emptySet(),
     /** «Топ-10» випадкового сервісу (прототип); `null` — ще не приїхав або немає. */
     val top: SectionRow? = null,
     /** Плитки стрімінгів у кінці розділу: двері на сторінку сервісу. */
@@ -188,7 +191,14 @@ class CinemaViewModel @Inject constructor(
             // Прапорець потоком: перемкнули в налаштуваннях — ряди перебудовуються без
             // повторного заходу в Кінозал.
             settings.settings.collect { current ->
-                state.update { it.copy(hideWatched = current.hideWatched, showAnime = current.showAnime) }
+                state.update {
+                    it.copy(
+                        hideWatched = current.hideWatched,
+                        showAnime = current.showAnime,
+                        rowOrder = current.cinemaRowOrder,
+                        hiddenRows = current.hiddenCinemaRows,
+                    )
+                }
             }
         }
         viewModelScope.launch {

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Likhtar Installer</string>
+    <string name="prepare_title">On the TV, once</string>
+    <string name="prepare_steps">1. Settings → System → About: press OK on «Android TV OS build» seven times.\n2. Settings → System → Developer options: turn on «USB debugging» (on some TVs «Network debugging»).\n3. Keep the phone on the same Wi-Fi as the TV.</string>
+    <string name="scan">Find the TV</string>
+    <string name="scanning">Looking…</string>
+    <string name="scan_none">No TV found. Check debugging is on, or type the address from Settings → Network on the TV.</string>
+    <string name="scan_no_wifi">The phone is not on Wi-Fi.</string>
+    <string name="address">TV address</string>
+    <string name="install">Install Likhtar</string>
+    <string name="install_again">Install again</string>
+    <string name="status_connecting">Connecting to the TV…</string>
+    <string name="status_approve">On the TV: tick «Always allow from this computer» and press Allow.</string>
+    <string name="status_downloading">Downloading the latest Likhtar…</string>
+    <string name="status_installing">Installing on the TV…</string>
+    <string name="status_done">Done. Likhtar is open on the TV and will offer to become the home screen; the TV asks to allow debugging once more, for Likhtar itself.</string>
+    <string name="error_port">The TV is not answering on port 5555. Is debugging on and is the address right?</string>
+    <string name="error_approve">Debugging was not allowed on the TV. Press Install again and allow it.</string>
+    <string name="error_tls">This TV only allows wireless debugging with pairing, which this app does not support yet. Install with Downloader or a USB stick instead.</string>
+    <string name="error_connection">The connection to the TV dropped. Try again.</string>
+    <string name="error_download">Could not download Likhtar. Check the phone\'s internet.</string>
+    <string name="error_install">The TV refused the install:</string>
+</resources>

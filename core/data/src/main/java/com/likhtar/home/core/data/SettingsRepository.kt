@@ -193,6 +193,17 @@ data class LikhtarSettings(
      * зберігає. Тому в DataStore лежить один рядок через кому.
      */
     val titleActionsOrder: List<String> = TitleActions.DEFAULT,
+    /**
+     * Свій порядок розділів у меню й доці (маршрути LikhtarSection). Порожній — порядок
+     * лаунчера. Зберігається рядком через кому, як [titleActionsOrder].
+     */
+    val sectionOrder: List<String> = emptyList(),
+    /** Свій порядок рядів Кінозалу (ключі SectionRow.key); нові ряди сервера — у кінці. */
+    val cinemaRowOrder: List<String> = emptyList(),
+    /** Ряди Кінозалу, які людина сховала (ключі SectionRow.key). */
+    val hiddenCinemaRows: Set<String> = emptySet(),
+    /** Українська назва під чужомовним знаком окремим рядком, а не плашкою на його низу. */
+    val titleUnderLogo: Boolean = false,
 
     /** Місто погоди на Головній. Координати зберігаємо разом із назвою — щоб не геокодувати щоразу. */
     /** Порожнє — ще не визначено: погода сама бере місто з часового поясу (OpenMeteoWeatherRepository). */
@@ -274,6 +285,10 @@ class SettingsRepository @Inject constructor(
             videoPlayerPackage = prefs[KEY_VIDEO_PLAYER] ?: DEFAULT_VIDEO_PLAYER,
             availabilityCountries = prefs[KEY_AVAILABILITY_COUNTRIES].orEmpty(),
             titleActionsOrder = TitleActions.parse(prefs[KEY_TITLE_ACTIONS]),
+            sectionOrder = prefs[KEY_SECTION_ORDER].orEmpty().split(',').filter { it.isNotBlank() },
+            cinemaRowOrder = prefs[KEY_CINEMA_ROW_ORDER].orEmpty().split('\n').filter { it.isNotBlank() },
+            hiddenCinemaRows = prefs[KEY_HIDDEN_CINEMA_ROWS].orEmpty(),
+            titleUnderLogo = prefs[KEY_TITLE_UNDER_LOGO] ?: false,
             ambientTimeoutSeconds = prefs[KEY_AMBIENT_TIMEOUT] ?: 60,
             weatherCity = prefs[KEY_WEATHER_CITY] ?: "",
             weatherLatitude = prefs[KEY_WEATHER_LAT] ?: 0.0,
@@ -407,6 +422,22 @@ class SettingsRepository @Inject constructor(
         context.settingsDataStore.edit { it[KEY_VOICE_ON_TV] = on }
     }
 
+    suspend fun setSectionOrder(order: List<String>) {
+        context.settingsDataStore.edit { it[KEY_SECTION_ORDER] = order.joinToString(",") }
+    }
+
+    /** Ключі рядів — назви сервера, у них бувають коми; тому через новий рядок. */
+    suspend fun setCinemaRows(order: List<String>, hidden: Set<String>) {
+        context.settingsDataStore.edit {
+            it[KEY_CINEMA_ROW_ORDER] = order.joinToString("\n")
+            it[KEY_HIDDEN_CINEMA_ROWS] = hidden
+        }
+    }
+
+    suspend fun setTitleUnderLogo(on: Boolean) {
+        context.settingsDataStore.edit { it[KEY_TITLE_UNDER_LOGO] = on }
+    }
+
     suspend fun setTitleTrailerOnUp(on: Boolean) {
         context.settingsDataStore.edit { it[KEY_TRAILER_UP] = on }
     }
@@ -536,6 +567,10 @@ class SettingsRepository @Inject constructor(
         val KEY_VIDEO_PLAYER = stringPreferencesKey("video_player_package")
         val KEY_AVAILABILITY_COUNTRIES = stringSetPreferencesKey("availability_countries")
         val KEY_TITLE_ACTIONS = stringPreferencesKey("title_actions_order")
+        val KEY_SECTION_ORDER = stringPreferencesKey("section_order")
+        val KEY_CINEMA_ROW_ORDER = stringPreferencesKey("cinema_row_order")
+        val KEY_HIDDEN_CINEMA_ROWS = stringSetPreferencesKey("hidden_cinema_rows")
+        val KEY_TITLE_UNDER_LOGO = booleanPreferencesKey("title_under_logo")
         val KEY_AMBIENT_TIMEOUT = intPreferencesKey("ambient_timeout_seconds")
         val KEY_WEATHER_CITY = stringPreferencesKey("weather_city")
         val KEY_WEATHER_LAT = doublePreferencesKey("weather_latitude")

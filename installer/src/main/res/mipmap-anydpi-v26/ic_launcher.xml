@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon: система сама накладає маску (коло/квадрат) на Android 8+.
+     Фон — світло-сіра картка, передній шар — світлий ліхтар (likhtar_lantern, як у завантажувачі). -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+</adaptive-icon>

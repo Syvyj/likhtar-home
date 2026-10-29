@@ -91,6 +91,12 @@ internal fun WatchSection(
         checked = state.settings.titleTrailerOnUp,
         onToggle = viewModel::toggleTrailerOnUp,
     )
+    ToggleRow(
+        text = stringResource(R.string.settings_watch_title_under_logo),
+        subtitle = stringResource(R.string.settings_watch_title_under_logo_subtitle),
+        checked = state.settings.titleUnderLogo,
+        onToggle = viewModel::toggleTitleUnderLogo,
+    )
     var actionsOpen by remember { mutableStateOf(false) }
     ValueRow(
         text = stringResource(R.string.settings_button_order),

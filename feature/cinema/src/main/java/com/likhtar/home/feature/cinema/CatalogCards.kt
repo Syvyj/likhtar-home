@@ -1,6 +1,7 @@
 package com.likhtar.home.feature.cinema
 
 import androidx.compose.ui.res.stringResource
+import com.likhtar.home.core.designsystem.LocalTitleUnderLogo
 import com.likhtar.home.core.designsystem.BrandColors
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.background
@@ -472,31 +473,48 @@ fun TitleLogoArea(
             // Плашка може бути ширшою за знак: коротка назва центрується під ним, довга —
             // виходить за його межі, але починається не лівіше за сам знак.
             val shift = ((logoWidth - pillWidth) / 2).coerceAtLeast(0.dp)
-            // Плашка НАКЛАДАЄТЬСЯ на низ знака, а не стоїть під ним окремим рядком так вони читаються як одна назва, а не як назва й підпис.
-            // Відступ знизу — половина плашки, щоб вона не лізла на метарядок.
-            Box(
-                modifier = Modifier
-                    .width(maxOf(logoWidth, pillWidth))
-                    .padding(bottom = OverlayPillHalf),
-            ) {
+            // За замовчуванням плашка НАКЛАДАЄТЬСЯ на низ знака: так вони читаються як одна
+            // назва. Відступ знизу — половина плашки, щоб вона не лізла на метарядок. «Назва під
+            // знаком» у налаштуваннях ставить її окремим рядком: дехто хоче бачити оригінальний
+            // знак цілим.
+            val below = LocalTitleUnderLogo.current
+            val logo: @Composable () -> Unit = {
                 Box(Modifier.width(logoWidth)) {
                     TitleLogoArea(
                         logoPath = logoPath, title = title, height = height,
                         fallbackStyle = fallbackStyle, widthFraction = 1f, alignment = Alignment.Center,
                     )
                 }
-                // Поки знак вантажиться, зона показує назву текстом — плашка під нею
-                // повторила б ту саму назву вдруге («Фрірен»).
+            }
+            // Поки знак вантажиться, зона показує назву текстом — плашка під нею
+            // повторила б ту саму назву вдруге («Фрірен»).
+            val pill: @Composable (Modifier) -> Unit = { pillModifier ->
                 if (prepared != null) TitlePill(
                     text = text,
                     style = style,
                     verticalPadding = 5.dp,
                     tight = true,
                     maxLines = 1,
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .offset(x = shift, y = OverlayPillHalf),
+                    modifier = pillModifier,
                 )
+            }
+            if (below) {
+                Column(
+                    modifier = Modifier.width(maxOf(logoWidth, pillWidth)),
+                    verticalArrangement = Arrangement.spacedBy(OverlayPillGap),
+                ) {
+                    logo()
+                    pill(Modifier.offset(x = shift))
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .width(maxOf(logoWidth, pillWidth))
+                        .padding(bottom = OverlayPillHalf),
+                ) {
+                    logo()
+                    pill(Modifier.align(Alignment.BottomStart).offset(x = shift, y = OverlayPillHalf))
+                }
             }
         }
         return
@@ -643,6 +661,9 @@ private const val TightPillLetters = 0.98f
 
 /** Наскільки плашка з українською назвою звисає нижче знака. */
 private val OverlayPillHalf = 14.dp
+
+/** Проміжок між знаком і назвою, коли вона стоїть під ним. */
+private val OverlayPillGap = 6.dp
 
 /** Ширина банерної картки ряду — та сама для «Відкрити всі» в кінці ряду. */
 /** Нижче цього співвідношення сторін знак вважаємо вертикальним. */

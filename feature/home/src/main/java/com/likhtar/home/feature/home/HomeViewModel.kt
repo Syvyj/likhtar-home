@@ -305,7 +305,11 @@ class HomeViewModel @Inject constructor(
                 tiles = tiles()
                     .filter { it.section != LikhtarSection.SMART_HOME || core.smartHomeEnabled }
                     .filter { it.section != LikhtarSection.GAMES || core.settings.gamesEnabled }
-                    .filter { it.section.route !in core.settings.hiddenDockSections },
+                    .filter { it.section.route !in core.settings.hiddenDockSections }
+                    .let { tiles ->
+                        val order = LikhtarSection.ordered(tiles.map { it.section }, core.settings.sectionOrder)
+                        tiles.sortedBy { order.indexOf(it.section) }
+                    },
                 pinnedApps = appsRow(core.dockApps, context.recentApps, core.settings),
                 games = appsRow(
                     core.games,

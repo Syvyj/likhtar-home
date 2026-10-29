@@ -23,6 +23,21 @@ enum class LikhtarSection(
 
     companion object {
         fun fromRoute(route: String?): LikhtarSection? = entries.firstOrNull { it.route == route }
+
+        /**
+         * [sections] у порядку людини ([order] — маршрути). Головна завжди перша, Налаштування
+         * останні; розділ, якого немає в [order] (новий у лаунчері), стає за своїм сусідом
+         * за замовчуванням — у кінець перед Налаштуваннями.
+         */
+        fun ordered(sections: List<LikhtarSection>, order: List<String>): List<LikhtarSection> {
+            if (order.isEmpty()) return sections
+            fun rank(s: LikhtarSection) = when (s) {
+                HOME -> -1
+                SETTINGS -> Int.MAX_VALUE
+                else -> order.indexOf(s.route).let { if (it < 0) Int.MAX_VALUE - 1 else it }
+            }
+            return sections.sortedBy(::rank)
+        }
     }
 }
 

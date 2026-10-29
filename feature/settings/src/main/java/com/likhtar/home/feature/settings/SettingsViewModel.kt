@@ -175,6 +175,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun toggleTitleUnderLogo() {
+        viewModelScope.launch {
+            settingsRepository.setTitleUnderLogo(!settingsRepository.settings.first().titleUnderLogo)
+        }
+    }
+
     fun toggleTrailerOnUp() {
         viewModelScope.launch {
             settingsRepository.setTitleTrailerOnUp(!settingsRepository.settings.first().titleTrailerOnUp)

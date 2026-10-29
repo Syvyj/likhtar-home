@@ -418,6 +418,26 @@ data class SectionGenre(
     val backdrops: List<String> = emptyList(),
 )
 
+
+/**
+ * Чи ряд можна переставити чи сховати в налаштуваннях. Ні — широкі секції (тайтл чи франшиза
+ * дня) і добірки з назвою твору в лапках («Бо вам сподобались «…»»): їхня назва щодня інша,
+ * тож запам'ятати їх нема за чим. Вони лишаються там, де їх поставив сервер.
+ */
+val SectionRow.movable: Boolean get() = wide == null && '«' !in key
+
+/**
+ * Ряди в порядку людини: сховані прибрано, рухомі стають у свій порядок на місця рухомих,
+ * нерухомі — на своїх місцях. Ряд, якого немає в [order] (новий на сервері), — у кінці рухомих.
+ */
+fun List<SectionRow>.arranged(order: List<String>, hidden: Set<String>): List<SectionRow> {
+    val shown = filterNot { it.movable && it.key in hidden }
+    if (order.isEmpty()) return shown
+    val moved = shown.filter { it.movable }
+        .sortedBy { row -> order.indexOf(row.key).let { if (it < 0) Int.MAX_VALUE else it } }
+        .iterator()
+    return shown.map { if (it.movable) moved.next() else it }
+}
 /** Ряд від сервера разом із тим, чого немає в самій картці. */
 data class SectionRow(
     val title: String,

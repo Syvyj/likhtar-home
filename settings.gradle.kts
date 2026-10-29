@@ -19,6 +19,7 @@ rootProject.name = "likhtar-home"
 
 include(":app")
 include(":core:model")
+include(":core:adb")
 include(":core:designsystem")
 include(":core:data")
 include(":core:wallpaper")
@@ -31,3 +32,4 @@ include(":feature:search")
 include(":feature:apps")
 include(":feature:smarthome")
 include(":feature:settings")
+include(":installer")

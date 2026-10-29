@@ -114,6 +114,7 @@ fun LikhtarApp(
     val currentSection = LikhtarSection.fromRoute(route) ?: LikhtarSection.HOME
 
     val visibleSections by viewModel.visibleSections.collectAsStateWithLifecycle()
+    val titleUnderLogo by viewModel.titleUnderLogo.collectAsStateWithLifecycle()
     val showHomeOnboarding by viewModel.homeOnboarding.collectAsStateWithLifecycle()
     val showFirstRun by viewModel.firstRun.collectAsStateWithLifecycle()
 
@@ -307,6 +308,7 @@ fun LikhtarApp(
 
     CompositionLocalProvider(
         LocalVisibleSections provides visibleSections,
+        com.likhtar.home.core.designsystem.LocalTitleUnderLogo provides titleUnderLogo,
         LocalAmbientIdle provides idle,
         com.likhtar.home.core.designsystem.LocalPhoneDropAction provides { dropOpen = true },
     ) {

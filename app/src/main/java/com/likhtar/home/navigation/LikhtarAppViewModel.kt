@@ -97,6 +97,10 @@ class LikhtarAppViewModel @Inject constructor(
             initialValue = null,
         )
 
+    val titleUnderLogo: StateFlow<Boolean> = settingsRepository.settings
+        .map { it.titleUnderLogo }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     /** 0 означає «ніколи»: користувач може лишити плитки на екрані назавжди. */
     val ambientTimeoutSeconds: StateFlow<Int> = settingsRepository.settings
         .map { it.ambientTimeoutSeconds }
@@ -113,10 +117,13 @@ class LikhtarAppViewModel @Inject constructor(
      */
     val visibleSections: StateFlow<List<LikhtarSection>> = settingsRepository.settings
         .map { settings ->
-            LikhtarSection.entries.filter {
-                (it != LikhtarSection.SMART_HOME || settings.smartHomeEnabled) &&
-                    (it != LikhtarSection.GAMES || settings.gamesEnabled)
-            }
+            LikhtarSection.ordered(
+                LikhtarSection.entries.filter {
+                    (it != LikhtarSection.SMART_HOME || settings.smartHomeEnabled) &&
+                        (it != LikhtarSection.GAMES || settings.gamesEnabled)
+                },
+                settings.sectionOrder,
+            )
         }
         .stateIn(
             scope = viewModelScope,

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ліхтар: встановлення</string>
+    <string name="prepare_title">На телевізорі, один раз</string>
+    <string name="prepare_steps">1. Налаштування → Система → Про пристрій: сім разів натисніть OK на «Збірка ОС Android TV».\n2. Налаштування → Система → Для розробників: увімкніть «Налагодження USB» (на деяких ТБ — «Налагодження по мережі»).\n3. Телефон має бути в тій самій Wi-Fi, що й телевізор.</string>
+    <string name="scan">Знайти телевізор</string>
+    <string name="scanning">Шукаю…</string>
+    <string name="scan_none">Телевізор не знайдено. Перевірте, чи ввімкнене налагодження, або введіть адресу з Налаштування → Мережа на ТБ.</string>
+    <string name="scan_no_wifi">Телефон не в Wi-Fi.</string>
+    <string name="address">Адреса телевізора</string>
+    <string name="install">Встановити Ліхтар</string>
+    <string name="install_again">Встановити ще раз</string>
+    <string name="status_connecting">З\'єднуюсь із телевізором…</string>
+    <string name="status_approve">На телевізорі: позначте «Завжди дозволяти з цього комп\'ютера» і натисніть «Дозволити».</string>
+    <string name="status_downloading">Завантажую свіжий Ліхтар…</string>
+    <string name="status_installing">Встановлюю на телевізор…</string>
+    <string name="status_done">Готово. Ліхтар відкрився на телевізорі й запропонує стати домашнім екраном; телевізор ще раз спитає дозвіл на налагодження, уже для самого Ліхтаря.</string>
+    <string name="error_port">Телевізор не відповідає на порту 5555. Налагодження ввімкнене, адреса правильна?</string>
+    <string name="error_approve">На телевізорі не дозволили налагодження. Натисніть «Встановити» ще раз і дозвольте.</string>
+    <string name="error_tls">Цей телевізор дозволяє лише бездротове налагодження з парою, його застосунок поки не вміє. Встановіть через Downloader або флешку.</string>
+    <string name="error_connection">З\'єднання з телевізором обірвалось. Спробуйте ще раз.</string>
+    <string name="error_download">Не вдалося завантажити Ліхтар. Перевірте інтернет на телефоні.</string>
+    <string name="error_install">Телевізор не прийняв встановлення:</string>
+</resources>

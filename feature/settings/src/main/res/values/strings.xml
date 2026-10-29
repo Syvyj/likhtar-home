@@ -394,4 +394,15 @@
     <string name="settings_ai_group">AI assistant</string>
     <string name="settings_about_support">Support the author</string>
     <string name="settings_about_support_subtitle">Ko-fi, Buy Me a Coffee or a Monobank jar — from your phone</string>
+    <string name="settings_watch_title_under_logo">Title under the logo</string>
+    <string name="settings_watch_title_under_logo_subtitle">The translated title on its own line below the original logo, not over it</string>
+    <string name="settings_phone_layout">Sections and rows</string>
+    <string name="settings_phone_section_order">Section order in the menu and dock</string>
+    <string name="settings_phone_order_hint">Use the arrows to reorder. A tick keeps the section in the Home dock.</string>
+    <string name="settings_phone_cinema_rows">Cinema rows</string>
+    <string name="settings_phone_rows_hint">Untick a row to hide it. New rows appear at the end.</string>
+    <string name="settings_phone_services">Services in Cinema</string>
+    <string name="settings_phone_clip">Text to the TV clipboard</string>
+    <string name="settings_phone_clip_hint">Paste it on the TV wherever a text field offers Paste.</string>
+    <string name="settings_phone_clip_saved">Clipboard</string>
 </resources>

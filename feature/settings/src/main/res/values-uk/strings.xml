@@ -394,4 +394,15 @@
     <string name="settings_ai_group">AI-помічник</string>
     <string name="settings_about_support">Підтримати автора</string>
     <string name="settings_about_support_subtitle">Ko-fi, Buy Me a Coffee чи банка Monobank — з телефона</string>
+    <string name="settings_watch_title_under_logo">Назва під знаком</string>
+    <string name="settings_watch_title_under_logo_subtitle">Українська назва окремим рядком під оригінальним знаком, а не на ньому</string>
+    <string name="settings_phone_layout">Розділи й ряди</string>
+    <string name="settings_phone_section_order">Порядок розділів у меню й доці</string>
+    <string name="settings_phone_order_hint">Стрілками змінюйте порядок. Позначка лишає розділ у доці Головної.</string>
+    <string name="settings_phone_cinema_rows">Ряди Кінозалу</string>
+    <string name="settings_phone_rows_hint">Зніміть позначку, щоб сховати ряд. Нові ряди з\'являються в кінці.</string>
+    <string name="settings_phone_services">Сервіси в Кінозалі</string>
+    <string name="settings_phone_clip">Текст у буфер обміну телевізора</string>
+    <string name="settings_phone_clip_hint">Вставляйте на телевізорі там, де поле вводу пропонує «Вставити».</string>
+    <string name="settings_phone_clip_saved">Буфер обміну</string>
 </resources>

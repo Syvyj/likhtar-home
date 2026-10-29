@@ -1,4 +1,4 @@
-package com.likhtar.home.core.data
+package com.likhtar.home.core.adb
 
 import android.content.Context
 import android.util.Base64
@@ -7,6 +7,7 @@ import java.io.Closeable
 import java.io.DataInputStream
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
 import java.io.OutputStream
 import java.math.BigInteger
 import java.net.InetSocketAddress
@@ -28,8 +29,9 @@ import javax.crypto.Cipher
 /**
  * ADB самого телевізора — з самого телевізора (127.0.0.1:5555, відкритий, коли ввімкнено
  * налагодження). Так лаунчер стає домашнім екраном без комп'ютера: першого разу телевізор
- * питає «Дозволити налагодження?», людина відповідає «Завжди». Користується лише
- * [HomeTakeover] і лише своїми сталими командами — нічого ззовні.
+ * питає «Дозволити налагодження?», людина відповідає «Завжди». Користуються лише
+ * HomeTakeover у лаунчері і інсталятор на телефоні (той самий порт телевізора, але з мережі),
+ * і лише своїми сталими командами — нічого ззовні.
  *
  * Перенесено з Free My TV (github.com/simbasjungles/free-my-tv, `Adb.java`, MIT,
  * © simbasjungles) — див. NOTICE.md. Протокол:
@@ -40,6 +42,9 @@ class LocalAdb private constructor(private val socket: Socket) : Closeable {
     private val output: OutputStream = socket.getOutputStream()
     private var nextLocalId = 1
 
+    /** Найбільший пакет, який приймає телевізор (з його CNXN). */
+    private var maxData = 4096
+
     private class Message(val command: Int, val arg0: Int, val arg1: Int, val data: ByteArray)
 
     /** Чому не вийшло — коротко, для людини. */
@@ -48,16 +53,43 @@ class LocalAdb private constructor(private val socket: Socket) : Closeable {
     enum class Reason { DEBUGGING_OFF, PORT_CLOSED, NO_RESPONSE, NOT_APPROVED, WIRELESS_TLS, REJECTED, PROTOCOL }
 
     /** Виконує команду в shell телевізора; stdout і stderr разом. */
-    fun shell(command: String): String {
+    fun shell(command: String): String = open("shell:$command")
+
+    /**
+     * Ставить APK потоком, як `adb install` (Android 7+): `cmd package install -S`.
+     * Повертає відповідь менеджера пакетів — «Success» або причину.
+     */
+    fun install(apk: File, onSent: (Long) -> Unit = {}): String {
+        socket.soTimeout = INSTALL_MS
+        return apk.inputStream().use { open("exec:cmd package install -r -S ${apk.length()}", it, onSent) }
+    }
+
+    /** Відкриває потік [service]; [body] — що віддати йому на вхід, по пакету на кожне OKAY. */
+    private fun open(service: String, body: InputStream? = null, onSent: (Long) -> Unit = {}): String {
         val local = nextLocalId++
-        send(OPEN, local, 0, "shell:$command\u0000".toByteArray(Charsets.UTF_8))
+        send(OPEN, local, 0, "$service\u0000".toByteArray(Charsets.UTF_8))
         var remote = 0
         val result = ByteArrayOutputStream()
+        var input = body
+        val chunk = ByteArray(maxData)
+        var sent = 0L
         while (true) {
             val m = read()
             if (m.arg1 != local) continue
             when (m.command) {
-                OKAY -> remote = m.arg0
+                OKAY -> {
+                    remote = m.arg0
+                    input?.let {
+                        val n = it.read(chunk)
+                        if (n > 0) {
+                            send(WRTE, local, remote, chunk.copyOf(n))
+                            sent += n
+                            onSent(sent)
+                        } else {
+                            input = null
+                        }
+                    }
+                }
                 WRTE -> {
                     result.write(m.data)
                     send(OKAY, local, m.arg0, null)
@@ -112,6 +144,8 @@ class LocalAdb private constructor(private val socket: Socket) : Closeable {
         private const val STLS = 0x534c5453
         private const val VERSION = 0x01000001
         private const val MAX_DATA = 256 * 1024
+        private const val INSTALL_MS = 180_000
+        private const val LOOPBACK = "127.0.0.1"
         private const val AUTH_TOKEN = 1
         private const val AUTH_SIGNATURE = 2
         private const val AUTH_RSAPUBLICKEY = 3
@@ -122,14 +156,16 @@ class LocalAdb private constructor(private val socket: Socket) : Closeable {
         /**
          * З'єднання й автентифікація. Якщо телевізор ще не знає нашого ключа — чекає до
          * [approvalMs], поки людина погодиться на екрані; [onApproval] — саме тоді.
+         * [host] — інша адреса, коли з'єднуємось не з себе (інсталятор на телефоні).
          */
-        fun connect(context: Context, approvalMs: Int, onApproval: () -> Unit = {}): LocalAdb {
+        fun connect(context: Context, approvalMs: Int, onApproval: () -> Unit = {}, host: String = LOOPBACK): LocalAdb {
             val keys = keys(context)
             val socket = Socket()
             try {
-                socket.connect(InetSocketAddress("127.0.0.1", 5555), 3000)
+                socket.connect(InetSocketAddress(host, 5555), 3000)
             } catch (e: IOException) {
                 socket.close()
+                if (host != LOOPBACK) throw Failure(Reason.PORT_CLOSED)
                 // Налагодження ввімкнене, а порту 5555 немає: частина телевізорів (Ergo та інші
                 // на MediaTek) слухає лише USB і бездротове з парою — тоді «увімкніть налагодження»
                 // нічого не дає, людині треба відкрити порт.
@@ -150,6 +186,7 @@ class LocalAdb private constructor(private val socket: Socket) : Closeable {
                     }
                     when {
                         m.command == CNXN -> {
+                            adb.maxData = m.arg1.coerceIn(4096, MAX_DATA)
                             socket.soTimeout = 20_000
                             return adb
                         }

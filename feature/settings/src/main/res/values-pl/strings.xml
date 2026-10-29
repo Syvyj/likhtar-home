@@ -394,4 +394,15 @@
     <string name="settings_ai_group">Asystent AI</string>
     <string name="settings_about_support">Wesprzyj autora</string>
     <string name="settings_about_support_subtitle">Ko-fi, Buy Me a Coffee lub słoik Monobank — z telefonu</string>
+    <string name="settings_watch_title_under_logo">Tytuł pod logo</string>
+    <string name="settings_watch_title_under_logo_subtitle">Przetłumaczony tytuł w osobnym wierszu pod oryginalnym logo, a nie na nim</string>
+    <string name="settings_phone_layout">Sekcje i rzędy</string>
+    <string name="settings_phone_section_order">Kolejność sekcji w menu i doku</string>
+    <string name="settings_phone_order_hint">Strzałkami zmieniasz kolejność. Zaznaczenie zostawia sekcję w doku ekranu głównego.</string>
+    <string name="settings_phone_cinema_rows">Rzędy Kina</string>
+    <string name="settings_phone_rows_hint">Odznacz rząd, aby go ukryć. Nowe rzędy pojawiają się na końcu.</string>
+    <string name="settings_phone_services">Serwisy w Kinie</string>
+    <string name="settings_phone_clip">Tekst do schowka telewizora</string>
+    <string name="settings_phone_clip_hint">Wklej go na telewizorze tam, gdzie pole tekstowe oferuje Wklej.</string>
+    <string name="settings_phone_clip_saved">Schowek</string>
 </resources>

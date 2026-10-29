@@ -2,6 +2,8 @@ package com.likhtar.home.feature.settings
 
 import android.content.Context
 import android.util.Log
+import com.likhtar.home.core.catalog.CatalogRepository
+import com.likhtar.home.core.catalog.movable
 import com.likhtar.home.core.catalog.media.MediaLibrary
 import com.likhtar.home.core.catalog.media.MediaSource
 import com.likhtar.home.core.catalog.media.SmbAddress
@@ -12,6 +14,8 @@ import com.likhtar.home.core.data.SettingsRepository
 import com.likhtar.home.core.data.locale
 import com.likhtar.home.core.data.lanAddress
 import com.likhtar.home.core.model.Distribution
+import com.likhtar.home.core.model.LikhtarSection
+import com.likhtar.home.core.model.StreamingService
 import com.likhtar.home.core.smarthome.SmartHomeRepository
 import com.likhtar.home.core.tv.TvGuideRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -28,7 +32,10 @@ import kotlin.concurrent.thread
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** Що відбувається з «Налаштувати з телефона» — для діалогу з QR. */
 sealed interface PhoneSetupStatus {
@@ -59,6 +66,7 @@ class SettingsPhoneLink @Inject constructor(
     private val smartHome: SmartHomeRepository,
     private val guide: TvGuideRepository,
     private val geocoding: GeocodingRepository,
+    private val catalog: CatalogRepository,
 ) {
     /** Перемикач на сторінці телефона: те саме поле, що в налаштуваннях на ТВ. */
     private class Toggle(
@@ -81,6 +89,7 @@ class SettingsPhoneLink @Inject constructor(
         Toggle("anime", R.string.settings_watch_anime, { it.showAnime }, settings::setShowAnime),
         Toggle("live_stills", R.string.settings_watch_live_stills, { it.titleLiveStills }, settings::setTitleLiveStills),
         Toggle("trailer_up", R.string.settings_watch_trailer_up, { it.titleTrailerOnUp }, settings::setTitleTrailerOnUp),
+        Toggle("title_under_logo", R.string.settings_watch_title_under_logo, { it.titleUnderLogo }, settings::setTitleUnderLogo),
         Toggle("smart_home", R.string.settings_smart_home_toggle, { it.smartHomeEnabled }, settings::setSmartHomeEnabled),
         Toggle("ha_voice", R.string.settings_ha_voice, { it.voiceCommandsEnabled }, settings::setVoiceCommandsEnabled),
     )
@@ -209,6 +218,36 @@ class SettingsPhoneLink @Inject constructor(
                 if (provider != null && model.ifEmpty { provider.model }.isEmpty()) problems += str(R.string.settings_ai_need_model)
             }
         }
+        f["clip"]?.takeIf { it.isNotEmpty() }?.let { text ->
+            val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+            withContext(Dispatchers.Main) { clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Likhtar", text)) }
+            saved += str(R.string.settings_phone_clip_saved)
+        }
+        // Розділи й ряди: «layout» каже, що блок був на сторінці (зняті позначки не приходять).
+        if (f["layout"] == "1") {
+            f["section_order"]?.split(',')?.filter { it.isNotBlank() }?.let { order ->
+                if (order != orderable(current).map { it.route }) { settings.setSectionOrder(order); saved += str(R.string.settings_phone_section_order) }
+            }
+            DOCK.forEach { section ->
+                // У доці — позначено; прихований і позначений (чи навпаки) — перемикаємо.
+                if ((f["dock_${section.route}"] == "on") == (section.route in current.hiddenDockSections)) {
+                    settings.toggleDockSection(section.route); saved += context.getString(section.titleRes)
+                }
+            }
+            StreamingService.withPage.forEach { svc ->
+                val key = svc.key ?: return@forEach
+                if ((f["svc_$key"] == "on") == (key in current.hiddenServices)) { settings.toggleHiddenService(key); saved += svc.title }
+            }
+            if (f["rows"] == "1") {
+                val all = f["row_all"].orEmpty().split('\n')
+                val order = f["row_order"].orEmpty().split(',').mapNotNull { it.toIntOrNull()?.let(all::getOrNull) }
+                // Сховані ряди, яких сервер зараз не дав, лишаються схованими.
+                val hidden = current.hiddenCinemaRows - all.toSet() + all.filterIndexed { i, _ -> f["row_$i"] != "on" }
+                if (order != current.cinemaRowOrder || hidden != current.hiddenCinemaRows) {
+                    settings.setCinemaRows(order, hidden); saved += str(R.string.settings_phone_cinema_rows)
+                }
+            }
+        }
         // Перемикачі приходять лише позначеними; «toggles» каже, що блок справді був на сторінці.
         if (f["toggles"] == "1") {
             toggles.filter { it.shown(current) }.forEach { t ->
@@ -265,10 +304,40 @@ class SettingsPhoneLink @Inject constructor(
             field("ai_url", str(R.string.settings_ai_url), s.aiUrl, " placeholder=\"http://192.168.1.20:11434/v1\" inputmode=\"url\"") +
             field("ai_key", str(R.string.settings_ai_key), extra = keep(s.aiKey.isNotBlank()), type = "password")
         val personal = ai + home + "<h2>${str(R.string.settings_phone_switches)}</h2>" + switches
+        val clip = "<h2>${str(R.string.settings_phone_clip)}</h2><p class=\"note\">${str(R.string.settings_phone_clip_hint)}</p>" +
+            "<textarea name=\"clip\" rows=\"3\" autocapitalize=\"off\" spellcheck=\"false\"></textarea>"
+        fun moves() = "<button type=\"button\" class=\"mv\" data-d=\"u\" aria-label=\"↑\">↑</button>" +
+            "<button type=\"button\" class=\"mv\" data-d=\"d\" aria-label=\"↓\">↓</button>"
+        fun check(name: String, on: Boolean) = "<input type=\"checkbox\" name=\"$name\"${if (on) " checked" else ""}>"
+        val sections = orderable(s)
+        val sectionList = "<input type=\"hidden\" name=\"section_order\" value=\"${sections.joinToString(",") { it.route }}\">" +
+            "<ul class=\"ord\" data-out=\"section_order\">" + sections.joinToString("") { sec ->
+                val box = if (sec in DOCK) check("dock_${sec.route}", sec.route !in s.hiddenDockSections) else "<span class=\"nb\"></span>"
+                "<li data-k=\"${sec.route}\"><label>$box${str(sec.titleRes)}</label>${moves()}</li>"
+            } + "</ul>"
+        val services = StreamingService.withPage.joinToString("") { svc ->
+            val key = svc.key.orEmpty()
+            "<label class=\"sw\">${check("svc_$key", key !in s.hiddenServices)}${escape(svc.title)}</label>"
+        }
+        // Ряди — ті, що зараз дає сервер, у порядку людини; сервер мовчить — блоку немає.
+        val rows = withTimeoutOrNull(ROWS_TIMEOUT_MS) { runCatching { catalog.cinemaSection() }.getOrNull() }.orEmpty()
+            .filter { !it.tail && it.key != SLIDER_ROW && it.movable }
+            .sortedBy { row -> s.cinemaRowOrder.indexOf(row.key).let { if (it < 0) Int.MAX_VALUE else it } }
+        val rowList = if (rows.isEmpty()) "" else "<h2>${str(R.string.settings_phone_cinema_rows)}</h2><p class=\"note\">${str(R.string.settings_phone_rows_hint)}</p>" +
+            "<input type=\"hidden\" name=\"rows\" value=\"1\">" +
+            "<input type=\"hidden\" name=\"row_all\" value=\"${escape(rows.joinToString("\n") { it.key })}\">" +
+            "<input type=\"hidden\" name=\"row_order\" value=\"${rows.indices.joinToString(",")}\">" +
+            "<ul class=\"ord\" data-out=\"row_order\">" + rows.withIndex().joinToString("") { (i, row) ->
+                "<li data-k=\"$i\"><label>${check("row_$i", row.key !in s.hiddenCinemaRows)}${escape(row.title)}</label>${moves()}</li>"
+            } + "</ul>"
+        val layout = "<input type=\"hidden\" name=\"layout\" value=\"1\">" +
+            "<h2>${str(R.string.settings_phone_section_order)}</h2><p class=\"note\">${str(R.string.settings_phone_order_hint)}</p>" + sectionList +
+            rowList + "<h2>${str(R.string.settings_phone_services)}</h2>" + services
         return html(
             str(R.string.settings_phone_title),
             "<h1>${str(R.string.settings_phone_title)}</h1><p>${str(R.string.settings_phone_intro)}</p>$notes" +
                 "<form action=\"save\" method=\"post\">" +
+                clip + layout +
                 "<h2>${str(R.string.settings_section_tv)}</h2>" +
                 field("playlist", str(R.string.settings_tv_playlist), extra = keep(s.tvPlaylistUrl.isNotBlank()) + " inputmode=\"url\"") +
                 field("epg", str(R.string.settings_epg_title), extra = keep(s.tvEpgUrl.isNotBlank()) + " inputmode=\"url\"") +
@@ -298,7 +367,28 @@ font-size:17px;border-radius:12px;border:1px solid #6b5a3a;background:#27231E;co
 .sw input{width:24px;height:24px;margin:0;flex:none;accent-color:#E8C27A}
 button,.btn{display:block;text-align:center;text-decoration:none;margin-top:16px;width:100%;box-sizing:border-box;padding:14px;font-size:17px;
 border:0;border-radius:12px;background:#FFFAF2;color:#1C1A17;font-weight:600}.btn{background:#3a3226;color:#F2EDE4}
-.note{font-size:14px;color:#BFB6A8;margin:4px 0}.ok{color:#E8C27A}.err{color:#ff8a7a}</style></head><body>$body</body></html>"""
+.note{font-size:14px;color:#BFB6A8;margin:4px 0}.ok{color:#E8C27A}.err{color:#ff8a7a}
+textarea{display:block;margin-top:8px;width:100%;box-sizing:border-box;padding:14px;font:17px system-ui,sans-serif;border-radius:12px;border:1px solid #6b5a3a;background:#27231E;color:#F2EDE4}
+.ord{list-style:none;margin:8px 0 0;padding:0}.ord li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #3a3226}
+.ord label{flex:1;display:flex;align-items:center;gap:12px;margin:0;font-size:16px;color:#F2EDE4}
+.ord input,.nb{width:24px;height:24px;margin:0;flex:none;accent-color:#E8C27A}
+.ord .mv{width:44px;height:44px;margin:0;padding:0;flex:none;background:#3a3226;color:#F2EDE4;font-size:20px}</style>
+<script>addEventListener('DOMContentLoaded',()=>{
+document.querySelectorAll('.ord').forEach(ul=>ul.addEventListener('click',e=>{const b=e.target.closest('.mv');if(!b)return;const li=b.closest('li');
+if(b.dataset.d=='u'&&li.previousElementSibling)ul.insertBefore(li,li.previousElementSibling);
+if(b.dataset.d=='d'&&li.nextElementSibling)ul.insertBefore(li.nextElementSibling,li)}));
+const f=document.querySelector('form');if(f)f.addEventListener('submit',()=>document.querySelectorAll('.ord').forEach(ul=>{
+f.elements[ul.dataset.out].value=[...ul.children].map(li=>li.dataset.k).join(',')}))})</script></head><body>$body</body></html>"""
+
+    /** Розділи, які людина ставить у свій порядок: без Головної й Налаштувань, лише ввімкнені. */
+    private fun orderable(s: LikhtarSettings) = LikhtarSection.ordered(
+        LikhtarSection.entries.filter {
+            it != LikhtarSection.HOME && it != LikhtarSection.SETTINGS &&
+                (it != LikhtarSection.SMART_HOME || s.smartHomeEnabled) &&
+                (it != LikhtarSection.GAMES || s.gamesEnabled)
+        },
+        s.sectionOrder,
+    )
 
     private fun str(id: Int, vararg args: Any) = escape(context.getString(id, *args))
 
@@ -309,6 +399,11 @@ border:0;border-radius:12px;background:#FFFAF2;color:#1C1A17;font-weight:600}.bt
     private companion object {
         const val TAG = "LikhtarPhoneSetup"
         const val MAX_BODY = 16_384
+        const val ROWS_TIMEOUT_MS = 5_000L
+        /** Перший ряд сервера — пул слайдера, не ряд постерів (CinemaViewModel). */
+        const val SLIDER_ROW = "Слайдер"
+        /** Розділи, які можна прибрати з доку Головної, — ті самі, що в налаштуваннях на ТВ. */
+        val DOCK = listOf(LikhtarSection.CINEMA, LikhtarSection.LIVE_TV, LikhtarSection.REALITY, LikhtarSection.SEARCH, LikhtarSection.APPS)
         val PORTS = 8781..8785
     }
 }
