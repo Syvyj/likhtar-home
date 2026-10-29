@@ -18,10 +18,14 @@ Turn on the TV, pick a mood, press OK.
 
 **No ads · no tracking · no account · no root · no computer needed · one button to undo**
 
-**Set up from your phone.** A small phone app installs Likhtar over Wi-Fi, and a QR code lets you arrange
-sections, rows and services from the sofa. No computer, no typing with the remote.
+<br>
 
-Listed in the [CleanYourTV Showcase](https://github.com/Gathin23/cleanyourtv/blob/main/SHOWCASE.md)
+## 📲 Your phone does the fiddly part
+
+| 📥 **Install without a computer** | 🛋 **Make it yours from the sofa** |
+|:---:|:---:|
+| A small Android app finds the TV on your Wi‑Fi<br>and installs Likhtar. No USB stick, no Downloader. | Scan a QR code to reorder sections, pick Cinema rows<br>and hide the services you don't use. No typing with the remote. |
+| [**⬇ Get Likhtar Installer**](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-installer.apk) | [**How to install ↓**](#install) |
 
 <img src="docs/banner-en.webp" alt="Likhtar Home — Likhtaryk, Cinema, opens anywhere, Jellyfin & Plex, Live TV, smart home, phone as a keyboard, your own AI" width="100%">
 
@@ -281,4 +285,4 @@ Likhtar is free and will stay free. If it made your evenings a bit easier, you c
 ## License
 
 Likhtar Home is free software under the [GNU General Public License v3.0](LICENSE).
-Made in Ukraine, for living rooms everywhere.
+Made in Ukraine, for living rooms everywhere. Listed in the [CleanYourTV Showcase](https://github.com/Gathin23/cleanyourtv/blob/main/SHOWCASE.md).
