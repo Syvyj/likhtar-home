@@ -11,6 +11,7 @@ SITE = "https://likhtar.syvyj.dev/"
 REPO = "https://github.com/Syvyj/likhtar-home"
 # The newest release's APK; the release must carry an asset with exactly this name.
 DOWNLOAD = REPO + "/releases/latest/download/likhtar-home.apk"
+INSTALLER = REPO + "/releases/latest/download/likhtar-installer.apk"
 
 # Donation links — the same as Shotleaf's (the author's), shown on the site and behind the QR in the app.
 DONATE = [
@@ -38,7 +39,7 @@ def render(template, lang):
     # A new version of the CSS/JS gets a new URL, so browsers don't keep the old one.
     ver = hashlib.sha1(b"".join(open(os.path.join(HERE, f), "rb").read() for f in ("style.css", "motion.js", "sound.js"))).hexdigest()[:8]
     values = {
-        "ver": ver, "lang": lang, "root": root, "download": DOWNLOAD, "repo": REPO,
+        "ver": ver, "lang": lang, "root": root, "download": DOWNLOAD, "installer": INSTALLER, "repo": REPO,
         "home": root + ("" if lang == "en" else "uk/"),
         "other": root + ("uk/" if lang == "en" else ""),
         "url": SITE + ("" if lang == "en" else "uk/"),
