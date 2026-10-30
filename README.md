@@ -290,5 +290,8 @@ Likhtar is free and will stay free. If it made your evenings a bit easier, you c
 
 ## License
 
-Likhtar Home is free software under the [GNU General Public License v3.0](LICENSE).
+Copyright © 2026 Syvyj. Likhtar Home is free software under the [GNU General Public License v3.0](LICENSE).
+
+The name "Likhtar Home" and the lantern logo are not covered by the GPL. You are welcome to fork the code, but please give your fork its own name and icon, so people can tell it apart from the original.
+
 Made in Ukraine, for living rooms everywhere. Listed in the [CleanYourTV Showcase](https://github.com/Gathin23/cleanyourtv/blob/main/SHOWCASE.md).

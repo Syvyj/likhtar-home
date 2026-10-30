@@ -297,5 +297,8 @@ Likhtar безкоштовний і таким лишиться. Якщо він
 
 ## Ліцензія
 
-Likhtar Home — вільна програма за [GNU General Public License v3.0](LICENSE).
+© 2026 Syvyj. Likhtar Home — вільна програма за [GNU General Public License v3.0](LICENSE).
+
+Назва «Likhtar Home» (Ліхтар) і знак ліхтаря не входять у GPL. Форкати код можна, але дайте своїй версії іншу назву й іконку, щоб люди могли відрізнити її від оригіналу.
+
 Зроблено в Україні — для віталень усього світу. Ліхтар є у вітрині [CleanYourTV Showcase](https://github.com/Gathin23/cleanyourtv/blob/main/SHOWCASE.md).

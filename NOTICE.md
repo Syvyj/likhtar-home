@@ -1,3 +1,11 @@
+# Likhtar Home
+
+Copyright © 2026 Syvyj. Код поширюється за [GNU General Public License v3.0](LICENSE); у копіях і
+похідних версіях це повідомлення й імена авторів мають лишатися.
+
+Назва «Likhtar Home» (Ліхтар) і знак ліхтаря не входять у GPL: форк має називатися інакше й мати
+власну іконку.
+
 # Сторонні матеріали
 
 - `feature/cinema/src/main/res/drawable-nodpi/ua_feed_hero.webp` — «Luxury Movie Theater Seats»,
