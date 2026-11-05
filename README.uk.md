@@ -2,17 +2,14 @@
 
 [English](README.md) · **Українська**
 
+<img src="docs/readme-hero-uk.webp" alt="Likhtar Home — Ваш телевізор. Ваш дім." width="100%">
+
 # Likhtar Home
 
 **Спершу кіно. Застосунки потім.**
 
 Домашній екран для Android TV і Google TV, що відповідає на одне питання — *що дивимось сьогодні?*
 Увімкнули телевізор, обрали настрій, натиснули OK.
-
-| Стоковий Google TV | Likhtar Home |
-|:---:|:---:|
-| ![Стоковий домашній екран Google TV зі спонсорським банером](docs/screenshots/1920x1080/00-stock-google-tv.png) | ![Likhtar Home на телевізорі](docs/screenshots/1920x1080/01-home.png) |
-| *Спонсорський банер і ряди, обрані за вас* | *Ваші шпалери, годинник і розділи в доці* |
 
 ### [Встановити з телефона](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-installer.apk) &nbsp;·&nbsp; [Завантажити застосунок для ТБ](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-home.apk)
 
@@ -25,6 +22,20 @@
 <img src="docs/banner-uk.webp" alt="Likhtar Home — Ліхтарик, Кінозал, відкривається будь-де, Jellyfin і Plex, ТВ Ефір, розумний дім, телефон як клавіатура, свій AI" width="100%">
 
 </div>
+
+## Влаштовуйтеся вдома
+
+| Спокійний головний екран | Знайдіть, що подивитися | Ваш телевізор — ваші правила |
+|:---:|:---:|:---:|
+| ![Головний екран Likhtar Home](docs/screenshots/1280x720/01-home.png) | ![Кінозал](docs/screenshots/1280x720/02-cinema-hero.png) | ![Добірки Кінозалу](docs/screenshots/1280x720/03-cinema-rows.png) |
+| Ваші шпалери, годинник і розділи — без реклами та спонсорських рядів. | Досліджуйте Кінозал або оберіть настрій із Ліхтариком. | Застосунки, ТВ Ефір і розумний дім в одному місці. |
+
+### Від стандартного екрана до власного дому
+
+| Стоковий Google TV | Likhtar Home |
+|:---:|:---:|
+| ![Стоковий домашній екран Google TV зі спонсорським банером](docs/screenshots/1920x1080/00-stock-google-tv.png) | ![Likhtar Home на телевізорі](docs/screenshots/1920x1080/01-home.png) |
+| *Спонсорський банер і ряди, обрані за вас* | *Ваші шпалери, годинник і розділи в доці* |
 
 ## Чому Ліхтар?
 

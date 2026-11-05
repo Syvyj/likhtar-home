@@ -2,17 +2,14 @@
 
 **English** · [Українська](README.uk.md)
 
+<img src="docs/readme-hero-en.webp" alt="Likhtar Home — Your TV. Your home." width="100%">
+
 # Likhtar Home
 
 **Films first. Apps second.**
 
 A home screen for Android TV and Google TV that answers one question — *what are we watching tonight?*
 Turn on the TV, pick a mood, press OK.
-
-| Stock Google TV | Likhtar Home |
-|:---:|:---:|
-| ![Stock Google TV home screen with a sponsored banner](docs/screenshots/1920x1080/00-stock-google-tv.png) | ![Likhtar Home on a TV](docs/screenshots/1920x1080/01-home.png) |
-| *A sponsored banner, rows picked for you* | *Your wallpaper, the time, and your sections in the dock* |
 
 ### [Install from your phone](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-installer.apk) &nbsp;·&nbsp; [Download the TV app](https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-home.apk)
 
@@ -25,6 +22,20 @@ Turn on the TV, pick a mood, press OK.
 <img src="docs/banner-en.webp" alt="Likhtar Home — Likhtaryk, Cinema, opens anywhere, Jellyfin & Plex, Live TV, smart home, phone as a keyboard, your own AI" width="100%">
 
 </div>
+
+## Make yourself at home
+
+| A calmer home screen | Find something to watch | Your TV, your way |
+|:---:|:---:|:---:|
+| ![Likhtar Home screen](docs/screenshots/1280x720/01-home.png) | ![Cinema](docs/screenshots/1280x720/02-cinema-hero.png) | ![Cinema collections](docs/screenshots/1280x720/03-cinema-rows.png) |
+| Your wallpaper, clock and sections — without ads or sponsored rows. | Explore Cinema or choose a mood with Likhtaryk. | Your apps, live TV and smart home in one place. |
+
+### From stock to your home
+
+| Stock Google TV | Likhtar Home |
+|:---:|:---:|
+| ![Stock Google TV home screen with a sponsored banner](docs/screenshots/1920x1080/00-stock-google-tv.png) | ![Likhtar Home on a TV](docs/screenshots/1920x1080/01-home.png) |
+| *A sponsored banner, rows picked for you* | *Your wallpaper, the time, and your sections in the dock* |
 
 ## Why Likhtar?
 
