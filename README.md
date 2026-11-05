@@ -14,7 +14,7 @@ Android TV / Google TV · Android 7.0+ · GPL-3.0
 
 <table><tr><td width="50%"><strong>Cinema and your streaming services</strong><br><br>Explore new releases, genres and streaming catalogues; open the title in its own app.</td><td width="50%"><img src="docs/screenshots/1920x1080/02-cinema-hero.png" alt="Cinema and your streaming services"></td></tr></table>
 
-<table><tr><td width="50%"><img src="docs/screenshots/1920x1080/08-title.png" alt="Films and your libraries"></td><td width="50%"><strong>Films and your libraries</strong><br><br>Bring your libraries and synced Continue watching; DLNA and SMB are supported too.</td></tr></table>
+<table><tr><td width="50%"><img src="docs/screenshots/1920x1080/08-title.png" alt="Films and your libraries"></td><td width="50%"><strong>Films and your libraries</strong><br><br>Bring your Jellyfin and Plex libraries and synced Continue watching; DLNA and SMB are supported too.</td></tr></table>
 
 <table><tr><td width="50%"><strong>Live TV from your playlist</strong><br><br>Add M3U and XMLTV to see channels, groups and the programme guide on your TV.</td><td width="50%"><img src="docs/screenshots/1920x1080/09-live-tv.png" alt="Live TV from your playlist"></td></tr></table>
 

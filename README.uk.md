@@ -14,7 +14,7 @@ Android TV / Google TV · Android 7.0+ · GPL-3.0
 
 <table><tr><td width="50%"><strong>Кінозал і відкриття у ваших сервісах</strong><br><br>Новинки, жанри й каталоги стрімінгів зібрані разом. Обраний фільм відкривається у відповідному застосунку.</td><td width="50%"><img src="docs/screenshots/1920x1080/02-cinema-hero.png" alt="Кінозал і відкриття у ваших сервісах"></td></tr></table>
 
-<table><tr><td width="50%"><img src="docs/screenshots/1920x1080/08-title.png" alt="Фільми та ваші медіатеки"></td><td width="50%"><strong>Фільми та ваші медіатеки</strong><br><br>Власні медіатеки та «Продовжити» із синхронізацією перегляду; також підтримуються DLNA та SMB.</td></tr></table>
+<table><tr><td width="50%"><img src="docs/screenshots/1920x1080/08-title.png" alt="Фільми та ваші медіатеки"></td><td width="50%"><strong>Фільми та ваші медіатеки</strong><br><br>Медіатеки Jellyfin і Plex та «Продовжити» із синхронізацією перегляду; також підтримуються DLNA та SMB.</td></tr></table>
 
 <table><tr><td width="50%"><strong>ТВ Ефір із вашим плейлистом</strong><br><br>Додайте M3U та XMLTV — і отримайте канали, групи та телепрограму на телевізорі.</td><td width="50%"><img src="docs/screenshots/1920x1080/09-live-tv.png" alt="ТВ Ефір із вашим плейлистом"></td></tr></table>
 
