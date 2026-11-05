@@ -2,11 +2,12 @@
 
 ## Why Likhtar?
 
-Stock TV home screens are storefronts. They are built to sell you the next subscription, so the
-thing you actually want — *something good to watch, right now* — is buried under ads, autoplaying
-trailers and rows you never asked for. *Likhtar* means "lantern" in Ukrainian: a warm, quiet light in
-the corner of the living room that shows you the way to tonight's film and then gets out of the way.
-It is not just another grid of app icons.
+Likhtar is a home media center and smart hub for your TV. It is built around one question,
+*what are we watching tonight?*, and keeps everything else close at hand: films from the services you
+already have, your live TV channels, Jellyfin or Plex, and the lights and climate at home, all in one
+interface you arrange yourself. *Likhtar* means "lantern" in Ukrainian: a warm, quiet light in the
+corner of the living room that shows you the way to tonight's film. It is not just another grid of
+app icons.
 
 ### A calm home screen
 

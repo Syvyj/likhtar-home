@@ -136,7 +136,7 @@ and search runs on TMDB.
 
 ## Questions people ask
 
-**Is it free?** Yes, and open source under GPL-3.0. No ads, no subscriptions, no paid tier.
+**Is it free?** Yes, and open source under GPL-3.0. No subscriptions, no paid tier.
 
 **Do I need a server or a computer?** No. The public build works on its own; film data comes through a
 small read-only gateway. A computer is only needed if you want to sideload with `adb`.
