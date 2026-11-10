@@ -199,7 +199,7 @@ class SectionRowsRepository @Inject constructor(
             val playable = if (onlyPlayable) "&playable=1" else ""
             val who = "&profile=" + java.net.URLEncoder.encode(profile, "UTF-8")
             // Сервер понад 120 не обрізає, а скидає на 30 — тож більше й не просимо.
-            runCatching { httpGet("$base/api/rows?section=$name&limit=${limit.coerceAtMost(SERVER_MAX_LIMIT)}$playable$who$apps", TIMEOUT_MS) }
+            runCatching { httpGet("$base/api/rows?section=$name&limit=${limit.coerceAtMost(SERVER_MAX_LIMIT)}$playable$who$apps$FLAVOR_ROWS_QUERY", TIMEOUT_MS) }
                 .onFailure { Log.w(TAG, "Ряди розділу не приїхали", it) }
                 .getOrNull()
         } ?: return synchronized(cache) { cache[key].orEmpty() }

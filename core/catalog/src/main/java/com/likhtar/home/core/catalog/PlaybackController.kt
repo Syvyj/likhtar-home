@@ -80,6 +80,18 @@ data class PlayRequest(
     val variants: List<Pair<String, String>> = emptyList(),
     /** Те саме для кожної серії [queue], за індексом: у Just+ панель «Якість» — на кожній серії. */
     val queueVariants: List<List<Pair<String, String>>> = emptyList(),
+    /** ТБ Ефір: канали, між якими Just+ перемикає ↑↓ просто в плеєрі. Порожньо — не канал. */
+    val tv: TvLineup? = null,
+)
+
+/** Список каналів для ТБ-режиму Just+; [index] — канал, який вмикаємо. */
+data class TvLineup(
+    val urls: List<String>,
+    val names: List<String>,
+    val now: List<String>,
+    val index: Int,
+    /** `content://` файла з групами, програмою й архівом каналів (за тим самим індексом). */
+    val guide: String = "",
 )
 
 /**

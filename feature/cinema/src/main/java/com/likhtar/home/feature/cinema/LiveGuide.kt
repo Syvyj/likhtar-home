@@ -1,5 +1,6 @@
 package com.likhtar.home.feature.cinema
 
+import com.likhtar.home.core.tv.channelLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -25,6 +26,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -85,21 +89,27 @@ import com.likhtar.home.core.tv.ChannelSchedule
 internal fun ChannelMark(link: ChannelLink, width: Dp, height: Dp, modifier: Modifier = Modifier) {
     // Прозорий знак — на графіті (під нього й намальований), кольоровий логотип — на світлій плашці.
     val mark = link.mark.isNotBlank()
+    // Світлий прозорий логотип провайдера (білий «Інтер+») — теж на графіті: на світлій
+    // плашці він зникав.
+    val lightLogo = !mark && link.logo.isNotBlank() && com.likhtar.home.core.designsystem.rememberLogoIsLight(link.logo)
     Box(
-        modifier.size(width, height).clip(RoundedCornerShape(5.dp)).background(if (mark) LikhtarColors.Background else LikhtarColors.Paper),
+        modifier.size(width, height).clip(RoundedCornerShape(5.dp)).background(if (mark || lightLogo) LikhtarColors.Background else LikhtarColors.Paper),
         contentAlignment = Alignment.Center,
     ) {
         if (mark) {
             AsyncImage(model = link.mark, contentDescription = link.name, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize().padding(2.dp))
         } else if (link.logo.isNotBlank()) {
-            AsyncImage(model = link.logo, contentDescription = link.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            // Fit, а не Crop: логотипи провайдерів широкі, і Crop різав їх по краях.
+            AsyncImage(model = link.logo, contentDescription = link.name, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize().padding(3.dp))
         } else {
             Text(
                 channelLabel(link.name),
-                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = (height.value * 0.3f).sp, lineHeight = (height.value * 0.34f).sp),
+                // Три рядки дрібніше: назви провайдерів довгі («Joker: Південний Парк»), і у
+                // два великі рядки вони обривались на середині слова.
+                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = (height.value * 0.22f).sp, lineHeight = (height.value * 0.26f).sp),
                 color = LikhtarColors.Background,
                 textAlign = TextAlign.Center,
-                maxLines = 2,
+                maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 3.dp),
             )
@@ -310,6 +320,12 @@ internal fun LiveGuide(
                 .focusGroup(),
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
+            // Групи — у прокрутці: у плейлиста провайдера їх 15, і нижні були за краєм екрана,
+            // фокус до них доходив, а показати їх не було як.
+            Column(
+                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
             (listOf(GuideAll) + groups).forEach { g ->
                 val count = if (g == GuideAll) channels.size else channels.count { liveGroup(it) == g }
                 GroupItem(
@@ -323,6 +339,7 @@ internal fun LiveGuide(
                     onClick = { groupsOpen = false },
                     modifier = if (g == group) Modifier.focusRequester(groupFocus) else Modifier,
                 )
+            }
             }
             if (!groupsOpen) {
                 Spacer(Modifier.weight(1f))
@@ -484,7 +501,7 @@ private fun groupIcon(group: String): Int = when {
 }
 
 /** Назва групи: службові ряди — перекладом, жанри сервера — як прийшли. */
-private fun liveGroupTitle(res: android.content.res.Resources, group: String): String =
+internal fun liveGroupTitle(res: android.content.res.Resources, group: String): String =
     if (group == LiveRowOther) res.getString(R.string.cinema_live_row_other) else group
 
 /**
@@ -492,7 +509,7 @@ private fun liveGroupTitle(res: android.content.res.Resources, group: String): S
  * утриманням — перше OK лише «відпустили кнопку» (armed = false).
  */
 @Composable
-internal fun LiveChannelMenu(card: LiveCard, pinned: Boolean, onFavourite: () -> Unit, onHide: () -> Unit, onDismiss: () -> Unit) {
+internal fun LiveChannelMenu(card: LiveCard, pinned: Boolean, onFavourite: () -> Unit, onHide: () -> Unit, onEdit: () -> Unit, onDismiss: () -> Unit) {
     val res = LocalContext.current.resources
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) {
@@ -513,6 +530,7 @@ internal fun LiveChannelMenu(card: LiveCard, pinned: Boolean, onFavourite: () ->
                 Modifier.focusRequester(first),
             )
             MarkOption(MarkOptionSpec(MarkIcon.HIDE, res.getString(R.string.cinema_live_menu_hide), res.getString(R.string.cinema_live_menu_hide_hint)) { onHide(); onDismiss() }, Modifier)
+            MarkOption(MarkOptionSpec(MarkIcon.PHONE, res.getString(R.string.cinema_live_menu_edit), res.getString(R.string.cinema_live_menu_edit_hint)) { onDismiss(); onEdit() }, Modifier)
         }
     }
 }
@@ -554,7 +572,7 @@ internal val PlayerOnPlay = "Just Player" to "com.brouken.player"
 
 /** Канал плейлиста, а відеоплеєра немає: пояснюємо й пропонуємо встановити [PlayerOnPlay]. */
 @Composable
-internal fun NeedPlayerDialog(onInstall: () -> Unit, onDismiss: () -> Unit) {
+internal fun NeedPlayerDialog(onInstallTv: () -> Unit, onInstall: () -> Unit, onDismiss: () -> Unit) {
     val res = LocalContext.current.resources
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) {
@@ -565,9 +583,16 @@ internal fun NeedPlayerDialog(onInstall: () -> Unit, onDismiss: () -> Unit) {
         Text(res.getString(R.string.cinema_live_need_player), style = LikhtarType.SectionTitle, color = LikhtarColors.TextPrimary)
         Text(res.getString(R.string.cinema_live_need_player_hint), style = LikhtarType.Body1, color = LikhtarColors.TextPrimary)
         Spacer(Modifier.height(24.dp))
-        MarkOption(
-            MarkOptionSpec(null, res.getString(R.string.cinema_live_free_install, PlayerOnPlay.first), res.getString(R.string.cinema_live_need_player_why)) { onInstall(); onDismiss() },
-            Modifier.focusRequester(first),
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            MarkOption(
+                MarkOptionSpec(null, res.getString(R.string.cinema_live_install_tv), res.getString(R.string.cinema_live_install_tv_why)) { onInstallTv(); onDismiss() },
+                Modifier.focusRequester(first),
+            )
+            MarkOption(
+                MarkOptionSpec(null, res.getString(R.string.cinema_live_free_install, PlayerOnPlay.first), res.getString(R.string.cinema_live_need_player_why)) { onInstall(); onDismiss() },
+                Modifier,
+            )
+        }
     }
 }
+

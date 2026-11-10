@@ -91,4 +91,13 @@ class M3uParserTest {
         val m3u = "#EXTM3U\n#EXTINF:-1 tvg-id=\"K.ua\" group-title=\"Animation;Kids;Religious\",Kids TV\nhttp://x/k.m3u8\n"
         assertEquals("Animation", M3uParser().parse(m3u.byteInputStream()).single().group)
     }
+
+    @Test
+    fun `адреса телепрограми береться з заголовка плейлиста`() {
+        val parser = M3uParser()
+        val m3u = "#EXTM3U x-tvg-url=\"https://epg.example/guide.xml.gz,https://b.example/x.xml\" cache=500\n" +
+            "#EXTINF:-1 tvg-id=\"a\" group-title=\"G\",A\nhttp://s/1\n"
+        parser.parse(m3u.byteInputStream())
+        org.junit.Assert.assertEquals("https://epg.example/guide.xml.gz", parser.guideUrl)
+    }
 }

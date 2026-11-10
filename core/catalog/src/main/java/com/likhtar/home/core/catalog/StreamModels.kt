@@ -149,7 +149,32 @@ data class VoiceGroup(
     val subs: List<String> = emptyList(),
     /** Підписи пунктів за ref — що саме відкривається («1080p · WEBRip · HEVC · 3.8 ГБ · Торент»). */
     val names: Map<String, String> = emptyMap(),
+    /** Джерело пункта за ref: `torrent`, `ashdi`, `uakino_ua`… */
+    val sourceOf: Map<String, String> = emptyMap(),
+    /** Сіди роздачі за ref у мить пошуку; немає — не торент або трекер не сказав. */
+    val seeders: Map<String, Int> = emptyMap(),
 ) {
+    /**
+     * Підпис одного варіанта в розгорнутій озвучці: роздача — якість, розмір і сіди
+     * («2160p · HDR · 58 ГБ · 12 сідів»), онлайн — сайт і якість. з цього
+     * людина й вирішує, що вмикати, а не сервер за неї.
+     */
+    fun optionLabel(ref: String): String {
+        val name = cleanStreamLabel(names[ref].orEmpty())
+        val source = sourceOf[ref].orEmpty()
+        return buildString {
+            if (source == "torrent") {
+                append(name.replace(" · Торент", "").replace("Торент", "").trim(' ', '·').ifBlank { "роздача" })
+                seeders[ref]?.takeIf { it > 0 }?.let {
+                    append(" · ").append(it).append(' ').append(UkrainianPlurals.pick(it, "сід", "сіди", "сідів"))
+                }
+            } else {
+                append(siteName(source).ifBlank { "онлайн" })
+                qualityOf(name).takeIf { it > 0 }?.let { append(" · ").append(it).append('p') }
+            }
+        }
+    }
+
     /** Що написати на кнопці: озвучка, її стеля якості й надійність. */
     val label: String
         get() = buildString {

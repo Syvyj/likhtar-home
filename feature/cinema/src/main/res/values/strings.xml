@@ -164,6 +164,7 @@
     <string name="cinema_new_episode_on">new episode %1$s</string>
     <string name="cinema_kind_documentary">Documentary</string>
     <string name="cinema_picker_episode_hint">The episode is chosen in «Choose episode» — here only the audio for this one</string>
+    <string name="cinema_picker_more">Still looking for torrents…</string>
     <string name="cinema_picker_searching">Looking for sources…</string>
     <string name="cinema_search">Search</string>
     <string name="cinema_scan_no_answer">The server hasn\'t answered about this title yet.</string>
@@ -330,4 +331,14 @@
     <string name="cinema_live_need_player_hint">Channels from your playlist play in a video player, and this device has none.</string>
     <string name="cinema_live_need_player_why">Free, open source, no ads</string>
     <string name="cinema_live_youtube_hint">YouTube · live</string>
+    <string name="cinema_live_menu_edit">Edit channels on your phone</string>
+    <string name="cinema_live_menu_edit_hint">Order, names, sources and duplicates</string>
+    <string name="cinema_live_edit_title">Channel list</string>
+    <string name="cinema_live_edit_step1">Point your phone camera at the QR code</string>
+    <string name="cinema_live_edit_step2">Tick, sort, rename, merge</string>
+    <string name="cinema_live_edit_step3">Tap Save and the list here updates</string>
+    <string name="cinema_live_edit_opened">Page open on the phone</string>
+    <string name="cinema_live_edit_saved">Saved. Updating the list</string>
+    <string name="cinema_live_install_tv">Install Likhtar TV</string>
+    <string name="cinema_live_install_tv_why">Our player for channels: switch with ↑↓, TV guide, archive</string>
 </resources>

@@ -43,6 +43,8 @@ data class ChannelSchedule(
     /** `null` — провайдер не знає, що йде цієї хвилини, або назвав майбутнє. */
     val live: NowOnAir?,
     val upcoming: List<EpgProgramme> = emptyList(),
+    /** Минулі передачі в межах архіву каналу, найсвіжіша першою; без архіву — порожньо. */
+    val past: List<EpgProgramme> = emptyList(),
 )
 
 data class EpgProgramme(

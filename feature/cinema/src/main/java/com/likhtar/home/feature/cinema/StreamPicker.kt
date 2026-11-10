@@ -15,6 +15,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import com.likhtar.home.core.designsystem.requestWithRetry
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.size
@@ -46,6 +52,8 @@ internal fun StreamPicker(
     voices: List<VoiceGroup>,
     emptyNote: String,
     onPlay: (VoiceGroup) -> Unit,
+    /** Конкретний варіант розгорнутої озвучки. */
+    onPlayOption: (VoiceGroup, String) -> Unit,
     onBack: () -> Unit,
     /** `null` — шукати нічого: тайтл сервер уже обходив, і джерел у нього немає. */
     onSearch: (() -> Unit)? = null,
@@ -54,10 +62,21 @@ internal fun StreamPicker(
     // інший. Один запит на зміну `loading` цього не тримав: у порожньому списку кнопка
     // «Пошукати зараз» компонується вже після нього, запит гинув у порожнечі, і модалка
     // відкривалась без фокуса взагалі — натискати було нічого.
+    // Порожність, а не розмір: торенти дописуються в уже показаний список, і новий запит
+    // фокуса на кожен дописаний рядок смикав би людину нагору посеред гортання.
     val focus = rememberInitialFocusRequester(
-        Triple(picker.loading, voices.size, onSearch != null),
+        Triple(picker.loading, voices.isEmpty(), onSearch != null),
     )
     BackHandler(onBack = onBack)
+    // Розгорнули озвучку — фокус на її перший варіант; згорнули — назад на озвучку.
+    val optionFocus = remember { FocusRequester() }
+    var lastOpened by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(picker.expanded) {
+        if (picker.expanded != null) {
+            lastOpened = picker.expanded
+            optionFocus.requestWithRetry()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -132,15 +151,40 @@ internal fun StreamPicker(
                 modifier = Modifier.heightIn(max = 420.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                itemsIndexed(voices, key = { index, group -> "$index:${group.label}" }) { index, group ->
-                    PickerRow(
-                        label = group.label,
-                        inside = group.inside,
-                        first = index == 0,
-                        focus = focus,
-                        onClick = { onPlay(group) },
-                    )
+                // Ключ — озвучка, не позиція: коли допишуться торенти й список пересортується,
+                // рядок у фокусі лишиться тим самим рядком.
+                itemsIndexed(voices, key = { index, group -> group.voice + "#" + voices.take(index).count { it.voice == group.voice } }) { index, group ->
+                    val open = picker.expanded == group.voice
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        PickerRow(
+                            label = group.label,
+                            inside = group.inside,
+                            first = index == 0,
+                            focus = focus,
+                            // Згорнули варіанти — фокус назад на саму озвучку, а не в нікуди.
+                            returnFocus = lastOpened == group.voice && picker.expanded == null,
+                            onClick = { onPlay(group) },
+                        )
+                        if (open) {
+                            group.refs.forEachIndexed { i, ref ->
+                                ActionPill(
+                                    label = group.optionLabel(ref),
+                                    modifier = Modifier
+                                        .padding(start = 28.dp)
+                                        .then(if (i == 0) Modifier.focusRequester(optionFocus) else Modifier),
+                                    onClick = { onPlayOption(group, ref) },
+                                )
+                            }
+                        }
+                    }
                 }
+            }
+            if (picker.searching) {
+                Text(
+                    text = stringResource(R.string.cinema_picker_more),
+                    style = LikhtarType.HintText,
+                    color = LikhtarColors.TextSecondary,
+                )
             }
         }
     }
@@ -169,12 +213,15 @@ private fun PickerRow(
     inside: String,
     first: Boolean,
     focus: FocusRequester,
+    returnFocus: Boolean,
     onClick: () -> Unit,
 ) {
+    val own = remember { FocusRequester() }
+    LaunchedEffect(returnFocus) { if (returnFocus) own.requestWithRetry() }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         ActionPill(
             label = label,
-            modifier = if (first) Modifier.focusRequester(focus) else Modifier,
+            modifier = (if (first) Modifier.focusRequester(focus) else Modifier).focusRequester(own),
             onClick = onClick,
         )
         // Вміст файла — під пігулкою, а не в її написі: доріжок буває чотири, і в

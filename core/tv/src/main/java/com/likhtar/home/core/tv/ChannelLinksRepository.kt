@@ -32,6 +32,10 @@ data class ChannelLink(
     val mark: String = "",
     /** Варіації франшизи («Голі й налякані XL»…) — вони живуть у бічній панелі. */
     val variants: List<ChannelVariant> = emptyList(),
+    /** Архів провайдера (`catchup` у плейлисті); `null` — архіву немає. */
+    val archive: ChannelArchive? = null,
+    /** Ключ каналу після злиття джерел ([mergeChannels]): за ним порядок і правки людини. */
+    val key: String = "",
 )
 
 /** Варіація шоу для хронології в бічній панелі. */

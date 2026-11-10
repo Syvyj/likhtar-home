@@ -360,9 +360,13 @@ internal fun leadSentences(overview: String, count: Int = 2): String {
  */
 
 /**
- * Дії шапки: перший ряд — у ширину колонки ([narrow]), усе, що не влізло, — далі повною шириною.
- * FlowRow на 400 dp ріс угору третім-четвертим рядом і виштовхував знак назви за край екрана.
+ * Дії шапки: перші [NARROW_ROWS] ряди — у ширину колонки ([narrow]), і лише останній — повною
+ * шириною: широкий другий ряд лишав під собою порожнє місце, а кнопки тяглись через увесь
+ * кадр. Без межі рядів FlowRow на 400 dp ріс угору третім-четвертим рядом і
+ * виштовхував знак назви за край екрана.
  */
+private const val NARROW_ROWS = 2
+
 @Composable
 private fun HeroActions(narrow: Dp, gap: Dp, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Layout(content, modifier) { measurables, constraints ->
@@ -371,7 +375,7 @@ private fun HeroActions(narrow: Dp, gap: Dp, modifier: Modifier = Modifier, cont
         val rows = mutableListOf(mutableListOf<Placeable>())
         var x = 0
         placeables.forEach { p ->
-            val limit = if (rows.size == 1) narrow.roundToPx().coerceAtMost(constraints.maxWidth) else constraints.maxWidth
+            val limit = if (rows.size <= NARROW_ROWS) narrow.roundToPx().coerceAtMost(constraints.maxWidth) else constraints.maxWidth
             if (rows.last().isNotEmpty() && x + gapPx + p.width > limit) {
                 rows += mutableListOf<Placeable>()
                 x = 0

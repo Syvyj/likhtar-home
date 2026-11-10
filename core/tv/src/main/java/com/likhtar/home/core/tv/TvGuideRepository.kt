@@ -59,6 +59,7 @@ class TvGuideRepository @Inject constructor(
     private val catalog: IptvOrgCatalog,
     private val settingsRepository: SettingsRepository,
     private val groupsRepository: TvGroupsRepository,
+    private val playlist: PlaylistTvSource,
 ) {
     private val reload = MutableStateFlow(0)
 
@@ -118,19 +119,27 @@ class TvGuideRepository @Inject constructor(
      * Без адреси XMLTV чи без збігів — порожньо: канали лишаються «прямим ефіром».
      */
     suspend fun schedulesFor(links: List<ChannelLink>): Map<String, ChannelSchedule> = withContext(Dispatchers.IO) {
-        val url = settingsRepository.settings.first().tvEpgUrl
+        // Своя адреса з налаштувань — першою; без неї — та, що провайдер поклав у плейлист.
+        val url = settingsRepository.settings.first().tvEpgUrl.ifBlank { playlist.guideUrl() }
         if (url.isBlank() || links.isEmpty()) return@withContext emptyMap()
         val key = { l: ChannelLink -> l.epgId.ifBlank { l.url } }
-        val guide = runCatching {
-            val parser = XmltvParser(
-                keepChannelIds = links.map { it.epgId }.filter(String::isNotBlank).toSet(),
-                keepChannelNames = links.map { normalizeChannelName(it.name) }.toSet(),
-            )
-            cachedGuide(url).inputStream().use { parser.parse(it) }
-        }.getOrElse {
-            Log.w(TAG, "Телепрограма плейлиста не завантажилася", it)
-            return@withContext emptyMap()
-        }
+        // Розібране тримаємо пів години: XMLTV провайдера розбирається на приставці хвилину,
+        // а ТВ Ефір оновлюється кожні 5 хв — інакше кожне оновлення розбирало б його знову.
+        val memoKey = url + "|" + links.size
+        val guide = parsedGuide?.takeIf { it.first == memoKey && System.currentTimeMillis() - it.second < PARSED_TTL_MS }?.third
+            ?: runCatching {
+                val archived = links.filter { it.archive != null }
+                val parser = XmltvParser(
+                    keepChannelIds = links.map { it.epgId }.filter(String::isNotBlank).toSet(),
+                    keepChannelNames = links.map { normalizeChannelName(it.name) }.toSet(),
+                    archiveIds = archived.map { it.epgId }.filter(String::isNotBlank).toSet(),
+                    archiveMillis = (archived.maxOfOrNull { it.archive!!.days } ?: 0) * DAY_MS,
+                )
+                cachedGuide(url).inputStream().use { parser.parse(it) }
+            }.getOrElse {
+                Log.w(TAG, "Телепрограма плейлиста не завантажилася", it)
+                return@withContext emptyMap()
+            }.also { parsedGuide = Triple(memoKey, System.currentTimeMillis(), it) }
         val now = System.currentTimeMillis()
         val byKey = links.associateBy(key)
         guide.programmesFor(links.map { key(it) to it.name }).mapNotNull { (k, list) ->
@@ -139,9 +148,16 @@ class TvGuideRepository @Inject constructor(
             link.url to ChannelSchedule(
                 live = live?.let { NowOnAir(title = it.title, description = it.description.orEmpty(), image = null, startMillis = it.startMillis, endMillis = it.endMillis) },
                 upcoming = list.filter { it.startMillis > now }.take(UPCOMING).map { EpgProgramme(it.title, it.startMillis, it.endMillis, it.description.orEmpty()) },
+                past = link.archive?.let { a ->
+                    val from = now - a.days * DAY_MS
+                    list.filter { it.endMillis <= now && it.startMillis >= from }.asReversed()
+                        .map { EpgProgramme(it.title, it.startMillis, it.endMillis, it.description.orEmpty()) }
+                }.orEmpty(),
             )
         }.toMap()
     }
+
+    @Volatile private var parsedGuide: Triple<String, Long, XmltvGuide>? = null
 
     /** Завантаження XMLTV. Саме зіставлення — у `programmesFor`, і воно накрите тестом. */
     private suspend fun fetchGuide(
@@ -221,11 +237,13 @@ class TvGuideRepository @Inject constructor(
     )
 
     private companion object {
+        const val PARSED_TTL_MS = 30 * 60 * 1000L
+        const val DAY_MS = 24 * 60 * 60 * 1000L
         const val TAG = "LikhtarTv"
         const val USER_AGENT = "LIKHTAR-TV-launcher/0.1 (Android TV)"
         const val TIMEOUT_MS = 15_000
         const val GUIDE_PREFIX = "xmltv-"
-        const val UPCOMING = 5
+        const val UPCOMING = 12
 
         /** XMLTV провайдера буває на кількадесят мегабайтів — читання довше за з'єднання. */
         const val READ_TIMEOUT_MS = 60_000

@@ -15,6 +15,11 @@ data class M3uChannel(
     val group: String,
     val logo: String,
     val url: String,
+    /** `catchup-type` (`flussonic`, `default`, `append`, `shift`…); порожньо — архіву немає. */
+    val catchupType: String = "",
+    val catchupDays: Int = 0,
+    /** `catchup-source` — шаблон адреси архіву, якщо провайдер його дав. */
+    val catchupSource: String = "",
 )
 
 /**
@@ -30,6 +35,14 @@ data class M3uChannel(
  */
 class M3uParser {
 
+    /**
+     * Адреса телепрограми з заголовка плейлиста (`#EXTM3U x-tvg-url="…"` чи `url-tvg`); кілька
+     * через кому — перша. Провайдер кладе її саме туди, і людині не треба вписувати XMLTV
+     * окремо: без цього канали стояли «прямим ефіром» без програми.
+     */
+    var guideUrl: String = ""
+        private set
+
     fun parse(input: InputStream): List<M3uChannel> {
         val channels = mutableListOf<M3uChannel>()
         val seen = mutableSetOf<String>()
@@ -39,6 +52,8 @@ class M3uParser {
             val line = raw.trim()
             when {
                 line.isEmpty() -> Unit
+                line.startsWith("#EXTM3U") -> guideUrl = (attribute(line, "x-tvg-url").ifBlank { attribute(line, "url-tvg") })
+                    .substringBefore(',').trim()
                 line.startsWith(EXTINF) -> pending = parseExtinf(line)
                 // Решта директив (`#EXTGRP`, `#EXTVLCOPT`, `#PLAYLIST`) стоять МІЖ `#EXTINF`
                 // і посиланням, тож на них не можна скидати накопичене.
@@ -59,6 +74,9 @@ class M3uParser {
                                 group = info.group,
                                 logo = info.logo,
                                 url = line,
+                                catchupType = info.catchupType,
+                                catchupDays = info.catchupDays,
+                                catchupSource = info.catchupSource,
                             )
                         }
                     }
@@ -88,6 +106,10 @@ class M3uParser {
             // iptv-org пише кілька груп через «;» («Animation;Kids;Religious»): вкладка — перша з них.
             group = attribute(attributes, "group-title").substringBefore(';').trim(),
             logo = attribute(attributes, "tvg-logo"),
+            catchupType = attribute(attributes, "catchup-type").ifBlank { attribute(attributes, "catchup") }.lowercase(),
+            catchupDays = attribute(attributes, "catchup-days").toIntOrNull()
+                ?: attribute(attributes, "timeshift").toIntOrNull() ?: 0,
+            catchupSource = attribute(attributes, "catchup-source"),
         )
     }
 
@@ -117,7 +139,15 @@ class M3uParser {
     private fun attribute(source: String, name: String): String =
         Regex("$name=\"([^\"]*)\"").find(source)?.groupValues?.get(1)?.trim().orEmpty()
 
-    private data class Pending(val id: String, val name: String, val group: String, val logo: String)
+    private data class Pending(
+        val id: String,
+        val name: String,
+        val group: String,
+        val logo: String,
+        val catchupType: String,
+        val catchupDays: Int,
+        val catchupSource: String,
+    )
 
     private companion object {
         const val EXTINF = "#EXTINF:"

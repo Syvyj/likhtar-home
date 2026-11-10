@@ -87,4 +87,16 @@ class ProgrammesForTest {
           </programme>
         </tv>
     """.trimIndent()
+
+    @org.junit.Test
+    fun `два канали XMLTV з однаковою назвою не дублюють передачі`() {
+        val guide = XmltvGuide(
+            channelNames = mapOf("euronews-a" to mutableListOf("Euronews RU"), "euronews-b" to mutableListOf("Euronews RU")),
+            programmes = listOf(
+                TvProgramme("euronews-a", "Новини", 1000L, 2000L, null),
+                TvProgramme("euronews-b", "Новини", 1000L, 2000L, null),
+            ),
+        )
+        org.junit.Assert.assertEquals(1, guide.programmesFor(listOf("x" to "Euronews RU"))["x"]!!.size)
+    }
 }

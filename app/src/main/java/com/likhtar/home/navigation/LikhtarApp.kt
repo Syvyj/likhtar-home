@@ -219,7 +219,8 @@ fun LikhtarApp(
             "LikhtarPlayback",
             "плеєр закрився: code=${result.resultCode} " +
                 "extras=${result.data?.extras?.keySet()?.joinToString()} pos=$position dur=$duration " +
-                "data=${result.data?.dataString?.take(120)}",
+                // Без запиту: в адресах плейлистів провайдера там токен.
+                "data=${result.data?.data?.let { "${it.host}${it.path.orEmpty().takeLast(60)}" }}",
         )
         // `data` результату — серія, на якій плеєр вийшов (Just+ кладе її адресу).
         viewModel.onPlayerClosed(position, duration, result.data?.dataString)

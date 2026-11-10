@@ -17,4 +17,18 @@
     <string name="tv_category_business">Business</string>
     <string name="tv_category_weather">Weather</string>
     <string name="tv_guide_cache_failed">TV guide cache wasn\'t saved</string>
+    <string name="tv_phone_title">Channels</string>
+    <string name="tv_phone_intro">Ticked channels are shown; arrows set the order. To merge two channels, give one of them the other one\'s name.</string>
+    <string name="tv_phone_groups">Group order</string>
+    <string name="tv_phone_channels">Channels</string>
+    <string name="tv_phone_search">Find a channel</string>
+    <string name="tv_phone_source_playlist">Playlist</string>
+    <string name="tv_phone_other">Other channels</string>
+    <string name="tv_phone_unjoin">Split off “%1$s”</string>
+    <string name="tv_phone_save">Save</string>
+    <string name="tv_phone_saved">Saved. The list on the TV updates in a moment.</string>
+    <string name="tv_phone_empty">No channels yet. Add a playlist in Settings → TV.</string>
+    <string name="tv_phone_move">Move to group</string>
+    <string name="tv_phone_cancel">Cancel</string>
+    <string name="tv_phone_auto_order">Back to automatic order</string>
 </resources>

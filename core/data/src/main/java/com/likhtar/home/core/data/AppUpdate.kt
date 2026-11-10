@@ -162,6 +162,38 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
         }
     }
 
+    /**
+     * «Ліхтар ТБ» — наш плеєр для каналів (ІРТВ-збірка Just+), вкладення `likhtar-tv.apk` того ж
+     * випуску на GitHub. Завантажити й відкрити встановлення; `false` — випуску з ним немає чи
+     * мережа підвела (тоді пропонуємо плеєр з Google Play). Без дозволу ставити застосунки —
+     * відкриває його, і людина натискає ще раз.
+     */
+    suspend fun installTvPlayer(): Boolean = withContext(Dispatchers.IO) {
+        if (!canInstall()) {
+            val ask = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            return@withContext runCatching { context.startActivity(ask) }.isSuccess
+        }
+        runCatching {
+            val url = http(LATEST, TIMEOUT_MS, headers = mapOf("Accept" to "application/vnd.github+json")) { c ->
+                if (c.responseCode != 200) error("GitHub відповів ${c.responseCode}") else assetUrl(c.text(), TV_PLAYER_APK)
+            } ?: error("у випуску немає $TV_PLAYER_APK")
+            val apk = File(File(context.cacheDir, "updates").apply { mkdirs() }, TV_PLAYER_APK)
+            http(url, TIMEOUT_MS, DOWNLOAD_TIMEOUT_MS) { c ->
+                if (c.responseCode != 200) error("GitHub відповів ${c.responseCode}")
+                c.inputStream.use { input -> apk.outputStream().use { input.copyTo(it) } }
+            }
+            val info = context.packageManager.getPackageArchiveInfo(apk.path, 0) ?: error("файл пошкоджено")
+            if (info.packageName != TV_PLAYER) error("це інший застосунок")
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", apk)
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(uri, "application/vnd.android.package-archive")
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }.onFailure { Log.w(TAG, "Ліхтар ТБ", it) }.isSuccess
+    }
+
     private fun encode(r: AppRelease) = JSONObject().put("v", r.version).put("n", r.notes).put("u", r.apkUrl).toString()
 
     private fun decode(raw: String) = runCatching {
@@ -174,6 +206,9 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
         const val SITE = "https://likhtar.syvyj.dev/"
         private const val LATEST = "https://api.github.com/repos/Syvyj/likhtar-home/releases/latest"
         private const val APK_NAME = "likhtar-home.apk"
+        private const val TV_PLAYER_APK = "likhtar-tv.apk"
+        /** Пакет «Ліхтар ТБ»: ТБ Ефір віддає канали йому, якщо він стоїть. */
+        const val TV_PLAYER = "com.justplus.player.likhtar.tv"
         private const val CHECK_MS = 24 * 60 * 60_000L
         private const val TIMEOUT_MS = 15_000
         private const val DOWNLOAD_TIMEOUT_MS = 120_000
@@ -183,10 +218,15 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
         /** Відповідь GitHub → випуск; без APK у вкладеннях — `null`. */
         internal fun parse(json: String): AppRelease? {
             val o = JSONObject(json)
-            val assets = o.optJSONArray("assets") ?: return null
-            val apk = (0 until assets.length()).mapNotNull(assets::optJSONObject)
-                .firstOrNull { it.optString("name") == APK_NAME }?.optString("browser_download_url") ?: return null
+            val apk = assetUrl(json, APK_NAME) ?: return null
             return AppRelease(o.optString("tag_name").removePrefix("v"), plainNotes(o.optString("body")), apk)
+        }
+
+        /** Пряме посилання на вкладення [name] у відповіді GitHub; немає — `null`. */
+        internal fun assetUrl(json: String, name: String): String? {
+            val assets = JSONObject(json).optJSONArray("assets") ?: return null
+            return (0 until assets.length()).mapNotNull(assets::optJSONObject)
+                .firstOrNull { it.optString("name") == name }?.optString("browser_download_url")
         }
 
         /** Markdown приміток — простим текстом для екрана ТБ: без зірочок, посилань і контрольної суми. */

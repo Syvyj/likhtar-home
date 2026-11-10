@@ -164,6 +164,7 @@
     <string name="cinema_new_episode_on">новий випуск %1$s</string>
     <string name="cinema_kind_documentary">Документальне</string>
     <string name="cinema_picker_episode_hint">Серію обирають у «Вибір серії» — тут лише озвучка цієї</string>
+    <string name="cinema_picker_more">Шукаємо ще торенти…</string>
     <string name="cinema_picker_searching">Шукаємо джерела…</string>
     <string name="cinema_search">Шукати</string>
     <string name="cinema_scan_no_answer">Сервер ще не відповів про цей тайтл.</string>
@@ -342,4 +343,14 @@
     <string name="cinema_live_need_player_hint">Канали з вашого плейлиста грає відеоплеєр, а на цьому пристрої його немає.</string>
     <string name="cinema_live_need_player_why">Безкоштовний, відкритий код, без реклами</string>
     <string name="cinema_live_youtube_hint">YouTube · наживо</string>
+    <string name="cinema_live_menu_edit">Редагувати канали з телефона</string>
+    <string name="cinema_live_menu_edit_hint">Порядок, назви, джерела й дублі</string>
+    <string name="cinema_live_edit_title">Список каналів</string>
+    <string name="cinema_live_edit_step1">Наведіть камеру телефона на QR</string>
+    <string name="cinema_live_edit_step2">Галочки, порядок, назви, склеювання</string>
+    <string name="cinema_live_edit_step3">Натисніть «Зберегти», і список тут оновиться</string>
+    <string name="cinema_live_edit_opened">Сторінку відкрито на телефоні</string>
+    <string name="cinema_live_edit_saved">Збережено, оновлюю список</string>
+    <string name="cinema_live_install_tv">Встановити Ліхтар ТБ</string>
+    <string name="cinema_live_install_tv_why">Наш плеєр для каналів: перемикання ↑↓, програма, архів</string>
 </resources>

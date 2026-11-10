@@ -9,4 +9,6 @@
     <files-path name="roms_internal" path="downloads/ROMs/" />
     <!-- Оновлення лаунчера: APK з GitHub перед встановленням (AppUpdate). -->
     <cache-path name="updates" path="updates/" />
+    <!-- ТБ-режим Just+: канали, програма й архів для плеєра (LiveNowViewModel.lineup). -->
+    <cache-path name="tv" path="tv/" />
 </paths>

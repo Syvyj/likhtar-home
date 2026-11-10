@@ -37,7 +37,7 @@ class LikhtarStreams @Inject constructor() {
 
     suspend fun playlistEntries(url: String): List<QueueEntry> = emptyList()
 
-    suspend fun voices(item: CatalogItem, season: Int, episode: Int): List<VoiceGroup> = emptyList()
+    suspend fun voices(item: CatalogItem, season: Int, episode: Int, live: Boolean = false, fast: Boolean = false): List<VoiceGroup> = emptyList()
 
     suspend fun playVoice(item: CatalogItem, refs: List<String>, season: Int, episode: Int, waitSeconds: Int = 0): PlayResult = PlayResult()
 

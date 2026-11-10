@@ -29,6 +29,11 @@ data class PlayerPlan(
     fun toIntent(): Intent = Intent(Intent.ACTION_VIEW).apply {
         val plan = this@PlayerPlan
         setDataAndType(Uri.parse(plan.data), plan.mime)
+        // Програма ТБ-режиму — файл лаунчера: дозвіл на читання їде через ClipData (extras його не несуть).
+        (plan.extras["likhtar.tv.guide"] as? String)?.let { guide ->
+            clipData = android.content.ClipData.newRawUri("guide", Uri.parse(guide))
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
         if (plan.packageName.isNotBlank()) setPackage(plan.packageName)
         plan.extras.forEach { (key, value) ->
             when (value) {
@@ -49,6 +54,14 @@ fun PlayRequest.playerPlan(takesM3u: Boolean, companion: Map<String, String>): P
     // «Пауза, що знає»: наш Just+ бере звідси, куди питати й для якого профілю.
     extras.putAll(companion)
     title?.item?.let { extras["likhtar.kind"] = if (it.kind == TitleKind.TV) "tv" else "movie" }
+    // ТБ-режим Just+ (tv/TvChannels у плеєрі): ↑↓ і «канал ±» перемикають ці канали.
+    tv?.let { lineup ->
+        extras["likhtar.tv.urls"] = lineup.urls.toTypedArray()
+        extras["likhtar.tv.names"] = lineup.names.toTypedArray()
+        extras["likhtar.tv.now"] = lineup.now.toTypedArray()
+        extras["likhtar.tv.index"] = lineup.index
+        if (lineup.guide.isNotBlank()) extras["likhtar.tv.guide"] = lineup.guide
+    }
     val (data, mime) = when {
         asQueue -> single to "video/*"
         // Випуск порталу — HLS під mime плейлиста. Just+ такого не claim'ить, і запуск падав

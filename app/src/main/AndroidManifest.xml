@@ -85,6 +85,8 @@
         <intent>
             <action android:name="android.intent.action.SEARCH" />
         </intent>
+        <!-- «Ліхтар ТБ»: без іконки й з фільтром лише на потоки, тож рядки вище його не бачать. -->
+        <package android:name="com.justplus.player.likhtar.tv" />
     </queries>
 
     <application

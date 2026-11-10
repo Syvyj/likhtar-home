@@ -5,3 +5,4 @@ internal val UNIVERSAL_SEARCH = emptyList<WatchOptionsResolver.Target>()
 internal val FLAVOR_SITE_NAMES = emptyMap<String, String>()
 internal val FLAVOR_VARIANT_SITES = emptySet<String>()
 internal val LAST_TIER_SITE: String? = null
+internal const val FLAVOR_ROWS_QUERY = ""

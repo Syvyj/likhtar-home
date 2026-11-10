@@ -405,4 +405,5 @@
     <string name="settings_phone_clip">Text to the TV clipboard</string>
     <string name="settings_phone_clip_hint">Paste it on the TV wherever a text field offers Paste.</string>
     <string name="settings_phone_clip_saved">Clipboard</string>
+    <string name="settings_phone_channels">Edit channels: order, names, duplicates</string>
 </resources>

@@ -164,6 +164,7 @@
     <string name="cinema_new_episode_on">nowy odcinek %1$s</string>
     <string name="cinema_kind_documentary">Dokument</string>
     <string name="cinema_picker_episode_hint">Odcinek wybiera się w «Wybór odcinka» — tu tylko ścieżka dźwiękowa dla tego</string>
+    <string name="cinema_picker_more">Szukamy jeszcze torrentów…</string>
     <string name="cinema_picker_searching">Szukamy źródeł…</string>
     <string name="cinema_search">Szukaj</string>
     <string name="cinema_scan_no_answer">Serwer jeszcze nie odpowiedział w sprawie tego tytułu.</string>

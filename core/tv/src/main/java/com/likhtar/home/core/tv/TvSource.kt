@@ -75,6 +75,15 @@ class PlaylistTvSource @Inject constructor(
     // Плейлист провайдера — кілька мегабайтів, а ТВ Ефір питає канали кожні 5 хв.
     private val cache = ConditionalCache<List<ChannelLink>>(CACHE_TTL_MS)
 
+    /** Телепрограма з заголовка плейлиста (див. [M3uParser.guideUrl]); порожньо — не було. */
+    @Volatile private var headerGuide = ""
+
+    /** Адреса телепрограми з плейлиста; спершу дочитує сам плейлист, якщо ще не читали. */
+    suspend fun guideUrl(): String {
+        channels()
+        return headerGuide
+    }
+
     override suspend fun channels(): List<ChannelLink> = withContext(Dispatchers.IO) {
         val url = settings.settings.first().tvPlaylistUrl
         if (url.isBlank()) return@withContext emptyList()
@@ -103,7 +112,9 @@ class PlaylistTvSource @Inject constructor(
         }
     }
 
-    private fun links(input: java.io.InputStream) = M3uParser().parse(input).map { channel ->
+    private fun links(input: java.io.InputStream) = M3uParser().let { parser ->
+        parser.parse(input).also { headerGuide = parser.guideUrl }
+    }.map { channel ->
         ChannelLink(
             name = channel.name,
             packageName = "",
@@ -111,6 +122,7 @@ class PlaylistTvSource @Inject constructor(
             category = channel.group,
             epgId = channel.id,
             logo = channel.logo,
+            archive = ChannelArchive.of(channel.catchupType, channel.catchupDays, channel.catchupSource),
         )
     }
 
@@ -166,8 +178,15 @@ internal class ConditionalCache<T : Collection<*>>(
 class DefaultTvSource @Inject constructor(
     private val builtin: BuiltinTvSource,
     private val playlist: PlaylistTvSource,
+    private val system: SystemTvSource,
 ) : TvSource {
     // Вбудований набір — українські канали під наші підписки: у публічній збірці лише плейлист людини.
-    override suspend fun channels(): List<ChannelLink> =
-        playlist.channels().ifEmpty { if (com.likhtar.home.core.model.Distribution.store) emptyList() else builtin.channels() }
+    // У домашній — плейлист і вбудоване разом (ТБ Ефір міксує, а не перемикає).
+    override suspend fun channels(): List<ChannelLink> {
+        // Канали, що застосунки зареєстрували в Android TV, — в обох збірках: це не наші таблиці.
+        val own = playlist.channels() + system.channels()
+        if (com.likhtar.home.core.model.Distribution.store) return own
+        val urls = own.map { it.url }.toSet()
+        return own + builtin.channels().filter { it.url !in urls }
+    }
 }

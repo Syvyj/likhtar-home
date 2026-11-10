@@ -126,7 +126,8 @@ fun TitleScreen(
         if (!viewingEpisodes && state.picker == null) {
             resumeScope.launch { firstActionFocus.requestAfterFrame() }
         }
-        onPauseOrDispose { }
+        // Пауза — плеєр уже заступив сторінку: ліхтар «Готую» можна гасити.
+        onPauseOrDispose { viewModel.onLeftForPlayer() }
     }
     // Дві окремі сцени, а не одна довга сторінка: так блок серій не ділить екран з hero.
     // BACK у серіях повертає на hero; наступний BACK уже обробить навігація застосунку.
@@ -171,6 +172,16 @@ fun TitleScreen(
     // «оживав» лише зі стрілки.
     LaunchedEffect(state.preparing) {
         if (!state.preparing && !viewingEpisodes) firstActionFocus.requestAfterFrame()
+    }
+    // Те саме для вікна озвучок: Назад із нього лишав сторінку без фокуса.
+    val pickerOpen = state.picker != null
+    LaunchedEffect(pickerOpen) {
+        if (pickerOpen || state.preparing) return@LaunchedEffect
+        if (!viewingEpisodes) {
+            firstActionFocus.requestAfterFrame()
+        } else {
+            (if (resumeIndex >= 0) resumeEpisodeFocus else seasonFocus).requestAfterFrame()
+        }
     }
 
     // Поки відкрита модалка або триває підготовка, СЦЕНИ під нею фокус не беруть: інакше
@@ -393,7 +404,8 @@ fun TitleScreen(
                 picker = picker,
                 voices = viewModel.visibleVoices(),
                 emptyNote = state.details?.scan.emptyNote(),
-                onPlay = viewModel::playVoice,
+                onPlay = viewModel::pickVoice,
+                onPlayOption = viewModel::playOption,
                 onBack = viewModel::back,
                 onSearch = viewModel::searchByName.takeIf { state.details?.scan?.known == false },
             )

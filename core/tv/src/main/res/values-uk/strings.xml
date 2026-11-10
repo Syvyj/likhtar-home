@@ -17,4 +17,18 @@
     <string name="tv_category_business">Бізнес</string>
     <string name="tv_category_weather">Погода</string>
     <string name="tv_guide_cache_failed">Кеш телепрограми не записався</string>
+    <string name="tv_phone_title">Канали</string>
+    <string name="tv_phone_intro">Канали з галочкою показуються, стрілки задають порядок. Щоб склеїти два канали, дайте одному назву іншого.</string>
+    <string name="tv_phone_groups">Порядок груп</string>
+    <string name="tv_phone_channels">Канали</string>
+    <string name="tv_phone_search">Знайти канал</string>
+    <string name="tv_phone_source_playlist">Плейлист</string>
+    <string name="tv_phone_other">Інші канали</string>
+    <string name="tv_phone_unjoin">Відклеїти «%1$s»</string>
+    <string name="tv_phone_save">Зберегти</string>
+    <string name="tv_phone_saved">Збережено. Список на ТВ оновиться за мить.</string>
+    <string name="tv_phone_empty">Каналів ще немає. Додайте плейлист у Налаштування → Телебачення.</string>
+    <string name="tv_phone_move">Перенести в групу</string>
+    <string name="tv_phone_cancel">Скасувати</string>
+    <string name="tv_phone_auto_order">Повернути автоматичний порядок</string>
 </resources>

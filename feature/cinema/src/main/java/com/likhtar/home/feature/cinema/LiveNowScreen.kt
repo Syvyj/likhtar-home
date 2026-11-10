@@ -1,5 +1,6 @@
 package com.likhtar.home.feature.cinema
 
+import com.likhtar.home.core.tv.channelLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -72,7 +74,7 @@ import com.likhtar.home.core.model.LikhtarSection
 import kotlinx.coroutines.delay
 
 /**
- * ТВ Ефір, сцена 1 — варіант A прототипу (site/livetv/variants; 1920×1080 px, 1 dp = 2 px).
+ * ТВ Ефір, сцена 1 — варіант A прототипу (site/livetv/variants, 22.10; 1920×1080 px, 1 dp = 2 px).
  * Банер — картка під фокусом: знак каналу, передача, «зараз на X · ще N хв», кадр праворуч.
  * Ряди з 600 px; у кінці кожного — «Усі канали», сцена 2 ([LiveGuide]).
  */
@@ -116,6 +118,8 @@ fun LiveNowScreen(
     // Довге OK: меню каналу (обрані / приховати); refocus — повернути фокус у ряд, коли
     // приховану картку прибрано з-під нього.
     var menuCard by remember { mutableStateOf<LiveCard?>(null) }
+    /** QR редактора каналів; "" — приставка не в домашній мережі. */
+    var editUrl by remember { mutableStateOf<String?>(null) }
     var refocus by remember { mutableIntStateOf(0) }
     // Після меню — назад на ту саму картку: вікно меню закривається не одразу, і фокус
     // головного вікна падав на «Головну». Перші кадри просимо фокус без перевірки:
@@ -320,6 +324,7 @@ fun LiveNowScreen(
 
         if (state.needPlayer) {
             NeedPlayerDialog(
+                onInstallTv = viewModel::installTvPlayer,
                 onInstall = { viewModel.openFree(FreeSource(PlayerOnPlay.first, PlayerOnPlay.second, installed = false)) },
                 onDismiss = viewModel::dismissNeedPlayer,
             )
@@ -329,13 +334,38 @@ fun LiveNowScreen(
             LiveChannelMenu(
                 card = card,
                 pinned = card.link.url in state.pinned,
+
                 onFavourite = { viewModel.toggleFavourite(card) },
                 onHide = {
                     viewModel.hide(card)
                     if (focusedCard?.key == card.key) focusedCard = null
                 },
+                onEdit = { editUrl = viewModel.startEditor() ?: "" },
                 onDismiss = {
                     menuCard = null
+                    refocus++
+                },
+            )
+        }
+
+        editUrl?.let { url ->
+            val status by viewModel.editorStatus.collectAsState()
+            com.likhtar.home.core.designsystem.PhoneQrDialog(
+                title = stringResource(R.string.cinema_live_edit_title),
+                url = url.ifBlank { null },
+                lines = listOf(
+                    stringResource(R.string.cinema_live_edit_step1),
+                    stringResource(R.string.cinema_live_edit_step2),
+                    stringResource(R.string.cinema_live_edit_step3),
+                ),
+                status = when (status) {
+                    com.likhtar.home.core.tv.ChannelsPhoneLink.Status.Opened -> stringResource(R.string.cinema_live_edit_opened)
+                    com.likhtar.home.core.tv.ChannelsPhoneLink.Status.Saved -> stringResource(R.string.cinema_live_edit_saved)
+                    else -> null
+                },
+                statusOk = status == com.likhtar.home.core.tv.ChannelsPhoneLink.Status.Saved,
+                onDismiss = {
+                    editUrl = null
                     refocus++
                 },
             )

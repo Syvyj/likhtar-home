@@ -50,18 +50,18 @@ class UaAudioRowTest {
     }
 
     @Test
-    fun `увімкнене налаштування добирає короткий ряд і ставить добір у кінець`() {
+    fun `увімкнене налаштування лишає каталог як є — без відсіву й пересортування`() {
         val items = listOf(item(1, "2026-09-10"), item(2, "2026-09-17"), item(3, "2026-09-20"))
-        assertEquals(listOf(2, 3, 1), titles(row(items, confirmed = setOf(2), fill = true)))
+        assertEquals(listOf(1, 2, 3), titles(row(items, confirmed = setOf(2), fill = true)))
     }
 
     @Test
-    fun `повному ряду добір не потрібен навіть з увімкненим налаштуванням`() {
-        // Шість підтверджених — це [MIN_ROW]: далі розбавляти нема потреби, глядач і так
-        // має з чого вибрати.
-        val confirmed = (1..MIN_ROW).map { item(it, "2026-09-0$it") }
+    fun `повний ряд не обрізається`() {
+        // Шість і більше підтверджених більше не ховають решту — «Фантастика» з
+        // семи карток за сто років кіно.
+        val confirmed = (1..7).map { item(it, "2026-09-0$it") }
         val rest = listOf(item(99, "2026-09-30"))
         val ids = confirmed.map { it.tmdbId }.toSet()
-        assertEquals(MIN_ROW, row(confirmed + rest, ids, fill = true).size)
+        assertEquals(8, row(confirmed + rest, ids, fill = true).size)
     }
 }

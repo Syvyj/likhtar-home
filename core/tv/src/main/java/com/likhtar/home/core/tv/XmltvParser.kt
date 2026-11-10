@@ -35,6 +35,12 @@ class XmltvParser(
     private val keepChannelNames: Set<String>? = null,
     private val horizonMillis: Long = DEFAULT_HORIZON_MS,
     private val nowMillis: () -> Long = System::currentTimeMillis,
+    /**
+     * Канали з архівом (id файлу) і скільки днів назад для них тримати: минулі передачі —
+     * це меню «Архів». Решті минуле не потрібне, і тримати його для тисячі каналів — зайва пам'ять.
+     */
+    private val archiveIds: Set<String> = emptySet(),
+    private val archiveMillis: Long = 0,
 ) {
     fun parse(input: InputStream): XmltvGuide {
         // Провайдери майже завжди віддають .xml.gz, але не завжди позначають це заголовком,
@@ -50,7 +56,7 @@ class XmltvParser(
             stream
         }
 
-        val handler = Handler(keepChannelIds, keepChannelNames, nowMillis() - PAST_WINDOW_MS, nowMillis() + horizonMillis)
+        val handler = Handler(keepChannelIds, keepChannelNames, nowMillis() - PAST_WINDOW_MS, nowMillis() + horizonMillis, archiveIds, nowMillis() - archiveMillis)
         SAXParserFactory.newInstance().newSAXParser().parse(body, handler)
         return XmltvGuide(handler.channelNames, handler.programmes.sortedBy { it.startMillis })
     }
@@ -60,6 +66,8 @@ class XmltvParser(
         private val keepNames: Set<String>?,
         private val from: Long,
         private val until: Long,
+        private val archiveIds: Set<String>,
+        private val archiveFrom: Long,
     ) : DefaultHandler() {
 
         val channelNames = mutableMapOf<String, MutableList<String>>()
@@ -82,7 +90,8 @@ class XmltvParser(
                     if (filtered && id !in kept && keep?.contains(id) != true) return
                     val start = parseXmltvTime(attrs.getValue("start")) ?: return
                     val stop = parseXmltvTime(attrs.getValue("stop")) ?: (start + DEFAULT_LENGTH_MS)
-                    if (stop < from || start > until) return
+                    if (start > until) return
+                    if (stop < from && (id !in archiveIds || stop < archiveFrom)) return
                     programme = Pending(id, start, stop)
                 }
 
@@ -220,5 +229,7 @@ fun XmltvGuide.programmesFor(channels: List<Pair<String, String>>): Map<String, 
             programme.copy(channelId = channelId)
         }
         .groupBy { it.channelId }
-        .mapValues { (_, list) -> list.sortedBy { it.startMillis } }
+        // Два канали XMLTV з однаковою назвою («euronews» під двома id) обидва лягають на наш —
+        // і кожна передача була двічі. Одна передача на одну хвилину старту.
+        .mapValues { (_, list) -> list.sortedBy { it.startMillis }.distinctBy { it.startMillis } }
 }

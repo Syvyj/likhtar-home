@@ -405,4 +405,5 @@
     <string name="settings_phone_clip">Текст у буфер обміну телевізора</string>
     <string name="settings_phone_clip_hint">Вставляйте на телевізорі там, де поле вводу пропонує «Вставити».</string>
     <string name="settings_phone_clip_saved">Буфер обміну</string>
+    <string name="settings_phone_channels">Редагувати канали: порядок, назви, дублі</string>
 </resources>

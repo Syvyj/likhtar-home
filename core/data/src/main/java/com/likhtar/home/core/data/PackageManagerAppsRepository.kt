@@ -199,7 +199,7 @@ class PackageManagerAppsRepository @Inject constructor(
         }
         // MEGOGO з холодного старту йде через вибір профілю й губить посилання — лишається
         // головна. Те саме посилання за 4 с відкриває фільм; живому MEGOGO повтор лише
-        // перевідкриває ту саму сторінку (CLEAR_TASK). Перевірено на приставці 24.09.
+        // перевідкриває ту саму сторінку (CLEAR_TASK). Перевірено на приставці.
         if (intent.data?.scheme == "megogo" && intent.data?.host == "video") {
             val again = Intent(intent)
             Handler(Looper.getMainLooper()).postDelayed(
@@ -294,6 +294,17 @@ class PackageManagerAppsRepository @Inject constructor(
                 )
                 return true
             }
+        }
+        // Канал з TvProvider: посилання застосунку на канал (`intent:`) — як є; адреса каналу
+        // (`content://android.media.tv/channel/…`) — системному ТВ-застосунку, а немає його
+        // (Google TV) — нижче відкриється сам застосунок.
+        if (url.startsWith("intent:")) {
+            val intent = runCatching { Intent.parseUri(url, Intent.URI_INTENT_SCHEME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }.getOrNull()
+            if (intent != null && runCatching { context.startActivity(intent); true }.getOrDefault(false)) return true
+        }
+        if (uri.scheme == "content" && uri.authority == "android.media.tv") {
+            val tune = Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (runCatching { context.startActivity(tune); true }.getOrDefault(false)) return true
         }
         // CLEAR_TOP обов'язковий: без нього другий канал поспіль просто виносив уже
         // запущений застосунок наперед, і той лишався на попередньому каналі.

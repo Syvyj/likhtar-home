@@ -57,8 +57,31 @@ class TvGroupsRepository @Inject constructor(
         context.tvGroupsDataStore.edit { it[KEY_HIDDEN_CHANNELS] = it[KEY_HIDDEN_CHANNELS].orEmpty() + url }
     }
 
+    suspend fun setHiddenChannels(urls: Set<String>) {
+        context.tvGroupsDataStore.edit { it[KEY_HIDDEN_CHANNELS] = urls }
+    }
+
     suspend fun clearHiddenChannels() {
-        context.tvGroupsDataStore.edit { it[KEY_HIDDEN_CHANNELS] = emptySet() }
+        context.tvGroupsDataStore.edit {
+            it[KEY_HIDDEN_CHANNELS] = emptySet()
+            it[KEY_CHANNEL_EDITS] = ChannelEdits.decode(it[KEY_CHANNEL_EDITS]).copy(hidden = emptySet()).encode()
+        }
+    }
+
+    /** Правки списку каналів (редактор з телефона й «Приховати» в ТБ Ефірі). */
+    val channelEdits: Flow<ChannelEdits> =
+        context.tvGroupsDataStore.data.map { ChannelEdits.decode(it[KEY_CHANNEL_EDITS]) }
+
+    suspend fun setChannelEdits(edits: ChannelEdits) {
+        context.tvGroupsDataStore.edit { it[KEY_CHANNEL_EDITS] = edits.encode() }
+    }
+
+    /** «Приховати» в ТБ Ефірі — канал разом з усіма джерелами, щоб не виринув дубль. */
+    suspend fun hideChannelKey(key: String) {
+        context.tvGroupsDataStore.edit {
+            val edits = ChannelEdits.decode(it[KEY_CHANNEL_EDITS])
+            it[KEY_CHANNEL_EDITS] = edits.copy(hidden = edits.hidden + key).encode()
+        }
     }
 
     private suspend fun edit(transform: (List<TvGroup>) -> List<TvGroup>) {
@@ -85,6 +108,7 @@ class TvGroupsRepository @Inject constructor(
         val KEY_GROUPS_ORDERED = stringPreferencesKey("tv_groups_ordered")
         val KEY_HIDDEN_CHANNELS = stringSetPreferencesKey("tv_hidden_channels")
         val KEY_CHANNEL_APPS = stringSetPreferencesKey("tv_channel_apps")
+        val KEY_CHANNEL_EDITS = stringPreferencesKey("tv_channel_edits")
 
         /**
          * NUL і перенос рядка не трапляються ні в назвах груп, ні в id каналів —

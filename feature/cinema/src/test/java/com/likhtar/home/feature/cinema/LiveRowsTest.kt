@@ -1,5 +1,7 @@
 package com.likhtar.home.feature.cinema
 
+import com.likhtar.home.core.tv.channelLabel
+import com.likhtar.home.core.tv.mergeChannels
 import com.likhtar.home.core.catalog.CatalogItem
 import com.likhtar.home.core.catalog.EpgMatch
 import com.likhtar.home.core.catalog.TitleKind

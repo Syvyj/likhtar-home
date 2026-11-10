@@ -67,6 +67,7 @@ class SettingsPhoneLink @Inject constructor(
     private val guide: TvGuideRepository,
     private val geocoding: GeocodingRepository,
     private val catalog: CatalogRepository,
+    private val channels: com.likhtar.home.core.tv.ChannelsPhoneLink,
 ) {
     /** Перемикач на сторінці телефона: те саме поле, що в налаштуваннях на ТВ. */
     private class Toggle(
@@ -339,6 +340,7 @@ class SettingsPhoneLink @Inject constructor(
                 "<form action=\"save\" method=\"post\">" +
                 clip + layout +
                 "<h2>${str(R.string.settings_section_tv)}</h2>" +
+                (channels.start()?.let { "<a class=\"btn\" href=\"$it\">${str(R.string.settings_phone_channels)}</a>" } ?: "") +
                 field("playlist", str(R.string.settings_tv_playlist), extra = keep(s.tvPlaylistUrl.isNotBlank()) + " inputmode=\"url\"") +
                 field("epg", str(R.string.settings_epg_title), extra = keep(s.tvEpgUrl.isNotBlank()) + " inputmode=\"url\"") +
                 "<h2>${str(R.string.settings_media_group)}</h2>" +
@@ -357,28 +359,7 @@ class SettingsPhoneLink @Inject constructor(
         )
     }
 
-    private fun html(title: String, body: String) = """<!doctype html><html lang="${Locale.getDefault().language}"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>$title</title>
-<style>body{margin:0;padding:24px 16px 48px;font:16px/1.5 system-ui,sans-serif;background:#1B1814;color:#F2EDE4}
-h1{font-size:22px;margin:0 0 8px}h2{font-size:15px;margin:28px 0 4px;color:#C9B48A;text-transform:uppercase;letter-spacing:.04em}
-label{display:block;margin-top:12px;font-size:14px;color:#BFB6A8}input,select{display:block;margin-top:4px;width:100%;box-sizing:border-box;padding:14px;
-font-size:17px;border-radius:12px;border:1px solid #6b5a3a;background:#27231E;color:#F2EDE4}
-.sw{display:flex;align-items:center;gap:12px;padding:10px 0;font-size:16px;color:#F2EDE4;border-bottom:1px solid #3a3226}
-.sw input{width:24px;height:24px;margin:0;flex:none;accent-color:#E8C27A}
-button,.btn{display:block;text-align:center;text-decoration:none;margin-top:16px;width:100%;box-sizing:border-box;padding:14px;font-size:17px;
-border:0;border-radius:12px;background:#FFFAF2;color:#1C1A17;font-weight:600}.btn{background:#3a3226;color:#F2EDE4}
-.note{font-size:14px;color:#BFB6A8;margin:4px 0}.ok{color:#E8C27A}.err{color:#ff8a7a}
-textarea{display:block;margin-top:8px;width:100%;box-sizing:border-box;padding:14px;font:17px system-ui,sans-serif;border-radius:12px;border:1px solid #6b5a3a;background:#27231E;color:#F2EDE4}
-.ord{list-style:none;margin:8px 0 0;padding:0}.ord li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #3a3226}
-.ord label{flex:1;display:flex;align-items:center;gap:12px;margin:0;font-size:16px;color:#F2EDE4}
-.ord input,.nb{width:24px;height:24px;margin:0;flex:none;accent-color:#E8C27A}
-.ord .mv{width:44px;height:44px;margin:0;padding:0;flex:none;background:#3a3226;color:#F2EDE4;font-size:20px}</style>
-<script>addEventListener('DOMContentLoaded',()=>{
-document.querySelectorAll('.ord').forEach(ul=>ul.addEventListener('click',e=>{const b=e.target.closest('.mv');if(!b)return;const li=b.closest('li');
-if(b.dataset.d=='u'&&li.previousElementSibling)ul.insertBefore(li,li.previousElementSibling);
-if(b.dataset.d=='d'&&li.nextElementSibling)ul.insertBefore(li.nextElementSibling,li)}));
-const f=document.querySelector('form');if(f)f.addEventListener('submit',()=>document.querySelectorAll('.ord').forEach(ul=>{
-f.elements[ul.dataset.out].value=[...ul.children].map(li=>li.dataset.k).join(',')}))})</script></head><body>$body</body></html>"""
+    private fun html(title: String, body: String) = com.likhtar.home.core.data.phonePageHtml(title, body)
 
     /** Розділи, які людина ставить у свій порядок: без Головної й Налаштувань, лише ввімкнені. */
     private fun orderable(s: LikhtarSettings) = LikhtarSection.ordered(

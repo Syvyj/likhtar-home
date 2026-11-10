@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** Знаки «Позначити» — замість емодзі: та сама сітка 24×24 і лінія, що в LikhtarIcons. */
-enum class MarkIcon { WATCHED, SKIP, HIDE, LIKE, OK, DISLIKE, CLEAR, BELL, BOOKMARK }
+enum class MarkIcon { WATCHED, SKIP, HIDE, LIKE, OK, DISLIKE, CLEAR, BELL, BOOKMARK, PHONE }
 
 @Composable
 fun MarkGlyph(icon: MarkIcon, tint: Color, size: Dp = 22.dp, modifier: Modifier = Modifier) {
@@ -64,6 +64,11 @@ fun MarkGlyph(icon: MarkIcon, tint: Color, size: Dp = 22.dp, modifier: Modifier 
                 drawPath(heart(), tint, style = stroke)
                 // Тріщина через серце.
                 drawPath(p(12f, 7.6f, 10.4f, 11f, 13.4f, 13.2f, 11.6f, 17.4f), tint, style = stroke)
+            }
+            MarkIcon.PHONE -> {
+                // Телефон: корпус із заокругленими кутами й риска динаміка.
+                drawRoundRect(tint, Offset(6.5f * u, 2.8f * u), androidx.compose.ui.geometry.Size(11f * u, 18.4f * u), androidx.compose.ui.geometry.CornerRadius(2.4f * u), style = stroke)
+                drawLine(tint, Offset(10.5f * u, 17.4f * u), Offset(13.5f * u, 17.4f * u), 2.1f * u, StrokeCap.Round)
             }
             MarkIcon.BOOKMARK -> drawPath(p(6.5f, 3.5f, 17.5f, 3.5f, 17.5f, 20.5f, 12f, 16f, 6.5f, 20.5f).apply { close() }, tint, style = stroke)
             MarkIcon.BELL -> {
