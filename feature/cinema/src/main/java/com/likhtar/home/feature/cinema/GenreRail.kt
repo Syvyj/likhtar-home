@@ -234,7 +234,7 @@ private fun WideGenreCard(genre: SectionGenre, onClick: () -> Unit, modifier: Mo
         background = tone,
         focusedBackground = tone,
         borderColor = Color.Transparent,
-        focusedScale = 1.07f,
+        focusedScale = LikhtarDimens.CardFocusScale,
     ) { focused ->
         AsyncImage(
             model = TmdbImages.still(genre.backdropPath) ?: genre.backdropPath,

@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private val debuggable by lazy { applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0 }
 
     companion object {
         /** Ширина екрана в dp, під яку зверстано лаунчер (як у AppLanguage). */
@@ -89,8 +90,9 @@ class MainActivity : ComponentActivity() {
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         val isArrow = event.keyCode in ARROW_KEYS
         if (isArrow && event.action == android.view.KeyEvent.ACTION_DOWN) {
-            // ЗАМІР: лишається, доки не з'ясуємо, що саме приходить після виходу зі сну.
-            android.util.Log.d(
+            // ЗАМІР: що саме приходить після виходу зі сну — лише в debug-збірці, у release на кожну
+            // стрілку рядок у logcat не потрібен.
+            if (debuggable) android.util.Log.d(
                 "LikhtarKeys",
                 "код=${event.keyCode} повтор=${event.repeatCount} час=${event.eventTime} " +
                     "пристрій=${event.deviceId} джерело=${event.source}",
@@ -125,7 +127,7 @@ class MainActivity : ComponentActivity() {
         // у якому користувач був востаннє, перебиваючи налаштування «Поведінка запуску».
         // Домашній екран не має «попереднього стану» — він завжди починається спочатку.
         super.onCreate(null)
-        intent?.openRequest()?.let(openRequests::trySend)
+        intent?.openRequest(debuggable)?.let(openRequests::trySend)
         setContent {
             // Масштаб 960 dp — і тут, а не лише в контексті (AppLanguage.wrap): коли приставка
             // міняє роздільність на ходу, активність не перестворюється (configChanges), і система
@@ -159,13 +161,19 @@ class MainActivity : ComponentActivity() {
         // звичайний launch-інтент (CATEGORY_LAUNCHER). З перевіркою на CATEGORY_HOME такий
         // запит мовчки губився, і кнопка «додому» зсередини лаунчера не робила нічого.
         if (intent.action == Intent.ACTION_MAIN) {
-            intent.openRequest()?.let(openRequests::trySend) ?: homeRequests.tryEmit(Unit)
+            intent.openRequest(debuggable)?.let(openRequests::trySend) ?: homeRequests.tryEmit(Unit)
         }
     }
 }
 
-private fun Intent.openRequest(): OpenRequest? =
-    OpenRequest.Assistant(getStringExtra(MainActivity.EXTRA_ASSISTANT_QUESTION))
+/**
+ * [textQuestions] — приймати запитання текстом ([MainActivity.EXTRA_ASSISTANT_QUESTION]). Лише в
+ * debug-збірці, для перевірок через `am start`: активність експортована, а відповідь асистента
+ * виконує дії (розумний дім, застосунки) без підтвердження — будь-який застосунок на ТВ міг би
+ * керувати домом нашими руками. Кнопка пульта шле лише [MainActivity.EXTRA_ASSISTANT].
+ */
+private fun Intent.openRequest(textQuestions: Boolean): OpenRequest? =
+    OpenRequest.Assistant(getStringExtra(MainActivity.EXTRA_ASSISTANT_QUESTION)?.takeIf { textQuestions })
         .takeIf { getBooleanExtra(MainActivity.EXTRA_ASSISTANT, false) || it.question != null }
         ?: getStringExtra(MainActivity.EXTRA_STREAMING)?.let(OpenRequest::Streaming)
         ?: getStringExtra(MainActivity.EXTRA_SECTION)?.let(LikhtarSection::fromRoute)?.let(OpenRequest::Section)

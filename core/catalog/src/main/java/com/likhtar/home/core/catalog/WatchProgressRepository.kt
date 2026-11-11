@@ -151,7 +151,11 @@ class WatchProgressRepository @Inject constructor(
         positionMs: Long,
         durationMs: Long,
     ) {
-        val watched = durationMs > 0 && positionMs >= durationMs * FINISHED_FRACTION
+        // Поріг — початок титрів, якщо їх знає theintrodb, інакше 92 %. Лише в
+        // домашній збірці: публічна не шле назовні, що людина дивиться, — це обіцянка політики приватності.
+        val credits = if (durationMs <= 0 || com.likhtar.home.core.model.Distribution.store) null else
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { IntroDb.creditsStartMs(item.tmdbId, item.kind, season, episode) }
+        val watched = durationMs > 0 && positionMs >= finishLineMs(durationMs, credits)
         context.playbackDataStore.edit { prefs ->
             val key = positionKey(item.tmdbId, item.kind, season, episode)
             // Додивлену серію не тримаємо: інакше наступного разу вона пропонувала б

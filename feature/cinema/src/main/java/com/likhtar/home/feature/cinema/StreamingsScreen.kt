@@ -44,7 +44,7 @@ fun StreamingsScreen(
     viewModel: StreamingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val firstTile = rememberInitialFocusRequester(state.studios.isNotEmpty() || state.networks.isNotEmpty())
+    val firstTile = rememberInitialFocusRequester(state.studios.isNotEmpty() || state.networks.isNotEmpty() || state.mine.isNotEmpty())
 
     // Те, що вже стоїть у стрімінгах, серед каналів не повторюємо: Netflix, HBO,
     // Paramount+ і Prime приходять із TMDB і як мовники — це той самий сервіс, тільки з
@@ -73,6 +73,9 @@ fun StreamingsScreen(
     val res = LocalContext.current.resources
     val streamingsTitle = stringResource(R.string.cinema_streamings)
     val channelsTitle = stringResource(R.string.cinema_tv_channels)
+    val myStudiosTitle = stringResource(R.string.cinema_my_studios)
+    val channelTitle = stringResource(R.string.cinema_studio_kind_channel)
+    val studioTitle = stringResource(R.string.cinema_studio_kind_studio)
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -105,6 +108,21 @@ fun StreamingsScreen(
             return@LazyColumn
         }
 
+        // Підписки — над усім: їх людина обрала сама (сторінка студії → «Підписатися»).
+        if (state.mine.isNotEmpty()) {
+            tileGrid(
+                title = myStudiosTitle,
+                tiles = state.mine.map { studio ->
+                    Tile(
+                        title = studio.name,
+                        subtitle = if (studio.network) channelTitle else studioTitle,
+                        onClick = { onOpenListing(CatalogListingKind.COMPANY, studio.key) },
+                    )
+                },
+                firstFocus = firstTile,
+            )
+        }
+
         // Стрімінги першими й окремим блоком: у них за плиткою стоїть наша курація
         // (готові ряди), а в мовника — просто перелік тайтлів цього каналу.
         if (state.studios.isNotEmpty()) {
@@ -119,7 +137,7 @@ fun StreamingsScreen(
                         onClick = { onOpenListing(CatalogListingKind.STUDIO, studio.id) },
                     )
                 },
-                firstFocus = firstTile,
+                firstFocus = firstTile.takeIf { state.mine.isEmpty() },
             )
         }
 
@@ -135,7 +153,7 @@ fun StreamingsScreen(
                         onClick = { onOpenListing(CatalogListingKind.NETWORK, network.name) },
                     )
                 },
-                firstFocus = firstTile.takeIf { state.studios.isEmpty() },
+                firstFocus = firstTile.takeIf { state.studios.isEmpty() && state.mine.isEmpty() },
             )
         }
 

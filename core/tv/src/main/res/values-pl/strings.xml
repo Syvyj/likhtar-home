@@ -17,4 +17,18 @@
     <string name="tv_category_business">Biznes</string>
     <string name="tv_category_weather">Pogoda</string>
     <string name="tv_guide_cache_failed">Nie zapisano pamięci podręcznej programu TV</string>
+    <string name="tv_phone_title">Kanały</string>
+    <string name="tv_phone_intro">Zaznaczone kanały są widoczne, strzałki ustalają kolejność. Aby połączyć dwa kanały, nadaj jednemu nazwę drugiego.</string>
+    <string name="tv_phone_groups">Kolejność grup</string>
+    <string name="tv_phone_channels">Kanały</string>
+    <string name="tv_phone_search">Znajdź kanał</string>
+    <string name="tv_phone_source_playlist">Playlista</string>
+    <string name="tv_phone_other">Inne kanały</string>
+    <string name="tv_phone_unjoin">Odłącz „%1$s”</string>
+    <string name="tv_phone_save">Zapisz</string>
+    <string name="tv_phone_saved">Zapisano. Lista na TV odświeży się za chwilę.</string>
+    <string name="tv_phone_empty">Nie ma jeszcze kanałów. Dodaj playlistę w Ustawienia → Telewizja.</string>
+    <string name="tv_phone_move">Przenieś do grupy</string>
+    <string name="tv_phone_cancel">Anuluj</string>
+    <string name="tv_phone_auto_order">Przywróć automatyczną kolejność</string>
 </resources>

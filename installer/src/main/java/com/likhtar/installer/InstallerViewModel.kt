@@ -86,6 +86,7 @@ class InstallerViewModel(app: Application) : AndroidViewModel(app) {
                 LocalAdb.connect(app, APPROVAL_MS, { phase(Phase.APPROVE) }, host).use { adb ->
                     phase(Phase.DOWNLOADING)
                     download(apk)
+                    if (!genuine(apk)) return@use fail(R.string.error_checksum)
                     phase(Phase.INSTALLING)
                     val size = apk.length().toFloat()
                     val out = adb.install(apk) { sent -> _state.update { it.copy(progress = sent / size) } }
@@ -136,11 +137,39 @@ class InstallerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * Той самий файл, що в випуску: пакет Ліхтаря і SHA-256 із приміток випуску, якщо вона там є.
+     * Досі на телевізор ставилось будь-що, що віддала адреса `latest`.
+     */
+    private fun genuine(apk: File): Boolean {
+        val app = getApplication<Application>()
+        if (app.packageManager.getPackageArchiveInfo(apk.path, 0)?.packageName != PACKAGE) return false
+        val notes = runCatching {
+            (URL(RELEASE_API).openConnection() as java.net.HttpURLConnection).run {
+                connectTimeout = 15_000
+                readTimeout = 15_000
+                setRequestProperty("Accept", "application/vnd.github+json")
+                inputStream.use { org.json.JSONObject(it.readBytes().toString(Charsets.UTF_8)).optString("body") }
+            }
+        }.getOrDefault("")
+        val expected = Regex("""`likhtar-home\.apk`\s+`([0-9a-fA-F]{64})`""").find(notes)?.groupValues?.get(1) ?: return true
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        apk.inputStream().use { input ->
+            val buf = ByteArray(64 * 1024)
+            while (true) {
+                val n = input.read(buf)
+                if (n < 0) break
+                md.update(buf, 0, n)
+            }
+        }
+        return md.digest().joinToString("") { "%02x".format(it) }.equals(expected, ignoreCase = true)
+    }
+
     /** IPv4 телефона в поточній мережі; `null` — не в Wi-Fi / без мережі. */
     private fun ownAddress(): String? {
         val cm = getApplication<Application>().getSystemService(ConnectivityManager::class.java)
         return cm.getLinkProperties(cm.activeNetwork)?.linkAddresses
-            ?.map { it.address }?.firstOrNull { it is Inet4Address && !it.isLoopbackAddress }?.hostAddress
+            ?.map { it.address }?.firstOrNull { it is Inet4Address && it.isSiteLocalAddress }?.hostAddress // мобільна мережа оператора — не дім, сканувати її не треба
     }
 
     private fun portOpen(ip: String): Boolean = try {
@@ -152,6 +181,7 @@ class InstallerViewModel(app: Application) : AndroidViewModel(app) {
     private companion object {
         const val PACKAGE = "com.likhtar.home"
         const val APK_URL = "https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-home.apk"
+        const val RELEASE_API = "https://api.github.com/repos/Syvyj/likhtar-home/releases/latest"
         const val APPROVAL_MS = 60_000
         const val SCAN_TIMEOUT_MS = 500
     }

@@ -53,6 +53,12 @@
     <string name="cinema_detail_seasons_episodes">Сезонів і серій</string>
     <string name="cinema_detail_premiere">Прем\'єра</string>
     <string name="cinema_actors">Актори</string>
+    <string name="cinema_studios">Студії й канали</string>
+    <string name="cinema_studio_subscribe">Підписатися</string>
+    <string name="cinema_studio_unsubscribe">Відписатися</string>
+    <string name="cinema_my_studios">Мої студії</string>
+    <string name="cinema_studio_kind_channel">Канал</string>
+    <string name="cinema_studio_kind_studio">Студія</string>
     <string name="cinema_open_all">Відкрити всі</string>
     <string name="cinema_open_franchise">Відкрити франшизу</string>
     <string name="cinema_continue_watching">Продовжити перегляд</string>

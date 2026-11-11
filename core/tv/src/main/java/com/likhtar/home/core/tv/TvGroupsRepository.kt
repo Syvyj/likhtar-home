@@ -52,11 +52,6 @@ class TvGroupsRepository @Inject constructor(
     val hiddenChannels: Flow<Set<String>> =
         context.tvGroupsDataStore.data.map { it[KEY_HIDDEN_CHANNELS].orEmpty() }
 
-    /** Довге OK на каналі в ТВ Ефірі → «Приховати»; повернути — «Налаштування → Телебачення». */
-    suspend fun hideChannel(url: String) {
-        context.tvGroupsDataStore.edit { it[KEY_HIDDEN_CHANNELS] = it[KEY_HIDDEN_CHANNELS].orEmpty() + url }
-    }
-
     suspend fun setHiddenChannels(urls: Set<String>) {
         context.tvGroupsDataStore.edit { it[KEY_HIDDEN_CHANNELS] = urls }
     }

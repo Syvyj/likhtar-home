@@ -163,6 +163,8 @@ internal fun StreamPicker(
                             focus = focus,
                             // Згорнули варіанти — фокус назад на саму озвучку, а не в нікуди.
                             returnFocus = lastOpened == group.voice && picker.expanded == null,
+                            // Один раз: інакше прокрутили озвучку за екран і назад — фокус стрибав на неї.
+                            onReturned = { lastOpened = null },
                             onClick = { onPlay(group) },
                         )
                         if (open) {
@@ -215,9 +217,10 @@ private fun PickerRow(
     focus: FocusRequester,
     returnFocus: Boolean,
     onClick: () -> Unit,
+    onReturned: () -> Unit = {},
 ) {
     val own = remember { FocusRequester() }
-    LaunchedEffect(returnFocus) { if (returnFocus) own.requestWithRetry() }
+    LaunchedEffect(returnFocus) { if (returnFocus && own.requestWithRetry()) onReturned() }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         ActionPill(
             label = label,

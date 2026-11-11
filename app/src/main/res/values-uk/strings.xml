@@ -2,6 +2,8 @@
 <resources>
     <string name="app_open_with">Чим відкрити</string>
     <string name="drop_title">Передати на приставку з телефона</string>
+    <string name="new_episodes_title">Нові серії</string>
+    <string name="new_episodes_hint">За два тижні — із серіалів, які дивитесь чи зберегли</string>
     <string name="drop_no_network">Приставка не в домашній мережі — QR-код нікуди вести.</string>
     <string name="drop_step1">1. Наведіть камеру телефона на код</string>
     <string name="drop_step2">2. Виберіть файл або вставте посилання</string>

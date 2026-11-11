@@ -1,6 +1,7 @@
 package com.likhtar.home.feature.settings
 
 import androidx.compose.foundation.background
+import com.likhtar.home.core.designsystem.tryFocus
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -152,7 +153,7 @@ internal fun CountryPickerDialog(
             Box(
                 modifier = Modifier.onPreviewKeyEvent { event ->
                     if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
-                        runCatching { firstRowFocus.requestFocus() }.isSuccess
+                        firstRowFocus.tryFocus()
                     } else {
                         false
                     }

@@ -24,6 +24,7 @@
         <item>Ще мить…</item>
     </string-array>
     <string name="ds_phone_drop">Передати на приставку з телефона</string>
+    <string name="ds_new_episodes">Нові серії</string>
     <string name="ds_support_title">Підтримати автора</string>
     <string name="ds_support_lead">Likhtar безкоштовний і таким лишиться. Скануйте, як вам зручно, — оплата відкриється на телефоні.</string>
     <string name="ds_support_kofi">Ko-fi</string>

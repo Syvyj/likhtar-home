@@ -16,6 +16,8 @@ import javax.inject.Singleton
 /** Ряд розділу вже в тому вигляді, у якому його малює Кінозал. */
 data class RealitySection(
     val title: String,
+    /** Первісна назва ряду від сервера (назву він перекладає мовою лаунчера, ключ — ні). */
+    val key: String = title,
     val items: List<CatalogItem>,
     /**
      * Позиції ряду, у яких доріжка підтверджена. Їде разом із рядом, а не питається
@@ -250,6 +252,7 @@ class RealityRows @Inject constructor(
         }
         return RealitySection(
             title = row.title,
+            key = row.key,
             items = items,
             // Підтверджені — ті, що назвав сервер, а не весь ряд.
             //

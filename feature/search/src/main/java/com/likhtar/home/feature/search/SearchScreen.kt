@@ -1,6 +1,7 @@
 package com.likhtar.home.feature.search
 
 import android.content.res.Resources
+import com.likhtar.home.core.designsystem.tryFocus
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.likhtar.home.core.designsystem.PreparingScrim
@@ -148,7 +149,7 @@ fun SearchScreen(
         if (focusField || launchQuery != null) return@LaunchedEffect
         repeat(FOCUS_FRAMES * 4) {
             withFrameNanos { }
-            val ok = runCatching { (if (bookmarksFirst) bookmarksFocus else contentFocus).requestFocus() }.isSuccess
+            val ok = (if (bookmarksFirst) bookmarksFocus else contentFocus).tryFocus()
             if (ok) return@LaunchedEffect
         }
     }

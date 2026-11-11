@@ -218,11 +218,32 @@ enum class CatalogListingKind {
      * тож колись рядок «1+1» зможе показувати і серіали каталогу, і шоу поруч.
      */
     NETWORK,
+
+    /** Студія чи канал TMDB з ряду «Студії й канали» сторінки фільму: ключ — [StudioRef.key]. */
+    COMPANY,
     ;
 
     companion object {
         fun fromRoute(value: String?): CatalogListingKind? =
             entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
+    }
+}
+
+/** Студія (production company) чи канал (network) TMDB: ряд на сторінці фільму й підписки. */
+data class StudioRef(
+    val id: Int,
+    val name: String,
+    val logoPath: String? = null,
+    val network: Boolean = false,
+) {
+    /** Ключ сторінки [CatalogListingKind.COMPANY]: `n123` — канал, `c123` — студія. */
+    val key: String get() = (if (network) "n" else "c") + id
+
+    companion object {
+        fun parseKey(key: String): Pair<Boolean, Int>? {
+            val id = key.drop(1).toIntOrNull()?.takeIf { it > 0 } ?: return null
+            return when (key.firstOrNull()) { 'n' -> true to id; 'c' -> false to id; else -> null }
+        }
     }
 }
 
@@ -254,6 +275,8 @@ data class CatalogListing(
     val logoPath: String? = null,
     /** «Відкрити всі»: частини одного ряду сітками різної форми з банером між ними. */
     val sectioned: Boolean = false,
+    /** Сторінка студії TMDB — під заголовком кнопка «Підписатися». */
+    val studio: StudioRef? = null,
 ) {
     companion object {
         /**
@@ -593,6 +616,8 @@ data class TitleDetails(
     val creator: String = "",
     /** Канал серіалу (networks) — «Канал» у «Деталях». */
     val network: String = "",
+    /** Канали й студії TMDB — ряд «Студії й канали» в «Деталях». */
+    val studios: List<StudioRef> = emptyList(),
     /** Скільки всього серій у серіалі — «Сезонів і серій». */
     val episodeCount: Int = 0,
     /** Дата прем'єри (ISO) — «Прем'єра». */

@@ -99,7 +99,10 @@ class SmartHomeRepository @Inject constructor(
         emit(SmartHomeState(SmartHomeStatus.Connecting, lastDevices))
 
         while (true) {
-            val result = client.states(config)
+            // Конфіг — щоразу: з входом через телефон у ньому access-токен на 30 хв, і взятий раз
+            // перед циклом він протухав — Головна на екрані годинами показувала «Токен відхилено»
+            //. accessToken() оновлює його сам, коли треба.
+            val result = client.states(config())
             val state = result.fold(
                 onSuccess = { devices ->
                     lastDevices = devices

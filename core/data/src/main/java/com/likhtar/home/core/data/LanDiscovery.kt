@@ -1,8 +1,6 @@
 package com.likhtar.home.core.data
 
 import java.net.HttpURLConnection
-import java.net.Inet4Address
-import java.net.NetworkInterface
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
@@ -62,15 +60,12 @@ class LanDiscovery @Inject constructor() {
     }
 
     /** Перші три октети власної адреси — обходити маємо ту саму підмережу, що й приставка. */
-    private fun localPrefix(): String? = runCatching {
-        NetworkInterface.getNetworkInterfaces().toList()
-            .filter { it.isUp && !it.isLoopback }
-            .flatMap { it.inetAddresses.toList() }
-            .filterIsInstance<Inet4Address>()
-            .firstOrNull { it.isSiteLocalAddress }
-            ?.hostAddress
-            ?.substringBeforeLast('.')
-    }.getOrNull()
+    /**
+     * Перші три октети власної адреси — обходити маємо ту саму підмережу, що й приставка. Та сама
+     * адреса, що для QR ([lanAddress]): без VPN (tun0 10.5.0.2) і з кабелем перед Wi‑Fi — інакше
+     * «Знайти сервер» обходив підмережу VPN.
+     */
+    private fun localPrefix(): String? = lanAddress()?.substringBeforeLast('.')
 
     private companion object {
         /** Порт агрегатора: усі запити `/api` йдуть через нього. */

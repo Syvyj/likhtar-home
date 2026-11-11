@@ -8,9 +8,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.net.URL
 import java.security.MessageDigest
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -123,10 +120,17 @@ class TvGuideRepository @Inject constructor(
         val url = settingsRepository.settings.first().tvEpgUrl.ifBlank { playlist.guideUrl() }
         if (url.isBlank() || links.isEmpty()) return@withContext emptyMap()
         val key = { l: ChannelLink -> l.epgId.ifBlank { l.url } }
-        // Розібране тримаємо пів години: XMLTV провайдера розбирається на приставці хвилину,
-        // а ТВ Ефір оновлюється кожні 5 хв — інакше кожне оновлення розбирало б його знову.
-        val memoKey = url + "|" + links.size
-        val guide = parsedGuide?.takeIf { it.first == memoKey && System.currentTimeMillis() - it.second < PARSED_TTL_MS }?.third
+        // Розібране тримаємо, доки файл той самий (він оновлюється раз на 12 годин): XMLTV
+        // провайдера розбирається на приставці хвилину, а ТВ Ефір оновлюється кожні 5 хв.
+        // Ключ — які саме канали лишили, а не лише скільки: парсер бере тільки їхні id, і заміна
+        // прихованого каналу іншим за тієї ж кількості лишала новий без програми на пів години.
+        val file = runCatching { cachedGuide(url) }.getOrElse {
+            Log.w(TAG, "Телепрограма плейлиста не завантажилася", it)
+            return@withContext emptyMap()
+        }
+        val memoKey = file.name + "|" + links.map { key(it) + "\u0000" + it.name }.sorted().hashCode()
+        val memo = parsedGuide?.takeIf { it.first == memoKey }?.third
+        val guide = memo
             ?: runCatching {
                 val archived = links.filter { it.archive != null }
                 val parser = XmltvParser(
@@ -135,15 +139,19 @@ class TvGuideRepository @Inject constructor(
                     archiveIds = archived.map { it.epgId }.filter(String::isNotBlank).toSet(),
                     archiveMillis = (archived.maxOfOrNull { it.archive!!.days } ?: 0) * DAY_MS,
                 )
-                cachedGuide(url).inputStream().use { parser.parse(it) }
+                file.inputStream().use { parser.parse(it) }
             }.getOrElse {
                 Log.w(TAG, "Телепрограма плейлиста не завантажилася", it)
                 return@withContext emptyMap()
             }.also { parsedGuide = Triple(memoKey, System.currentTimeMillis(), it) }
         val now = System.currentTimeMillis()
-        val byKey = links.associateBy(key)
-        guide.programmesFor(links.map { key(it) to it.name }).mapNotNull { (k, list) ->
-            val link = byKey[k] ?: return@mapNotNull null
+        // Кілька каналів з одним tvg-id (HD, SD, резерв) — одна програма на всіх. associateBy
+        // лишав її лише останньому, решта стояли «Прямим ефіром».
+        val byKey = links.groupBy(key)
+        val matched = guide.programmesFor(links.map { key(it) to it.name }.distinctBy { it.first })
+        matched.flatMap { (k, list) -> byKey[k].orEmpty().map { it to list } }.also {
+            Log.i(TAG, "Програма плейлиста: ${it.size} з ${links.size} каналів")
+        }.associate { (link, list) ->
             val live = list.firstOrNull { it.startMillis <= now && it.endMillis > now }
             link.url to ChannelSchedule(
                 live = live?.let { NowOnAir(title = it.title, description = it.description.orEmpty(), image = null, startMillis = it.startMillis, endMillis = it.endMillis) },
@@ -154,8 +162,25 @@ class TvGuideRepository @Inject constructor(
                         .map { EpgProgramme(it.title, it.startMillis, it.endMillis, it.description.orEmpty()) }
                 }.orEmpty(),
             )
-        }.toMap()
+        }.also { result ->
+            // Щойно розібране — на диск, для наступного холодного старту (див. [lastSchedules]).
+            if (memo == null && result.isNotEmpty()) runCatching { snapshotFile.writeText(encodeGuideSnapshot(url, result)) }
+        }
     }
+
+    /**
+     * Програма з останнього розбору — миттєво, без XMLTV: показати, доки йде свіжий розбір.
+     * Порожньо, якщо розбору ще не було або адреса програми відтоді змінилась.
+     */
+    suspend fun lastSchedules(links: List<ChannelLink>): Map<String, ChannelSchedule> = withContext(Dispatchers.IO) {
+        val url = settingsRepository.settings.first().tvEpgUrl.ifBlank { playlist.guideUrl() }
+        if (url.isBlank() || !snapshotFile.exists()) return@withContext emptyMap()
+        val urls = links.map { it.url }.toSet()
+        runCatching { decodeGuideSnapshot(snapshotFile.readText(), url, System.currentTimeMillis()) }
+            .getOrDefault(emptyMap()).filterKeys { it in urls }
+    }
+
+    private val snapshotFile get() = File(context.cacheDir, "tv-guide-last.json")
 
     @Volatile private var parsedGuide: Triple<String, Long, XmltvGuide>? = null
 
@@ -199,26 +224,35 @@ class TvGuideRepository @Inject constructor(
      * адрес і днів прибираємо, щоб кеш не ріс.
      */
     private fun cachedGuide(url: String): File {
-        val day = SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(Date())
+        // Свіжий файл — раз на 12 годин; увесь цей час працюємо з тим самим.
+        val day = System.currentTimeMillis() / GUIDE_REFRESH_MS
         val hash = MessageDigest.getInstance("SHA-256").digest(url.toByteArray())
             .take(8).joinToString("") { "%02x".format(it) }
-        val file = File(context.cacheDir, "$GUIDE_PREFIX$hash-$day.xml")
+        // «-2»: файли, складені до NO_HTTP_CACHE, могли прийти зі старого HTTP-кешу — перекачати.
+        val file = File(context.cacheDir, "$GUIDE_PREFIX$hash-$day-2.xml")
         if (file.exists() && file.length() > 0) return file
+        // Попередній файл цієї ж адреси: новий не скачається — програма лишається вчорашньою, а не жодною.
+        val previous = context.cacheDir.listFiles { f -> f.name.startsWith("$GUIDE_PREFIX$hash-") && f.name.endsWith(".xml") && f.length() > 0 }
+            ?.maxByOrNull { it.lastModified() }
 
-        http(url, TIMEOUT_MS, READ_TIMEOUT_MS, headers = mapOf("User-Agent" to USER_AGENT, "Accept-Encoding" to "gzip")) { connection ->
+        runCatching { http(url, TIMEOUT_MS, READ_TIMEOUT_MS, headers = mapOf("User-Agent" to USER_AGENT, "Accept-Encoding" to "gzip", "Cache-Control" to NO_HTTP_CACHE)) { connection ->
             // Через тимчасовий файл: обірване завантаження не має виглядати як кеш на цілий день.
             // gzip лишається gzip'ом — парсер сам дивиться на перші байти.
             val temporary = File.createTempFile(GUIDE_PREFIX, ".part", context.cacheDir)
             try {
+                if (connection.responseCode != 200) error("XMLTV: HTTP ${connection.responseCode}")
                 connection.inputStream.use { input -> temporary.outputStream().use { input.copyTo(it) } }
+                // Сторінка-заглушка провайдера (вхід, капча, «404» з кодом 200) — не програма: інакше
+                // вона лягала б у кеш на цілий день, і програми не було до завтра.
+                if (!looksLikeXmltv(temporary)) error("XMLTV: відповідь — не програма")
                 context.cacheDir.listFiles { f -> f.name.startsWith(GUIDE_PREFIX) && f.name.endsWith(".xml") }
                     ?.forEach { it.delete() }
                 if (!temporary.renameTo(file)) error(context.getString(R.string.tv_guide_cache_failed))
             } finally {
                 temporary.delete()
             }
-        }
-        return file
+        } }.onFailure { if (previous == null) throw it else Log.w(TAG, "Свіжа телепрограма не завантажилась — лишаємо попередню (${it.javaClass.simpleName})") }
+        return if (file.exists()) file else previous!!
     }
 
     /** Автогрупи будуються з категорій каталогу і показуються лише якщо в них є канали. */
@@ -237,7 +271,7 @@ class TvGuideRepository @Inject constructor(
     )
 
     private companion object {
-        const val PARSED_TTL_MS = 30 * 60 * 1000L
+        const val GUIDE_REFRESH_MS = 12 * 60 * 60 * 1000L
         const val DAY_MS = 24 * 60 * 60 * 1000L
         const val TAG = "LikhtarTv"
         const val USER_AGENT = "LIKHTAR-TV-launcher/0.1 (Android TV)"
@@ -254,4 +288,12 @@ class TvGuideRepository @Inject constructor(
 fun TvGroup.channelsFrom(channels: List<TvChannel>): List<TvChannel> = when {
     categoryId != null -> channels.filter { categoryId in it.categories }
     else -> channels.filter { it.id in channelIds }
+}
+
+/** gzip або XML з <tv> на початку; HTML-сторінка — ні. */
+internal fun looksLikeXmltv(file: File): Boolean {
+    val head = file.inputStream().use { input -> ByteArray(512).let { b -> b.copyOf(maxOf(0, input.read(b))) } }
+    if (head.size >= 2 && head[0] == 0x1f.toByte() && head[1] == 0x8b.toByte()) return true
+    val text = String(head, Charsets.UTF_8).trimStart('\uFEFF', ' ', '\n', '\r', '\t').lowercase()
+    return text.startsWith("<?xml") && "<html" !in text || text.startsWith("<tv") || text.startsWith("<!doctype tv")
 }

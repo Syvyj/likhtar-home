@@ -74,7 +74,9 @@ fun resumeCards(
     val known = watching.map { it.tmdbId to it.kind }.toSet()
     val shelf = library.filterNot { (it.item.tmdbId to it.item.kind) in known }.distinctBy { it.item.id }
         .map { it.playedAt to it.card() }
-    return byTime(ours + theirs + shelf)
+    // id картки — ключ LazyList: та сама назва й підпис із двох джерел (наше й MEGOGO) клали ряд
+    // «Key … was already used». Свіжіша з двох лишається.
+    return byTime(ours + theirs + shelf).distinctBy { it.id }
 }
 
 /** Стабільно, від найсвіжішого: позиції MEGOGO без часу (0) — у хвості, у його ж порядку. */

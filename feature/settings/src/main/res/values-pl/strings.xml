@@ -388,6 +388,7 @@
     <string name="settings_ai_model_hint">puste — domyślny dostawcy</string>
     <string name="settings_ai_url">Adres (Ollama, LM Studio)</string>
     <string name="settings_ai_key">Klucz API</string>
+    <string name="settings_ha_need_token">Home Assistant: dla nowego adresu podaj też token</string>
     <string name="settings_ai_need_key">AI: podaj klucz API</string>
     <string name="settings_ai_need_url">AI: podaj adres swojego serwera</string>
     <string name="settings_ai_need_model">AI: podaj nazwę modelu</string>
@@ -405,4 +406,5 @@
     <string name="settings_phone_clip">Tekst do schowka telewizora</string>
     <string name="settings_phone_clip_hint">Wklej go na telewizorze tam, gdzie pole tekstowe oferuje Wklej.</string>
     <string name="settings_phone_clip_saved">Schowek</string>
+    <string name="settings_phone_channels">Edytuj kanały: kolejność, nazwy, duplikaty</string>
 </resources>

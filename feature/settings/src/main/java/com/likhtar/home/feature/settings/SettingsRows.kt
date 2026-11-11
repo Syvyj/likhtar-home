@@ -86,7 +86,7 @@ private fun RowShell(
             focusedBackground = LikhtarColors.Paper,
             borderColor = Color.Transparent,
             focusRingColor = Color.Transparent,
-            focusedScale = 1.02f,
+            focusedScale = LikhtarDimens.PanelFocusScale,
             instantFill = true,
         ) { focused ->
             Row(

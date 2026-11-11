@@ -159,6 +159,10 @@ data class TitleUiState(
     val markPanel: Boolean = false,
 )
 
+/** Те, що сторінка бере з налаштувань: переживає повну заміну стану в `load()`. */
+internal fun TitleUiState.keepSettings(from: TitleUiState) =
+    copy(actionsOrder = from.actionsOrder, liveStills = from.liveStills, trailerOnUp = from.trailerOnUp)
+
 /**
  * Селектор джерела: одне питання — чим це грати.
  *
@@ -329,7 +333,7 @@ class TitleViewModel @Inject constructor(
     /** «Спробувати ще» зі сторінки, що не відкрилась. */
     fun retry() {
         val item = routeItem ?: return
-        state.value = TitleUiState(loading = true, actionsOrder = state.value.actionsOrder)
+        state.value = TitleUiState(loading = true).keepSettings(state.value)
         load(item)
     }
 
@@ -337,7 +341,7 @@ class TitleViewModel @Inject constructor(
         viewModelScope.launch {
             // Збій мережі тут — не падіння застосунку, а сторінка «не відкрилась» із «Спробувати ще».
             val details = runCatching { catalog.details(item) }.getOrElse {
-                state.value = TitleUiState(loading = false, message = context.getString(R.string.cinema_page_failed), actionsOrder = state.value.actionsOrder)
+                state.value = TitleUiState(loading = false, message = context.getString(R.string.cinema_page_failed)).keepSettings(state.value)
                 return@launch
             }.let { d ->
                 // TMDB без українського опису — беремо той, що був на картці ряду. Лише в
@@ -350,11 +354,11 @@ class TitleViewModel @Inject constructor(
                 loading = false,
                 details = details,
                 inWatchlist = watchlist.contains(details.item),
-                // Порядок кнопок прийшов потоком раніше за деталі — не втрачаємо його,
-                // бо тут стан заміняється цілком, а не оновлюється.
-                actionsOrder = state.value.actionsOrder,
                 message = if (details.item.title.isBlank()) context.getString(R.string.cinema_tmdb_no_data) else null,
-            )
+                // Налаштування прийшли потоком раніше за деталі — не втрачаємо їх, бо тут стан
+                // заміняється цілком: раніше переносився лише порядок кнопок, а «живий фон» і
+                // «трейлер на ↑» поверталися до типових.
+            ).keepSettings(state.value)
             // Після заміни стану, а не до неї: тут він присвоюється цілком, і відповідь,
             // що встигла приїхати раніше, просто зникла б.
             loadUaAudio(item)
@@ -451,9 +455,26 @@ class TitleViewModel @Inject constructor(
         lantern(season, episode)
     }
 
+    /**
+     * Один пошук озвучок чи підготовка за раз: новий (інша серія, друге OK), Back і закриття
+     * вікна скасовують попередній. Без цього запізніла відповідь пошуку по 3-й серії лягала у
+     * вікно 5-ї, а закрите вікно відкривалось саме, коли відповів сервер.
+     */
+    private val pickerJob by lazy { com.likhtar.home.core.data.LatestJob(viewModelScope) }
+
+    private fun pickerLaunch(block: suspend kotlinx.coroutines.CoroutineScope.() -> Unit) {
+        pickerJob.launch(block)
+    }
+
+    /** Back під час «Готую…» чи пошуку: нічого вже не вмикаємо. */
+    fun cancelPreparing() {
+        pickerJob.cancel()
+        state.update { it.copy(preparing = false, preparingStat = null, picker = null) }
+    }
+
     private fun lantern(season: Int, episode: Int) {
         val item = state.value.details?.item ?: return
-        viewModelScope.launch {
+        pickerLaunch {
             state.update {
                 it.copy(preparing = false, message = null, picker = PickerState(loading = true, season = season, episode = episode))
             }
@@ -469,13 +490,13 @@ class TitleViewModel @Inject constructor(
             }
             val all = full.await().ifEmpty { fast }
             // Вікно закрили або з нього вже щось увімкнули, поки йшов пошук: не чіпаємо.
-            if (state.value.picker == null) return@launch
+            if (state.value.picker == null) return@pickerLaunch
             if (all.isEmpty()) {
                 state.update {
                     it.copy(picker = null, preparing = true, preparingNote = context.getString(R.string.cinema_prep_best_option) to "")
                 }
                 if (item.kind == TitleKind.TV) playEpisode(season, episode) else playFromList()
-                return@launch
+                return@pickerLaunch
             }
             state.update {
                 it.copy(picker = PickerState(voices = all.sortedBy { g -> voiceRank(g.voice, recent) }, season = season, episode = episode))
@@ -532,7 +553,7 @@ class TitleViewModel @Inject constructor(
                 message = null,
             )
         }
-        viewModelScope.launch {
+        pickerLaunch {
             val (season, episode) = if (item.kind == TitleKind.TV) impliedEpisode() else 0 to 0
             // Межу «неігрове» називаємо самі: у пошуку за назвою id немає, а без неї в
             // реаліті приїхало б ігрове — те саме, від чого ми чистили ряди розділу.
@@ -548,7 +569,7 @@ class TitleViewModel @Inject constructor(
                         ),
                     )
                 }
-                return@launch
+                return@pickerLaunch
             }
             // Знайдене не вмикаємо самі. Живий пошук збігається за назвою, і збіг буває
             // чужий — на документальному «Lion» приїхав арабський бойовик. Тому результат
@@ -570,7 +591,7 @@ class TitleViewModel @Inject constructor(
                     ref = ref,
                     source = result.source,
                 )
-                return@launch
+                return@pickerLaunch
             }
             state.update {
                 it.copy(
@@ -729,7 +750,7 @@ class TitleViewModel @Inject constructor(
     /** Список озвучок цієї серії — і з кнопки «Озвучки», і замість автозапуску чужої мови. */
     private fun showVoices(season: Int, episode: Int, studio: String = "") {
         val item = state.value.details?.item ?: return
-        viewModelScope.launch {
+        pickerLaunch {
             state.update { it.copy(preparing = false, picker = PickerState(loading = true)) }
             // Зверху — та озвучка, якою вмикали востаннє: у списку з двох десятків
             // рядків шукати свою студію щоразу заново — це те саме, що не мати вибору.
@@ -788,8 +809,9 @@ class TitleViewModel @Inject constructor(
                 preparingStat = null,
             )
         }
-        val watch = watchTorrent(group.refs.filter { torrentLike(it, group.names[it]) })
-        viewModelScope.launch {
+        val watch = watchTorrent(group.refs.filter { torrentLike(it, group.names[it], group.sourceOf[it]) })
+        pickerLaunch {
+            coroutineContext[Job]?.invokeOnCompletion { watch.cancel() }
             // Запам'ятовуємо ДО запуску: людина вже зробила вибір, і навіть якщо роздача
             // не стартує, наступного разу цю студію треба показати першою.
             history.rememberVoice(group.voice, settings.settings.first().activeProfileId)
@@ -814,7 +836,7 @@ class TitleViewModel @Inject constructor(
                         message = result.reason.ifBlank { context.getString(R.string.cinema_voice_failed) },
                     )
                 }
-                return@launch
+                return@pickerLaunch
             }
             if (item.kind == TitleKind.TV && episode > 0) {
                 markEpisodeStarted(item, season, episode)
@@ -908,7 +930,10 @@ class TitleViewModel @Inject constructor(
         }
     }
 
-    fun closePicker() = state.update { it.copy(picker = null) }
+    fun closePicker() {
+        pickerJob.cancel()
+        state.update { it.copy(picker = null) }
+    }
 
     /** Назад у вікні: спершу згорнути варіанти, тоді вже закрити. */
     fun back() {
@@ -1325,9 +1350,12 @@ private const val STAT_POLL_MS = 1_000L
 /** Скільки варіантів класти в панель якості плеєра. */
 private const val MAX_VARIANTS = 12
 
-/** Роздача за ref (infohash) чи за підписом пункта («… · Торент»). */
-private fun torrentLike(ref: String, name: String?): Boolean =
-    Regex("[0-9a-fA-F]{40}").matches(ref) || name?.contains("Торент") == true
+/**
+ * Роздача: джерело сервера `torrent`, ref-infohash, а вже тоді — підпис пункта («… · Торент»), який
+ * сервер складає українською для старих відповідей без `sourceOf`.
+ */
+private fun torrentLike(ref: String, name: String?, source: String?): Boolean =
+    source == "torrent" || Regex("[0-9a-fA-F]{40}").matches(ref) || name?.contains("Торент") == true
 
 private fun markMessage(context: android.content.Context, m: TitleMark): String = context.getString(
     when {

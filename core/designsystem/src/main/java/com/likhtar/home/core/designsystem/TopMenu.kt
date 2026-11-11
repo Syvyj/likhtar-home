@@ -202,6 +202,9 @@ private fun StatusBlock(
             )
         }
         NetworkStatusIcon(state = networkState)
+        LocalNewEpisodesBell.current?.takeIf { it.total > 0 }?.let { bell ->
+            BellButton(bell, modifier = Modifier.focusDown(contentFocusRequester))
+        }
         LocalPhoneDropAction.current?.let { open ->
             PhoneDropButton(onClick = open, modifier = Modifier.focusDown(contentFocusRequester))
         }
@@ -371,7 +374,7 @@ private fun SettingsButton(active: Boolean, onSelect: () -> Unit, modifier: Modi
         background = if (active) LikhtarColors.Glass else Color.Transparent,
         focusedBackground = LikhtarColors.GlassActive,
         borderColor = Color.Transparent,
-        focusedScale = 1.04f,
+        focusedScale = LikhtarDimens.ControlFocusScale,
     ) { focused ->
         val ink = if (focused) LikhtarColors.OnGlassActive else MenuInk
         Canvas(modifier = Modifier.size(16.dp)) {
@@ -410,6 +413,45 @@ private fun SettingsButton(active: Boolean, onSelect: () -> Unit, modifier: Modi
  */
 val LocalPhoneDropAction = androidx.compose.runtime.staticCompositionLocalOf<(() -> Unit)?> { null }
 
+/** Дзвіночок «Нові серії»: [total] — скільки нових, [unseen] — ще не бачених (цифра на значку). */
+data class NewEpisodesBell(val total: Int, val unseen: Int, val onOpen: () -> Unit)
+
+val LocalNewEpisodesBell = androidx.compose.runtime.compositionLocalOf<NewEpisodesBell?> { null }
+
+@Composable
+private fun BellButton(bell: NewEpisodesBell, modifier: Modifier = Modifier) {
+    FocusableSurface(
+        onClick = bell.onOpen,
+        modifier = modifier,
+        shape = RoundedCornerShape(LikhtarDimens.CornerPill),
+        background = Color.Transparent,
+        focusedBackground = LikhtarColors.GlassActive,
+        borderColor = Color.Transparent,
+        focusedScale = LikhtarDimens.ControlFocusScale,
+    ) { focused ->
+        // Поля всередині: з цифрою пігулка фокуса ширша за значок, і без них «2» липне до краю.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            modifier = Modifier.padding(horizontal = if (bell.unseen > 0) 8.dp else 0.dp),
+        ) {
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(R.drawable.ic_solar_bell),
+                contentDescription = androidx.compose.ui.res.stringResource(R.string.ds_new_episodes),
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(if (focused) LikhtarColors.OnGlassActive else MenuInk),
+                modifier = Modifier.size(16.dp),
+            )
+            if (bell.unseen > 0) {
+                Text(
+                    text = bell.unseen.toString(),
+                    style = MenuClock,
+                    color = if (focused) LikhtarColors.OnGlassActive else LikhtarColors.Glow,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun PhoneDropButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     FocusableSurface(
@@ -419,7 +461,7 @@ private fun PhoneDropButton(onClick: () -> Unit, modifier: Modifier = Modifier) 
         background = Color.Transparent,
         focusedBackground = LikhtarColors.GlassActive,
         borderColor = Color.Transparent,
-        focusedScale = 1.04f,
+        focusedScale = LikhtarDimens.ControlFocusScale,
     ) { focused ->
         androidx.compose.foundation.Image(
             painter = androidx.compose.ui.res.painterResource(R.drawable.ic_solar_phone),
@@ -473,7 +515,7 @@ private fun MenuItem(
         background = if (active) LikhtarColors.Glass else Color.Transparent,
         focusedBackground = LikhtarColors.GlassActive,
         borderColor = Color.Transparent,
-        focusedScale = 1.04f,
+        focusedScale = LikhtarDimens.ControlFocusScale,
     ) { focused ->
         Text(
             text = stringResource(section.titleRes),

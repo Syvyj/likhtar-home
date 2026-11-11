@@ -51,16 +51,6 @@ class TitleMarksRepository @Inject constructor(
     private suspend fun localKey(item: CatalogItem) =
         "${settings.settings.first().activeProfileId}:${item.kind.tmdbPath}:${item.tmdbId}"
 
-    /** Усі локальні позначки профілю: «kind:tmdbId» → позначка (ряди відсівають за ними). */
-    suspend fun localMarks(): Map<String, TitleMark> {
-        val prefix = "${settings.settings.first().activeProfileId}:"
-        return local.all.mapNotNull { (k, v) ->
-            if (!k.startsWith(prefix)) return@mapNotNull null
-            val mark = runCatching { parse(JSONObject(v as String)) }.getOrNull() ?: return@mapNotNull null
-            k.removePrefix(prefix) to mark
-        }.toMap()
-    }
-
     suspend fun markOf(item: CatalogItem): TitleMark? = withContext(Dispatchers.IO) {
         val base = config.homeOnlyUrl()
             ?: return@withContext local.getString(localKey(item), null)?.let { runCatching { parse(JSONObject(it)) }.getOrNull() }

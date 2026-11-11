@@ -24,14 +24,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -49,12 +46,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.focus.onFocusChanged
@@ -176,7 +171,10 @@ fun HomeScreen(
     }
     // Кожна картка ряду мусить знати вихід угору й донизу: між зонами пів екрана
     // порожнечі, і геометричний пошук фокуса там глухне.
-    val contextCross = Modifier.focusUp(weatherFocusRequester).focusDown(firstTileFocusRequester)
+    // ↓ з полиці — на пункт доку, чия це полиця (він лишається підсвіченим), а не на перший:
+    // з «Продовжити перегляд» людина поверталась на LIKHTAR HOME, і полиця під нею мінялась.
+    val shelfOwnerFocusRequester = remember { FocusRequester() }
+    val contextCross = Modifier.focusUp(weatherFocusRequester).focusDown(shelfOwnerFocusRequester)
 
     // У ambient-режимі плитки не просто ховаються, а згасають: різке зникнення на великому
     // екрані читається як збій, а не як задум. Годинник і погода лишаються — телевізор
@@ -390,6 +388,7 @@ fun HomeScreen(
                 },
                 onFocused = { focusedDockSection = it },
                 firstTileFocusRequester = firstTileFocusRequester,
+                shelfOwnerFocusRequester = shelfOwnerFocusRequester,
                 // ↑ з доку — у власний контекстний ряд. Якщо ряду немає або він
                 // порожній, перестрибуємо одразу на погоду: підвисати ні на чому.
                 upTarget = if (contextHasCards) contextFocusRequester else weatherFocusRequester,
@@ -468,7 +467,7 @@ private fun WeatherCard(weather: WeatherSnapshot, onOpen: () -> Unit, modifier: 
         background = Color.Transparent,
         focusedBackground = LikhtarColors.Background.copy(alpha = 0.7f),
         borderColor = Color.Transparent,
-        focusedScale = 1.03f,
+        focusedScale = LikhtarDimens.PanelFocusScale,
     ) { focused ->
         // Без фокуса підкладки немає — текст на самому фото, тож тінь під ним, як під годинником.
         val shade = if (focused) null else TextShade
@@ -543,6 +542,8 @@ private fun Dock(
     onSelectSection: (LikhtarSection) -> Unit,
     onFocused: (LikhtarSection) -> Unit,
     firstTileFocusRequester: FocusRequester,
+    /** Пункт, чия полиця відкрита, — сюди веде ↓ з полиці. */
+    shelfOwnerFocusRequester: FocusRequester,
     upTarget: FocusRequester?,
     modifier: Modifier = Modifier,
     /** Розділ, чия полиця зараз відкрита: фокус пішов на полицю — пункт лишається підсвіченим. */
@@ -583,6 +584,7 @@ private fun Dock(
                 modifier = Modifier
                     .focusRequester(requesters[index])
                     .then(if (index == 0) Modifier.focusRequester(firstTileFocusRequester) else Modifier)
+                    .then(if (tile.section == selected) Modifier.focusRequester(shelfOwnerFocusRequester) else Modifier)
                     .focusDirections {
                         left = previous
                         right = next
@@ -615,7 +617,7 @@ private fun NavTile(
         focusedBackground = LikhtarColors.Paper,
         borderColor = Color.Transparent,
         focusRingColor = Color.Transparent,
-        focusedScale = 1.04f,
+        focusedScale = LikhtarDimens.ControlFocusScale,
         instantFill = true,
     ) { focused ->
         val ink = if (focused) LikhtarColors.OnWarmWhite else LikhtarColors.Ink
@@ -701,29 +703,20 @@ private fun Modifier.lightSource(): Modifier {
 @Composable
 private fun ContextSection(
     label: String?,
-    /** Перша картка ряду; з нею ряд іде по колу — останню ряд позначає сам через `last`. */
-    first: FocusRequester? = null,
-    content: @Composable RowScope.(edges: RowEdges) -> Unit,
+    content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
 ) {
-    val edges = remember(first) { RowEdges(first, FocusRequester(), com.likhtar.home.core.designsystem.RowWrap()) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         label?.let {
             Text(text = it, style = ShelfTitleStyle, color = Color.White)
         }
-        // Прокрутка, а не просто ряд: картки мають сталу ширину, і шостий канал (налаштування
-        // «6 каналів») не влазив — Row стискав останню картку до логотипа й «…».
-        // Зайве ховається за краєм і під'їжджає разом із фокусом. Прокрутка обрізає вздовж
-        // ряду, а картка під фокусом росте — тому запас по краях, зсунутий назад, щоб
-        // картки стояли там само, а збільшена не різалась.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        // Спільна рейка, як у решти розділів: прокрутка (шостий канал не стискається), запас під
+        // збільшення картки у фокусі, ряд по колу окремим натисканням, вхід на першу картку.
+        // Досі тут був власний Row із саморобними краями й запасом — те саме, але окремо.
+        com.likhtar.home.core.designsystem.LikhtarRail(
+            gap = 14.dp,
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .bleed(ScrollEdge)
-                .onPreviewKeyEvent(edges.wrap::onKey)
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = ScrollEdge),
-            content = { content(edges) },
+            bleed = ScrollEdge,
+            content = content,
         )
     }
 }
@@ -743,40 +736,31 @@ private fun HomeContextRow(
     first: FocusRequester,
     crossZone: Modifier,
 ) {
-    // «Ліхтарик підкаже» (прототип): готові запити одразу запускають Ліхтарика.
-    var firstTaken = false
-    // Перша пігулка — вхід у ряд; її «вліво» веде на останню (ряд по колу, див. ContextSection).
-    var edgesHere: RowEdges? = null
-    val firstOnce: () -> Modifier = {
-        if (firstTaken) crossZone else { firstTaken = true; crossZone.focusRequester(first).let { m -> edgesHere?.let { m.rowStart(it) } ?: m } }
+    // «Ліхтарик підкаже»: готові запити одразу запускають Ліхтарика.
+    var support by remember { mutableStateOf(false) }
+    if (support) com.likhtar.home.core.designsystem.SupportDialog(onDismiss = { support = false })
+    // «Новинки українською» — лише українському інтерфейсу: поляк бачив «Nowości po ukraińsku»
+    // поруч із власними підказками, як решту українського пласта.
+    val ukrainian = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "uk"
+    // Три випадкові запити з набору, щоразу інші, коли рядок з'являється.
+    val pool = androidx.compose.ui.res.stringArrayResource(R.array.home_asks).toList() +
+        listOfNotNull(stringResource(R.string.home_ask_ukrainian).takeIf { ukrainian })
+    val asks = remember { pool.shuffled().take(ASKS_SHOWN) }
+    // Порядок: сам Ліхтарик, «Підтримати автора», а далі решта — нова версія, підказки й
+    // налаштування. «Налаштування» лишаються завжди: вимкнувши Ліхтарик, людина мусить мати чим
+    // його повернути.
+    val pills: List<Triple<String, Int, () -> Unit>> = buildList {
+        if (showTorch) add(Triple(stringResource(R.string.home_open_torch), R.drawable.ic_dock_search, onOpenTorch))
+        add(Triple(stringResource(R.string.home_support), com.likhtar.home.core.designsystem.R.drawable.ic_solar_heart, { support = true }))
+        update?.let { add(Triple(stringResource(R.string.home_update, it.version), com.likhtar.home.core.designsystem.R.drawable.ic_solar_download, onUpdate)) }
+        if (showTorch) asks.forEach { text -> add(Triple(text, R.drawable.ic_magic, { onAsk(text) })) }
+        add(Triple(stringResource(R.string.home_settings), R.drawable.ic_settings_solar, onOpenSettings))
     }
-    ContextSection(label = if (showTorch) stringResource(R.string.home_torch_suggests) else null, first = first) { edges ->
-        edgesHere = edges
-        // Порядок: сам Ліхтарик, «Підтримати автора», а далі решта — нова версія, підказки й
-        // налаштування.
-        if (showTorch) {
-            HomePill(text = stringResource(R.string.home_open_torch), icon = R.drawable.ic_dock_search, onClick = onOpenTorch, modifier = firstOnce())
+    ContextSection(label = if (showTorch) stringResource(R.string.home_torch_suggests) else null) {
+        items(pills.size) { index ->
+            val (text, icon, onClick) = pills[index]
+            HomePill(text = text, icon = icon, onClick = onClick, modifier = crossZone.thenFirst(index, first))
         }
-        var support by remember { mutableStateOf(false) }
-        HomePill(text = stringResource(R.string.home_support), icon = com.likhtar.home.core.designsystem.R.drawable.ic_solar_heart, onClick = { support = true }, modifier = firstOnce())
-        if (support) com.likhtar.home.core.designsystem.SupportDialog(onDismiss = { support = false })
-        update?.let {
-            HomePill(text = stringResource(R.string.home_update, it.version), icon = com.likhtar.home.core.designsystem.R.drawable.ic_solar_download, onClick = onUpdate, modifier = firstOnce())
-        }
-        if (showTorch) {
-            // «Новинки українською» — лише українському інтерфейсу: поляк бачив «Nowości po ukraińsku»
-            // поруч із власними підказками, як решту українського пласта.
-            val ukrainian = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "uk"
-            // Три випадкові запити з набору, щоразу інші, коли рядок з'являється.
-            val pool = androidx.compose.ui.res.stringArrayResource(R.array.home_asks).toList() +
-                listOfNotNull(stringResource(R.string.home_ask_ukrainian).takeIf { ukrainian })
-            val asks = remember { pool.shuffled().take(ASKS_SHOWN) }
-            asks.forEach { text ->
-                HomePill(text = text, icon = R.drawable.ic_magic, onClick = { onAsk(text) }, modifier = firstOnce())
-            }
-        }
-        // «Налаштування» лишаються завжди: вимкнувши Ліхтарик, людина мусить мати чим його повернути.
-        HomePill(text = stringResource(R.string.home_settings), icon = R.drawable.ic_settings_solar, onClick = onOpenSettings, modifier = firstOnce().rowEnd(edges))
     }
 }
 
@@ -799,7 +783,7 @@ private fun HomePill(
         focusedBackground = LikhtarColors.Paper,
         borderColor = Color.Transparent,
         focusRingColor = Color.Transparent,
-        focusedScale = 1.05f,
+        focusedScale = LikhtarDimens.ControlFocusScale,
         instantFill = true,
     ) { focused ->
         Row(
@@ -879,16 +863,17 @@ private fun ChannelsContextRow(
     first: FocusRequester,
     crossZone: Modifier,
 ) {
-    ContextSection(label = stringResource(R.string.home_recent_channels), first = first) { edges ->
+    ContextSection(label = stringResource(R.string.home_recent_channels)) {
         if (channels.isEmpty()) {
-            ContextHint(stringResource(R.string.home_recent_channels_empty))
+            item { ContextHint(stringResource(R.string.home_recent_channels_empty)) }
         } else {
-            channels.forEachIndexed { index, channel ->
+            items(channels.size) { index ->
+                val channel = channels[index]
                 ChannelCard(
                     channel = channel,
                     pinned = channel.url in pinned,
                     onClick = { onOpen(channel) },
-                    modifier = crossZone.thenFirst(index, first).thenEdge(index, channels.lastIndex, edges),
+                    modifier = crossZone.thenFirst(index, first),
                 )
             }
         }
@@ -916,7 +901,7 @@ private fun ChannelCard(channel: RecentChannel, pinned: Boolean, onClick: () -> 
         background = Color.Transparent,
         focusedBackground = Color.Transparent,
         borderColor = Color.Transparent,
-        focusedScale = 1.07f,
+        focusedScale = LikhtarDimens.CardFocusScale,
     ) { focused ->
         Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(c1, c2)))) {
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.5f to Color.Transparent, 1f to LikhtarColors.Shade.copy(alpha = 0.55f))))
@@ -962,15 +947,18 @@ private fun SearchContextRow(
     first: FocusRequester,
     crossZone: Modifier,
 ) {
-    ContextSection(label = stringResource(R.string.home_recent_searches), first = first) { edges ->
-        HomePill(
-            text = stringResource(R.string.home_new_search),
-            icon = R.drawable.ic_dock_search,
-            onClick = { onSearch("") },
-            modifier = crossZone.focusRequester(first).thenEdge(0, queries.size, edges),
-        )
-        queries.forEachIndexed { index, query ->
-            HomePill(text = query, icon = R.drawable.ic_history, onClick = { onSearch(query) }, modifier = crossZone.thenEdge(index + 1, queries.size, edges))
+    ContextSection(label = stringResource(R.string.home_recent_searches)) {
+        item {
+            HomePill(
+                text = stringResource(R.string.home_new_search),
+                icon = R.drawable.ic_dock_search,
+                onClick = { onSearch("") },
+                modifier = crossZone.focusRequester(first),
+            )
+        }
+        items(queries.size) { index ->
+            val query = queries[index]
+            HomePill(text = query, icon = R.drawable.ic_history, onClick = { onSearch(query) }, modifier = crossZone)
         }
     }
 }
@@ -983,11 +971,12 @@ private fun SmartHomeContextRow(
     first: FocusRequester,
     crossZone: Modifier,
 ) {
-    ContextSection(label = stringResource(R.string.home_smart_now), first = first) { edges ->
+    ContextSection(label = stringResource(R.string.home_smart_now)) {
         if (devices.isEmpty()) {
-            ContextHint(stringResource(R.string.home_smart_empty))
+            item { ContextHint(stringResource(R.string.home_smart_empty)) }
         } else {
-            devices.forEachIndexed { index, device ->
+            items(devices.size) { index ->
+                val device = devices[index]
                 val on = device.state.equals("on", ignoreCase = true)
                 HomePill(
                     text = device.name,
@@ -995,7 +984,7 @@ private fun SmartHomeContextRow(
                     small = deviceStateLabel(device),
                     lit = on,
                     onClick = onOpen,
-                    modifier = crossZone.thenFirst(index, first).thenEdge(index, devices.lastIndex, edges),
+                    modifier = crossZone.thenFirst(index, first),
                 )
             }
         }
@@ -1097,21 +1086,23 @@ private fun CinemaContextRow(
     first: FocusRequester,
     crossZone: Modifier,
 ) {
-    ContextSection(label = stringResource(R.string.home_continue_watching), first = first) { edges ->
+    ContextSection(label = stringResource(R.string.home_continue_watching)) {
         if (cards.isEmpty()) {
-            ContextHint(stringResource(R.string.home_continue_watching_empty))
+            item { ContextHint(stringResource(R.string.home_continue_watching_empty)) }
         } else {
             // Чотири картки і вхід у повну історію п'ятим слотом. Кількість була
             // налаштуванням, але вибирати тут нічого: п'ять слотів — це вся ширина,
             // яку ряд має під дком, а решта недодивленого живе в «Історії».
-            cards.take(CONTINUE_CARDS).forEachIndexed { index, card ->
+            val shown = cards.take(CONTINUE_CARDS)
+            items(shown.size) { index ->
+                val card = shown[index]
                 ContinueCard(
                     card = card,
                     onClick = { onOpen(card) },
-                    modifier = crossZone.thenFirst(index, first).thenEdge(index, Int.MAX_VALUE, edges),
+                    modifier = crossZone.thenFirst(index, first),
                 )
             }
-            ContinueAllCard(onClick = onOpenHistory, modifier = crossZone.rowEnd(edges))
+            item { ContinueAllCard(onClick = onOpenHistory, modifier = crossZone) }
         }
     }
 }
@@ -1127,13 +1118,14 @@ private fun RealityContextRow(
     first: FocusRequester,
     crossZone: Modifier,
 ) {
-    ContextSection(label = stringResource(R.string.home_continue_reality), first = first) { edges ->
+    ContextSection(label = stringResource(R.string.home_continue_reality)) {
         if (cards.isEmpty()) {
-            ContextHint(stringResource(R.string.home_continue_reality_empty))
+            item { ContextHint(stringResource(R.string.home_continue_reality_empty)) }
         } else {
             val shown = cards.take(CONTINUE_CARDS + 1)
-            shown.forEachIndexed { index, card ->
-                ContinueCard(card = card, onClick = { onOpen(card) }, modifier = crossZone.thenFirst(index, first).thenEdge(index, shown.lastIndex, edges))
+            items(shown.size) { index ->
+                val card = shown[index]
+                ContinueCard(card = card, onClick = { onOpen(card) }, modifier = crossZone.thenFirst(index, first))
             }
         }
     }
@@ -1153,7 +1145,7 @@ private fun ContinueAllCard(onClick: () -> Unit, modifier: Modifier = Modifier) 
         focusedBackground = LikhtarColors.Paper,
         borderColor = Color.Transparent,
         focusRingColor = Color.Transparent,
-        focusedScale = 1.07f,
+        focusedScale = LikhtarDimens.CardFocusScale,
     ) { focused ->
         Text(
             text = stringResource(R.string.home_all_history),
@@ -1174,7 +1166,7 @@ private fun ContinueCard(card: ResumeCard, onClick: () -> Unit, modifier: Modifi
         background = ContinueCardFill,
         focusedBackground = ContinueCardFill,
         borderColor = Color.Transparent,
-        focusedScale = 1.07f,
+        focusedScale = LikhtarDimens.CardFocusScale,
     ) { focused ->
         Box(modifier = Modifier.fillMaxSize()) {
             card.imageUrl?.let { image ->
@@ -1256,15 +1248,16 @@ private fun AppsContextRow(
     crossZone: Modifier,
     label: Int = R.string.home_your_apps,
 ) {
-    ContextSection(label = stringResource(label), first = first) { edges ->
+    ContextSection(label = stringResource(label)) {
         if (apps.isEmpty()) {
-            ContextHint(stringResource(R.string.home_your_apps_empty))
+            item { ContextHint(stringResource(R.string.home_your_apps_empty)) }
         } else {
-            apps.forEachIndexed { index, app ->
+            items(apps.size) { index ->
+                val app = apps[index]
                 AppCard(
                     app = app,
                     onClick = { onLaunch(app) },
-                    modifier = crossZone.thenFirst(index, first).thenEdge(index, apps.lastIndex, edges),
+                    modifier = crossZone.thenFirst(index, first),
                 )
             }
         }
@@ -1282,7 +1275,7 @@ private fun AppCard(app: LauncherApp, onClick: () -> Unit, modifier: Modifier = 
         background = LikhtarColors.TileFloor,
         focusedBackground = LikhtarColors.TileFloor,
         borderColor = Color.Transparent,
-        focusedScale = 1.07f,
+        focusedScale = LikhtarDimens.CardFocusScale,
     ) { focused ->
         when {
             artwork?.banner == true -> Image(
@@ -1352,45 +1345,8 @@ private val HourTempStyle = TextStyle(
 private fun Modifier.thenFirst(index: Int, first: FocusRequester): Modifier =
     if (index == 0) this.focusRequester(first) else this
 
-/**
- * Краї ряду над доком (див. ContextSection): «вліво» з першої картки — на останню, «вправо»
- * з останньої — на першу, але лише окремим натисканням: утримана стрілка стоїть на краю.
- */
-class RowEdges(val first: FocusRequester?, val last: FocusRequester, val wrap: com.likhtar.home.core.designsystem.RowWrap)
-
-private fun Modifier.thenEdge(index: Int, lastIndex: Int, edges: RowEdges): Modifier = when {
-    lastIndex <= 0 -> this
-    index == 0 -> rowStart(edges)
-    index == lastIndex -> rowEnd(edges)
-    else -> this
-}
-
-private fun Modifier.rowStart(edges: RowEdges): Modifier = onPreviewKeyEvent { event ->
-    if (event.type != androidx.compose.ui.input.key.KeyEventType.KeyDown || event.key != androidx.compose.ui.input.key.Key.DirectionLeft) return@onPreviewKeyEvent false
-    if (edges.wrap.deliberate) runCatching { edges.last.requestFocus() }
-    true
-}
-
-private fun Modifier.rowEnd(edges: RowEdges): Modifier = focusRequester(edges.last).onPreviewKeyEvent { event ->
-    if (event.type != androidx.compose.ui.input.key.KeyEventType.KeyDown || event.key != androidx.compose.ui.input.key.Key.DirectionRight) return@onPreviewKeyEvent false
-    if (edges.wrap.deliberate) edges.first?.let { runCatching { it.requestFocus() } }
-    true
-}
-
 /** Запас ряду над доком під збільшення сфокусованої картки (див. ContextSection). */
 private val ScrollEdge = 16.dp
-
-/**
- * Вийти за межі батька на [edge] з обох боків, не зсуваючи сусідів. Простий `offset`
- * забирав запас у правого краю — і останню картку («Вся історія») різало там.
- */
-private fun Modifier.bleed(edge: androidx.compose.ui.unit.Dp) = layout { measurable, constraints ->
-    val e = edge.roundToPx()
-    val wide = if (constraints.hasBoundedWidth) constraints.maxWidth + 2 * e else constraints.maxWidth
-    val placeable = measurable.measure(constraints.copy(minWidth = 0, maxWidth = wide))
-    val width = (placeable.width - 2 * e).coerceIn(constraints.minWidth, constraints.maxWidth)
-    layout(width, placeable.height) { placeable.place(-e, 0) }
-}
 
 /** Скільки випадкових запитів Ліхтарика показує рядок під «LIKHTAR HOME». */
 private const val ASKS_SHOWN = 3

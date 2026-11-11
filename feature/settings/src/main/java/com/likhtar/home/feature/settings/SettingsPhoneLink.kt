@@ -1,6 +1,8 @@
 package com.likhtar.home.feature.settings
 
 import android.content.Context
+import com.likhtar.home.core.data.fromLocalNetwork
+import com.likhtar.home.core.data.httpLine
 import android.util.Log
 import com.likhtar.home.core.catalog.CatalogRepository
 import com.likhtar.home.core.catalog.movable
@@ -19,8 +21,6 @@ import com.likhtar.home.core.model.StreamingService
 import com.likhtar.home.core.smarthome.SmartHomeRepository
 import com.likhtar.home.core.tv.TvGuideRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.ByteArrayOutputStream
-import java.io.InputStream
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.URLDecoder
@@ -100,11 +100,13 @@ class SettingsPhoneLink @Inject constructor(
 
     @Volatile private var base: String? = null
     @Volatile private var nonce: String = ""
+    @Volatile private var nonceAt: Long = 0L
 
     /** Адреса для QR; `null` — приставка не в локальній мережі чи порти зайняті. */
     @Synchronized
     fun start(): String? {
         nonce = ByteArray(8).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
+        nonceAt = System.currentTimeMillis()
         _status.value = PhoneSetupStatus.Waiting
         val root = base ?: run {
             val ip = lanAddress() ?: return null
@@ -112,6 +114,7 @@ class SettingsPhoneLink @Inject constructor(
             thread(name = "settings-link", isDaemon = true) {
                 while (true) {
                     val socket = runCatching { server.accept() }.getOrNull() ?: break
+                    if (!socket.fromLocalNetwork()) { runCatching { socket.close() }; continue }
                     thread(isDaemon = true) { runCatching { serve(socket) }.onFailure { Log.w(TAG, "запит телефону", it) } }
                 }
             }
@@ -123,15 +126,18 @@ class SettingsPhoneLink @Inject constructor(
     private fun serve(socket: Socket): Unit = socket.use { s ->
         s.soTimeout = 15_000
         val input = s.getInputStream().buffered()
-        val request = input.line()?.split(' ') ?: return
+        val request = input.httpLine()?.split(' ') ?: return
         val method = request.getOrNull(0)
         val path = request.getOrNull(1)?.substringBefore('?') ?: return
         var length = 0
         while (true) {
-            val header = input.line() ?: break
+            val header = input.httpLine() ?: break
             if (header.isEmpty()) break
             if (header.startsWith("content-length:", ignoreCase = true)) length = header.substringAfter(':').trim().toIntOrNull() ?: 0
         }
+        // Посилання з QR живе пів години: воно їде відкритим HTTP, і хто його підгледів, не має
+        // змінювати налаштування приставки за тиждень.
+        if (nonce.isNotEmpty() && System.currentTimeMillis() - nonceAt > NONCE_TTL_MS) nonce = ""
         val live = nonce.isNotEmpty() && path.startsWith("/$nonce/")
         val reply = when {
             !live -> Reply(404, "Not found")
@@ -201,15 +207,21 @@ class SettingsPhoneLink @Inject constructor(
         val haUrl = f["ha_url"].orEmpty()
         val haToken = f["ha_token"].orEmpty()
         if (haUrl.isNotEmpty() || haToken.isNotEmpty()) {
-            settings.setSmartHomeCredentials(haUrl.ifEmpty { current.smartHomeUrl }, haToken.ifEmpty { current.smartHomeToken })
+            // Нова адреса без нового токена — не переносимо старий: інакше одне поле «адреса»
+            // відсилало б збережений токен на чужий сервер.
+            val url = haUrl.ifEmpty { current.smartHomeUrl }
+            val token = haToken.ifEmpty { if (url == current.smartHomeUrl || sameServer(url, current.smartHomeUrl)) current.smartHomeToken else "" }
+            settings.setSmartHomeCredentials(url, token)
             saved += "Home Assistant"
+            if (token.isEmpty()) problems += str(R.string.settings_ha_need_token)
         }
         // AI: інший провайдер — адреса, модель і ключ з нуля; той самий — порожнє поле лишає як було.
         f["ai_provider"]?.let { id ->
             val same = id == current.aiProvider
             val url = f["ai_url"].orEmpty().ifEmpty { if (same) current.aiUrl else "" }
             val model = f["ai_model"].orEmpty().ifEmpty { if (same) current.aiModel else "" }
-            val key = f["ai_key"].orEmpty().ifEmpty { if (same) current.aiKey else "" }
+            // Той самий провайдер, але інша адреса — ключ теж з нуля: старий не має їхати на нову.
+            val key = f["ai_key"].orEmpty().ifEmpty { if (same && (url == current.aiUrl || sameServer(url, current.aiUrl))) current.aiKey else "" }
             if (!same || url != current.aiUrl || model != current.aiModel || key != current.aiKey) {
                 settings.setAi(id, url, model, key)
                 saved += "AI"
@@ -340,7 +352,7 @@ class SettingsPhoneLink @Inject constructor(
                 "<form action=\"save\" method=\"post\">" +
                 clip + layout +
                 "<h2>${str(R.string.settings_section_tv)}</h2>" +
-                (channels.start()?.let { "<a class=\"btn\" href=\"$it\">${str(R.string.settings_phone_channels)}</a>" } ?: "") +
+                (channels.link()?.let { "<a class=\"btn\" href=\"$it\">${str(R.string.settings_phone_channels)}</a>" } ?: "") +
                 field("playlist", str(R.string.settings_tv_playlist), extra = keep(s.tvPlaylistUrl.isNotBlank()) + " inputmode=\"url\"") +
                 field("epg", str(R.string.settings_epg_title), extra = keep(s.tvEpgUrl.isNotBlank()) + " inputmode=\"url\"") +
                 "<h2>${str(R.string.settings_media_group)}</h2>" +
@@ -380,6 +392,7 @@ class SettingsPhoneLink @Inject constructor(
     private companion object {
         const val TAG = "LikhtarPhoneSetup"
         const val MAX_BODY = 16_384
+        const val NONCE_TTL_MS = 30 * 60_000L
         const val ROWS_TIMEOUT_MS = 5_000L
         /** Перший ряд сервера — пул слайдера, не ряд постерів (CinemaViewModel). */
         const val SLIDER_ROW = "Слайдер"
@@ -389,14 +402,10 @@ class SettingsPhoneLink @Inject constructor(
     }
 }
 
-/** Рядок HTTP-заголовка до CRLF; `null` — з'єднання закрилось. */
-private fun InputStream.line(): String? {
-    val out = ByteArrayOutputStream()
-    while (true) {
-        val b = read()
-        if (b < 0) return if (out.size() == 0) null else out.toString(Charsets.ISO_8859_1.name())
-        if (b == '\n'.code) return out.toString(Charsets.ISO_8859_1.name()).trimEnd('\r')
-        if (out.size() > 8192) return null
-        out.write(b)
-    }
+/** Той самий сервер: схема, хост і порт збігаються. Інакше збережений секрет на нову адресу не їде. */
+internal fun sameServer(a: String, b: String): Boolean {
+    fun key(u: String) = runCatching { java.net.URI(u.trim()) }.getOrNull()
+        ?.takeIf { it.host != null }?.let { "${it.scheme}://${it.host.lowercase()}:${it.port}" }
+    return key(a) != null && key(a) == key(b)
 }
+

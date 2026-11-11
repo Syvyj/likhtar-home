@@ -37,6 +37,7 @@ class PhoneServer(
             thread(name = name, isDaemon = true) {
                 while (true) {
                     val socket = runCatching { server.accept() }.getOrNull() ?: break
+                    if (!socket.fromLocalNetwork()) { runCatching { socket.close() }; continue }
                     thread(isDaemon = true) { runCatching { serve(socket) }.onFailure { Log.w(name, "запит телефону", it) } }
                 }
             }
@@ -45,15 +46,23 @@ class PhoneServer(
         return "$root$nonce/"
     }
 
+    /**
+     * Чинне посилання, а без нього — нове. Для посилань усередині інших сторінок: [start] щоразу
+     * міняє nonce, і показ сторінки налаштувань ламав уже відкритий на телефоні редактор каналів —
+     * «Зберегти» вів у 404, правки губились.
+     */
+    @Synchronized
+    fun link(): String? = base?.takeIf { nonce.isNotEmpty() }?.let { "$it$nonce/" } ?: start()
+
     private fun serve(socket: Socket): Unit = socket.use { s ->
         s.soTimeout = 15_000
         val input = s.getInputStream().buffered()
-        val request = input.line()?.split(' ') ?: return
+        val request = input.httpLine()?.split(' ') ?: return
         val method = request.getOrNull(0).orEmpty()
         val path = request.getOrNull(1)?.substringBefore('?') ?: return
         var length = 0
         while (true) {
-            val header = input.line() ?: break
+            val header = input.httpLine() ?: break
             if (header.isEmpty()) break
             if (header.startsWith("content-length:", ignoreCase = true)) length = header.substringAfter(':').trim().toIntOrNull() ?: 0
         }
@@ -110,14 +119,18 @@ if(b.dataset.d=='d'&&li.nextElementSibling)ul.insertBefore(li.nextElementSibling
 const f=document.querySelector('form');if(f)f.addEventListener('submit',()=>document.querySelectorAll('.ord').forEach(ul=>{
 f.elements[ul.dataset.out].value=[...ul.children].map(li=>li.dataset.k).join(',')}))})</script></head><body>$body</body></html>"""
 
-/** Рядок HTTP-заголовка до CRLF; `null` — з'єднання закрилось. */
-private fun InputStream.line(): String? {
+/**
+ * Рядок HTTP-заголовка до CRLF; `null` — з'єднання закрилось або рядок довший за [max].
+ * Один на всі вбудовані сервери (телефонні сторінки, передача, пульт, потік SMB): дві копії
+ * з шести читали без межі, і рядок без `\n` ріс до OOM ще до перевірки токена.
+ */
+fun InputStream.httpLine(max: Int = 8192): String? {
     val out = ByteArrayOutputStream()
     while (true) {
         val b = read()
         if (b < 0) return if (out.size() == 0) null else out.toString(Charsets.ISO_8859_1.name())
         if (b == '\n'.code) return out.toString(Charsets.ISO_8859_1.name()).trimEnd('\r')
-        if (out.size() > 8192) return null
+        if (out.size() >= max) return null
         out.write(b)
     }
 }

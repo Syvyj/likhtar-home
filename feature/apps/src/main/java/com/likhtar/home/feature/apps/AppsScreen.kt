@@ -1,6 +1,7 @@
 package com.likhtar.home.feature.apps
 
 import androidx.compose.runtime.saveable.rememberSaveable
+import com.likhtar.home.core.designsystem.tryFocus
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxHeight
 import com.likhtar.home.core.designsystem.BrandColors
@@ -300,7 +301,7 @@ private fun AppsPage(
     // тут водив ↓ уздовж ряду.
     val entries = remember(rows.size) { List(rows.size) { i -> if (i == 0) firstAppFocusRequester else FocusRequester() } }
     fun go(to: Int): Boolean {
-        if (to < 0) return runCatching { menuFocusRequester.requestFocus() }.isSuccess
+        if (to < 0) return menuFocusRequester.tryFocus()
         if (to > rows.lastIndex) return true
         scope.launch {
             list.centerItem(to, topUntil = 0)
@@ -665,7 +666,7 @@ private fun ProtoAppTile(
         background = LikhtarColors.TileFloor,
         focusedBackground = LikhtarColors.TileFloor,
         borderColor = Color.Transparent,
-        focusedScale = 1.07f,
+        focusedScale = LikhtarDimens.CardFocusScale,
         focusLighten = 0f,
     ) { hasFocus ->
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -705,7 +706,7 @@ private fun LeadTile(label: String, onClick: () -> Unit, modifier: Modifier = Mo
         background = LikhtarColors.TileFloor,
         focusedBackground = LikhtarColors.TileFloor,
         borderColor = Color.Transparent,
-        focusedScale = 1.07f,
+        focusedScale = LikhtarDimens.CardFocusScale,
         focusLighten = 0f,
     ) { hasFocus ->
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {

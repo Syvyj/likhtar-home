@@ -60,6 +60,7 @@ fun PlayRequest.playerPlan(takesM3u: Boolean, companion: Map<String, String>): P
         extras["likhtar.tv.names"] = lineup.names.toTypedArray()
         extras["likhtar.tv.now"] = lineup.now.toTypedArray()
         extras["likhtar.tv.index"] = lineup.index
+        if (lineup.offset > 0) extras["likhtar.tv.offset"] = lineup.offset
         if (lineup.guide.isNotBlank()) extras["likhtar.tv.guide"] = lineup.guide
     }
     val (data, mime) = when {
@@ -86,7 +87,7 @@ fun PlayRequest.playerPlan(takesM3u: Boolean, companion: Map<String, String>): P
             extras["video_list.id"] = queue.map { id.toString() }.toTypedArray()
         }
     }
-    // Ті самі ключі, що Intent.putResumePosition: MX/Just+ — position, VLC — extra_position,
+    // Ключі позиції різних плеєрів: MX/Just+ — position, VLC — extra_position,
     // ViMu — startfrom (без нього ViMu починав з нуля й питав «продовжити?»).
     if (resumeMs > 0L) {
         extras["position"] = resumeMs.toInt()
@@ -106,6 +107,11 @@ fun PlayRequest.playerPlan(takesM3u: Boolean, companion: Map<String, String>): P
         // Just+ (і MX-сумісні): постер у шапці, а TMDB id із сезоном і серією — ключ, за яким
         // Just+ сам шукає заставки й титри для пропуску.
         TmdbImages.poster(t.item.posterPath)?.let { extras["thumbnail"] = it }
+        // Шапка панелі паузи Just+: що це, рік, оцінка й опис (інші плеєри ключі ігнорують).
+        extras["likhtar.name"] = t.item.title
+        if (t.item.overview.isNotBlank()) extras["likhtar.overview"] = t.item.overview
+        if (t.item.year.isNotBlank()) extras["likhtar.year"] = t.item.year
+        if (t.item.rating > 0) extras["likhtar.rating"] = String.format(java.util.Locale.ROOT, "%.1f", t.item.rating)
         if (t.item.tmdbId > 0) extras["id"] = t.item.tmdbId.toString()
         if (t.season > 0 && t.episode > 0) {
             extras["season"] = t.season

@@ -91,9 +91,8 @@ fun Modifier.focusDown(target: FocusRequester?): Modifier {
         if (event.type != KeyEventType.KeyDown || event.key != Key.DirectionDown) {
             false
         } else {
-            // requestFocus() тут повертає Unit і кидає виняток, коли ціль не приєднана, —
-            // тому «вдалося» це саме відсутність винятку.
-            runCatching { target.requestFocus() }.isSuccess
+            // Не вдалося (ціль ще не приєднана) — false, і фокус іде звичайним пошуком.
+            target.tryFocus()
         }
     }
 }
@@ -105,7 +104,7 @@ fun Modifier.focusUp(target: FocusRequester?): Modifier {
         if (event.type != KeyEventType.KeyDown || event.key != Key.DirectionUp) {
             false
         } else {
-            runCatching { target.requestFocus() }.isSuccess
+            target.tryFocus()
         }
     }
 }

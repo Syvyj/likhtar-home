@@ -106,6 +106,10 @@ class HomeTakeover @Inject constructor(
         }
     }
 
+    private fun stillDisabled(pkg: String): Boolean = runCatching {
+        context.packageManager.getApplicationEnabledSetting(pkg) == PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER
+    }.getOrDefault(false)
+
     /** Аварійне повернення (запобіжник падінь): коротко, без питань на екрані. */
     fun revertQuietly(): Problem? = withAdb(QUIET_MS, {}) { adb -> restore(adb) }
 
@@ -115,13 +119,27 @@ class HomeTakeover @Inject constructor(
         // Спершу знімаємо прапорець: інакше сторож ([watch]) побачив би ввімкнений лаунчер
         // і вимкнув би його назад посеред повернення.
         prefs.edit().putBoolean(KEY_ACTIVE, false).commit()
-        disabled.filter { it != SETUP }.forEach { adb.shell("pm enable $it") }
-        if (original != null) {
-            adb.shell("cmd package set-home-activity '$original'")
-        } else {
-            adb.shell("cmd role remove-role-holder --user 0 android.app.role.HOME ${context.packageName}")
+        // Обірвалось посеред повернення (ADB, сон) чи пакет не ввімкнувся — прапорець назад:
+        // інакше кнопка «Повернути стоковий екран» зникала, а стоковий лишався вимкненим, і
+        // запобіжник падінь теж уже не спрацьовував.
+        val still = runCatching {
+            disabled.filter { it != SETUP }.forEach { adb.shell("pm enable $it") }
+            if (original != null) {
+                adb.shell("cmd package set-home-activity '$original'")
+            } else {
+                adb.shell("cmd role remove-role-holder --user 0 android.app.role.HOME ${context.packageName}")
+            }
+            if (SETUP in disabled) adb.shell("pm enable $SETUP")
+            disabled.filter { stillDisabled(it) }
+        }.getOrElse { e ->
+            prefs.edit().putBoolean(KEY_ACTIVE, true).commit()
+            throw e
         }
-        if (SETUP in disabled) adb.shell("pm enable $SETUP")
+        if (still.isNotEmpty()) {
+            prefs.edit().putBoolean(KEY_ACTIVE, true).commit()
+            Log.w(TAG, "не ввімкнулись: $still")
+            return Problem.REFUSED
+        }
         prefs.edit().clear().apply()
         Log.i(TAG, "повернуто: $original, увімкнено: $disabled")
         return null

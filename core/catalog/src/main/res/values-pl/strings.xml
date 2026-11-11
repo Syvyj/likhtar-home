@@ -19,6 +19,12 @@
     <string name="catalog_msg_no_server_address">Nie ustawiono adresu serwera.</string>
     <string name="catalog_msg_server_no_reply">Serwer nie odpowiedział.</string>
     <string name="catalog_subtitle_channel">Kanał TV</string>
+    <string name="catalog_subtitle_studio">Studio</string>
+    <string name="catalog_studio_new">Nowości</string>
+    <string name="catalog_studio_popular_movies">Popularne filmy</string>
+    <string name="catalog_studio_series">Seriale</string>
+    <string name="catalog_studio_new_series">Nowe seriale</string>
+    <string name="catalog_studio_popular">Popularne</string>
     <string name="catalog_msg_network_empty">Ten nadawca nie ma jeszcze tytułów ze źródłami.</string>
     <string name="catalog_msg_network_failed">Nie udało się wczytać kanału.</string>
     <string name="catalog_ukrainian_title">Czysto ukraińskie</string>
@@ -87,4 +93,20 @@
     <string name="catalog_msg_offline">Katalog jest teraz niedostępny — brak połączenia z serwerem Likhtar.</string>
     <string name="catalog_recap_no_ai">Połącz AI w Ustawieniach → Połączenia, aby dostać streszczenie sezonu</string>
     <string name="catalog_recap_no_episodes">TMDB nie ma opisów odcinków tego sezonu — nie ma czego streszczać</string>
+    <string name="catalog_media_err_login">błędny login lub hasło</string>
+    <string name="catalog_media_err_http">serwer odpowiedział %1$d</string>
+    <string name="catalog_media_err_no_token">serwer nie podał tokenu</string>
+    <string name="catalog_media_err_stale">logowanie wygasło — dodaj serwer ponownie</string>
+    <string name="catalog_media_err_code_expired">kod wygasł — spróbuj ponownie</string>
+    <string name="catalog_media_err_no_plex_servers">brak serwerów Plex na koncie</string>
+    <string name="catalog_media_err_no_answer">serwer nie odpowiada</string>
+    <string name="catalog_media_err_plex_http">plex.tv odpowiedział %1$d</string>
+    <string name="catalog_media_err_plex_login">serwer wymaga logowania — zaloguj się przez plex.tv</string>
+    <string name="catalog_media_err_not_smb">To nie adres SMB: %1$s</string>
+    <string name="catalog_media_err_unavailable">niedostępne</string>
+    <string name="catalog_media_status_walking">Przeglądam foldery…</string>
+    <string name="catalog_media_status_walking_one">Przeglądam „%1$s”…</string>
+    <string name="catalog_media_status_tmdb">Szukam tytułów w TMDB… (plików: %1$d)</string>
+    <string name="catalog_media_summary">Plików: %1$d, tytułów: %2$d</string>
+    <string name="catalog_media_summary_other">, nierozpoznanych: %1$d</string>
 </resources>

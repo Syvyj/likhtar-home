@@ -1,5 +1,6 @@
 package com.likhtar.home.core.catalog.media
 
+import com.likhtar.home.core.catalog.R
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.msfscc.FileAttributes
 import com.hierynomus.mssmb2.SMB2CreateDisposition
@@ -32,7 +33,7 @@ data class SmbEntry(val name: String, val path: String, val folder: Boolean, val
  * Порожній користувач — гостьовий вхід (спільна папка без пароля).
  */
 class SmbAccess(private val source: MediaSource) {
-    private val address = SmbAddress.parse(source.address) ?: error("Не SMB-адреса: ${source.address}")
+    private val address = SmbAddress.parse(source.address) ?: error(mediaText(R.string.catalog_media_err_not_smb, source.address))
     private var client: SMBClient? = null
     private var share: DiskShare? = null
 

@@ -75,6 +75,9 @@ class ChannelsPhoneLink @Inject constructor(
         return server.start()
     }
 
+    /** Посилання для інших сторінок: чинне, без нового nonce (див. PhoneServer.link). */
+    fun link(): String? = server.link()
+
     private suspend fun load(edits: ChannelEdits): List<Row> {
         val hiddenUrls = groups.hiddenChannels.first()
         val own = runCatching { tvSource.channels() }.getOrDefault(emptyList()).filter { !it.url.contains("/video/") }

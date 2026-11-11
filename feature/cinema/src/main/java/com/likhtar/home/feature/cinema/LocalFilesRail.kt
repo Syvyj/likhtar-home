@@ -1,6 +1,7 @@
 package com.likhtar.home.feature.cinema
 
 import androidx.compose.foundation.Image
+import com.likhtar.home.core.designsystem.LikhtarDimens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -66,7 +67,7 @@ private fun FileCard(file: LocalFile, onClick: () -> Unit, modifier: Modifier = 
         background = LikhtarColors.Surface,
         focusedBackground = LikhtarColors.SurfaceHigh,
         borderColor = LikhtarColors.Faint,
-        focusedScale = 1.07f,
+        focusedScale = LikhtarDimens.CardFocusScale,
     ) { focused ->
         Column(Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Image(

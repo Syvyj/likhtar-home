@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -103,12 +104,16 @@ internal fun PosterHead(
         modifier = modifier
             .fillMaxWidth()
     ) {
-        // .hero прототипу: колонка внизу ліворуч (880 px заввишки, 80 px знизу) — знак,
-        // мітки, зачин і дії з проміжком 22 px; мітки й дії до 800 px, зачин до 760 px.
+        // .hero прототипу: знак, мітки, зачин і дії з проміжком 22 px; мітки й дії до
+        // 800 px, зачин до 760 px. Колонка — по центру зони над вкладками; коли кнопок стільки, що
+        // вона не вміщається, — від верху (обмежена висота: Column тоді починає згори). Раніше
+        // стояла на фіксованих 140 dp від низу: три ряди кнопок упирали знак у край екрана, а під
+        // кнопками лишалась порожнеча.
         Column(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(bottom = 140.dp)
+                .align(Alignment.TopStart)
+                .height(maxHeight - HeroTabsPeek)
+                .wrapContentHeight(Alignment.CenterVertically)
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
@@ -257,7 +262,7 @@ internal fun PosterHead(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxWidth()
-                .offset(y = maxHeight - 80.dp),
+                .offset(y = maxHeight - HeroTabsPeek),
         ) {
             ProtoTabsRow(
                 tabs = titleTabs(details),
@@ -396,3 +401,6 @@ private fun HeroActions(narrow: Dp, gap: Dp, modifier: Modifier = Modifier, cont
         }
     }
 }
+
+/** Скільки знизу займає друга сцена, що визирає (вкладки й лінія): шапка живе над нею. */
+private val HeroTabsPeek = 80.dp

@@ -33,6 +33,8 @@ data class StreamingsUiState(
      */
     val regions: Set<String> = emptySet(),
     val message: String? = null,
+    /** Студії й канали TMDB, на які підписались, — блоком першим. */
+    val mine: List<com.likhtar.home.core.catalog.StudioRef> = emptyList(),
 )
 
 /**
@@ -46,12 +48,14 @@ data class StreamingsUiState(
 class StreamingsViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val settings: SettingsRepository,
+    subscriptions: com.likhtar.home.core.catalog.StudioSubscriptions,
 ) : ViewModel() {
 
     private val state = MutableStateFlow(StreamingsUiState())
     val uiState: StateFlow<StreamingsUiState> = state.asStateFlow()
 
     init {
+        viewModelScope.launch { subscriptions.items.collect { list -> state.update { it.copy(mine = list) } } }
         viewModelScope.launch {
             val (curation, networks) = coroutineScope {
                 val curation = async { catalog.curation() }

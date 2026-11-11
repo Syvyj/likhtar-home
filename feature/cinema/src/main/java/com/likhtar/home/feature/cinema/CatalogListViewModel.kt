@@ -9,6 +9,7 @@ import com.likhtar.home.core.catalog.CatalogListing
 import com.likhtar.home.core.catalog.CatalogListingKind
 import com.likhtar.home.core.catalog.CatalogRepository
 import com.likhtar.home.core.catalog.UaAudioRepository
+import com.likhtar.home.core.catalog.withQuality
 import com.likhtar.home.core.catalog.WatchProgressRepository
 import com.likhtar.home.core.data.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +32,8 @@ data class CatalogListUiState(
     val hideWatched: Boolean = false,
     /** Позиції, у яких ми бачили українську доріжку, — для мітки на картці. */
     val uaAudio: Set<Int> = emptySet(),
+    /** Сторінка студії: чи підписані на неї. */
+    val subscribed: Boolean = false,
 )
 
 /**
@@ -48,6 +51,7 @@ class CatalogListViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val apps: com.likhtar.home.core.data.AppsRepository,
     marks: com.likhtar.home.core.catalog.TitleMarksRepository,
+    private val subscriptions: com.likhtar.home.core.catalog.StudioSubscriptions,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -78,6 +82,9 @@ class CatalogListViewModel @Inject constructor(
                 )
             }
         }
+        if (kind == CatalogListingKind.COMPANY) viewModelScope.launch {
+            subscriptions.items.collect { list -> state.update { it.copy(subscribed = list.any { s -> s.key == key }) } }
+        }
         if (kind == null || key.isBlank()) {
             state.update {
                 it.copy(loading = false, listing = CatalogListing(message = context.getString(R.string.cinema_unknown_collection)))
@@ -106,6 +113,11 @@ class CatalogListViewModel @Inject constructor(
         }
     }
 
+    fun toggleSubscription() {
+        val studio = state.value.listing.studio ?: return
+        viewModelScope.launch { subscriptions.toggle(studio) }
+    }
+
     fun onItemFocused(item: CatalogItem) {
         state.update { it.copy(focused = item) }
     }
@@ -125,13 +137,14 @@ class CatalogListViewModel @Inject constructor(
         val ids = listing.rows.filterNot { it.isPageRow }
             .flatMap { row -> row.items.map { it.tmdbId } }.distinct()
         if (ids.isEmpty()) return listing
-        val confirmed = runCatching {
-            uaAudio.of(ids).filterValues { it.ua }.keys
-        }.getOrDefault(emptySet())
+        val audio = runCatching { uaAudio.of(ids) }.getOrDefault(emptyMap())
+        val confirmed = audio.filterValues { it.ua }.keys
         state.update { it.copy(uaAudio = confirmed) }
         val fill = settings.settings.first().showWithoutUaAudio
         return listing.copy(
             rows = listing.rows.map { row ->
+                if (row.isPageRow) row else row.copy(items = row.items.map { it.withQuality(audio[it.tmdbId]) })
+            }.map { row ->
                 if (row.numbered || row.keepOrder || row.isPageRow || row.spotlight != null) row else row.copy(
                     items = uaAudioRow(
                         items = row.items,

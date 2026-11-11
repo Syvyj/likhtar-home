@@ -370,7 +370,7 @@ fun RealityScreen(
                 }
                 // «Жанри», як в Apple TV, — після четвертого ряду.
                 val cut = if (state.genres.isEmpty()) state.rows.size else minOf(4, state.rows.size)
-                itemsIndexed(state.rows.take(cut), key = { _, row -> (if (row.wide) "wide-" else "row-") + row.title }, contentType = { _, row -> if (row.wide) "wide" else "rail" }) { position, row ->
+                itemsIndexed(state.rows.take(cut), key = { i, row -> (if (row.wide) "wide-" else "row-") + row.title + "#" + i }, contentType = { _, row -> if (row.wide) "wide" else "rail" }) { position, row ->
                     rowContent(position + rowShift, row)
                 }
                 if (state.genres.isNotEmpty()) {
@@ -387,7 +387,7 @@ fun RealityScreen(
                     }
                 }
                 val afterGenres = if (state.genres.isEmpty()) 0 else 1
-                itemsIndexed(state.rows.drop(cut), key = { _, row -> (if (row.wide) "wide-" else "row-") + row.title }, contentType = { _, row -> if (row.wide) "wide" else "rail" }) { position, row ->
+                itemsIndexed(state.rows.drop(cut), key = { i, row -> (if (row.wide) "wide-" else "row-") + row.title + "#" + (i + cut) }, contentType = { _, row -> if (row.wide) "wide" else "rail" }) { position, row ->
                     rowContent(cut + afterGenres + position + rowShift, row)
                 }
 

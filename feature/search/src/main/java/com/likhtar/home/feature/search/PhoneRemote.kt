@@ -1,10 +1,11 @@
 package com.likhtar.home.feature.search
 
 import android.content.Context
+import com.likhtar.home.core.data.fromLocalNetwork
+import com.likhtar.home.core.data.httpLine
 import android.util.Log
 import com.likhtar.home.core.data.lanAddress
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.net.ServerSocket
 import java.net.Socket
@@ -70,23 +71,24 @@ class PhoneRemote @Inject constructor(@ApplicationContext private val context: C
         thread(name = "phone-remote", isDaemon = true) {
             while (true) {
                 val socket = runCatching { server.accept() }.getOrNull() ?: break
+                if (!socket.fromLocalNetwork()) { runCatching { socket.close() }; continue }
                 thread(isDaemon = true) { runCatching { serve(socket) }.onFailure { Log.w(TAG, "запит телефону", it) } }
             }
         }
         return "http://$ip:${server.localPort}/$token/".also {
             address = it
-            Log.i(TAG, "слухаю $it")
+            Log.i(TAG, "слухаю http://$ip:${server.localPort}/…") // без токена: logcat читає будь-хто з ADB
         }
     }
 
     private fun serve(socket: Socket): Unit = socket.use { s ->
         s.soTimeout = 10_000
         val input = s.getInputStream().buffered()
-        val request = input.line() ?: return
+        val request = input.httpLine() ?: return
         val (method, path) = request.split(' ').let { (it.getOrNull(0) ?: "") to (it.getOrNull(1) ?: "") }
         var length = 0
         while (true) {
-            val header = input.line() ?: break
+            val header = input.httpLine() ?: break
             if (header.isEmpty()) break
             if (header.startsWith("content-length:", ignoreCase = true)) length = header.substringAfter(':').trim().toIntOrNull() ?: 0
         }
@@ -163,17 +165,6 @@ class PhoneRemote @Inject constructor(@ApplicationContext private val context: C
     }
 }
 
-/** Рядок HTTP-заголовка до CRLF; `null` — з'єднання закрилось. */
-private fun InputStream.line(): String? {
-    val out = ByteArrayOutputStream()
-    while (true) {
-        val b = read()
-        if (b < 0) return if (out.size() == 0) null else out.toString(Charsets.ISO_8859_1.name())
-        if (b == '\n'.code) return out.toString(Charsets.ISO_8859_1.name()).trimEnd('\r')
-        if (out.size() > 8192) return null
-        out.write(b)
-    }
-}
 
 private fun InputStream.readNBytesCompat(n: Int): ByteArray {
     val buf = ByteArray(n)

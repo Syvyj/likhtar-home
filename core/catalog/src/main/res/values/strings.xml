@@ -24,6 +24,12 @@
     <string name="catalog_msg_no_server_address">Server address is not set.</string>
     <string name="catalog_msg_server_no_reply">The server didn\'t respond.</string>
     <string name="catalog_subtitle_channel">TV channel</string>
+    <string name="catalog_subtitle_studio">Studio</string>
+    <string name="catalog_studio_new">New</string>
+    <string name="catalog_studio_popular_movies">Popular movies</string>
+    <string name="catalog_studio_series">Series</string>
+    <string name="catalog_studio_new_series">New series</string>
+    <string name="catalog_studio_popular">Popular</string>
     <string name="catalog_msg_network_empty">This broadcaster has no titles with sources yet.</string>
     <string name="catalog_msg_network_failed">The channel didn\'t load.</string>
     <string name="catalog_ukrainian_title">Purely Ukrainian</string>
@@ -97,4 +103,20 @@
     <string name="catalog_msg_offline">The catalog is unavailable right now — no connection to the Likhtar server.</string>
     <string name="catalog_recap_no_ai">Connect AI in Settings → Connections to get a season recap</string>
     <string name="catalog_recap_no_episodes">TMDB has no episode summaries for this season — nothing to retell</string>
+    <string name="catalog_media_err_login">wrong login or password</string>
+    <string name="catalog_media_err_http">server answered %1$d</string>
+    <string name="catalog_media_err_no_token">server gave no token</string>
+    <string name="catalog_media_err_stale">sign-in expired — add the server again</string>
+    <string name="catalog_media_err_code_expired">code expired — try again</string>
+    <string name="catalog_media_err_no_plex_servers">no Plex servers in this account</string>
+    <string name="catalog_media_err_no_answer">server is not responding</string>
+    <string name="catalog_media_err_plex_http">plex.tv answered %1$d</string>
+    <string name="catalog_media_err_plex_login">the server asks to sign in — sign in via plex.tv</string>
+    <string name="catalog_media_err_not_smb">Not an SMB address: %1$s</string>
+    <string name="catalog_media_err_unavailable">unavailable</string>
+    <string name="catalog_media_status_walking">Scanning folders…</string>
+    <string name="catalog_media_status_walking_one">Scanning “%1$s”…</string>
+    <string name="catalog_media_status_tmdb">Looking up titles in TMDB… (files: %1$d)</string>
+    <string name="catalog_media_summary">Files: %1$d, titles: %2$d</string>
+    <string name="catalog_media_summary_other">, unrecognised: %1$d</string>
 </resources>

@@ -122,6 +122,7 @@ internal fun parseServiceContinue(body: String): List<ServiceResume> {
             logoPath = raw.optString("logo").takeIf { it.isNotBlank() },
             updatedAt = raw.optLong("updated"),
             show = raw.optBoolean("show"),
+            progress = raw.optDouble("progress", 0.0).toFloat().takeIf { it > 0f },
         )
     }
 }

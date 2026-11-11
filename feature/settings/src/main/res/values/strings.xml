@@ -388,6 +388,7 @@
     <string name="settings_ai_model_hint">empty — provider default</string>
     <string name="settings_ai_url">Address (Ollama, LM Studio)</string>
     <string name="settings_ai_key">API key</string>
+    <string name="settings_ha_need_token">Home Assistant: a new address needs its token too</string>
     <string name="settings_ai_need_key">AI: enter the API key</string>
     <string name="settings_ai_need_url">AI: enter the address of your server</string>
     <string name="settings_ai_need_model">AI: enter the model name</string>

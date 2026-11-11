@@ -10,7 +10,7 @@ import org.junit.Test
 /** Що лаунчер віддає зовнішньому плеєру: ключі extras у кожного плеєра свої. */
 class PlayerPlanTest {
 
-    private val show = CatalogItem(tmdbId = 1399, kind = TitleKind.TV, title = "Шьоґун", year = "2024", posterPath = "/p.jpg")
+    private val show = CatalogItem(tmdbId = 1399, kind = TitleKind.TV, title = "Шьоґун", year = "2024", posterPath = "/p.jpg", rating = 8.63, overview = "Японія, 1600 рік.")
     private val queue = listOf(
         QueueEntry(1, "S01E01 · Анджін · 1080p", "http://s/1.mkv"),
         QueueEntry(2, "S01E02 · Слуги · 1080p", "http://s/2.mkv"),
@@ -57,6 +57,11 @@ class PlayerPlanTest {
         assertEquals("Шьоґун · S1E2", plan.extras["forcename"])
         assertEquals("1399", plan.extras["id"])
         assertEquals(true, plan.extras["return_result"])
+        // Шапка панелі паузи Just+.
+        assertEquals("Шьоґун", plan.extras["likhtar.name"])
+        assertEquals("2024", plan.extras["likhtar.year"])
+        assertEquals("8.6", plan.extras["likhtar.rating"])
+        assertEquals("Японія, 1600 рік.", plan.extras["likhtar.overview"])
     }
 
     @Test

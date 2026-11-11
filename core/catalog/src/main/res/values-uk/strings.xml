@@ -19,6 +19,12 @@
     <string name="catalog_msg_no_server_address">Адреса сервера не задана.</string>
     <string name="catalog_msg_server_no_reply">Сервер не відповів.</string>
     <string name="catalog_subtitle_channel">Телеканал</string>
+    <string name="catalog_subtitle_studio">Студія</string>
+    <string name="catalog_studio_new">Нове</string>
+    <string name="catalog_studio_popular_movies">Популярні фільми</string>
+    <string name="catalog_studio_series">Серіали</string>
+    <string name="catalog_studio_new_series">Нові серіали</string>
+    <string name="catalog_studio_popular">Популярне</string>
     <string name="catalog_msg_network_empty">У цього мовника поки немає тайтлів із джерелами.</string>
     <string name="catalog_msg_network_failed">Телеканал не завантажився.</string>
     <string name="catalog_ukrainian_title">Суто українське</string>
@@ -87,4 +93,20 @@
     <string name="catalog_msg_offline">Каталог зараз недоступний — немає зв\'язку з сервером Ліхтаря.</string>
     <string name="catalog_recap_no_ai">Підключіть AI в Налаштуваннях → Підключення, щоб отримати переказ сезону</string>
     <string name="catalog_recap_no_episodes">У TMDB немає описів серій цього сезону — переказувати нема з чого</string>
+    <string name="catalog_media_err_login">невірний логін або пароль</string>
+    <string name="catalog_media_err_http">сервер відповів %1$d</string>
+    <string name="catalog_media_err_no_token">сервер не дав токена</string>
+    <string name="catalog_media_err_stale">вхід застарів — додайте сервер знову</string>
+    <string name="catalog_media_err_code_expired">код застарів — спробуйте ще раз</string>
+    <string name="catalog_media_err_no_plex_servers">в акаунті немає серверів Plex</string>
+    <string name="catalog_media_err_no_answer">сервер не відповідає</string>
+    <string name="catalog_media_err_plex_http">plex.tv відповів %1$d</string>
+    <string name="catalog_media_err_plex_login">сервер просить входу — увійдіть через plex.tv</string>
+    <string name="catalog_media_err_not_smb">Не SMB-адреса: %1$s</string>
+    <string name="catalog_media_err_unavailable">недоступне</string>
+    <string name="catalog_media_status_walking">Обходжу папки…</string>
+    <string name="catalog_media_status_walking_one">Обходжу «%1$s»…</string>
+    <string name="catalog_media_status_tmdb">Шукаю назви в TMDB… (файлів: %1$d)</string>
+    <string name="catalog_media_summary">Файлів: %1$d, назв: %2$d</string>
+    <string name="catalog_media_summary_other">, не впізнано: %1$d</string>
 </resources>

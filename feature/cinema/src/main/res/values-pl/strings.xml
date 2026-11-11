@@ -53,6 +53,12 @@
     <string name="cinema_detail_seasons_episodes">Sezony i odcinki</string>
     <string name="cinema_detail_premiere">Premiera</string>
     <string name="cinema_actors">Obsada</string>
+    <string name="cinema_studios">Studia i kanały</string>
+    <string name="cinema_studio_subscribe">Subskrybuj</string>
+    <string name="cinema_studio_unsubscribe">Anuluj subskrypcję</string>
+    <string name="cinema_my_studios">Moje studia</string>
+    <string name="cinema_studio_kind_channel">Kanał</string>
+    <string name="cinema_studio_kind_studio">Studio</string>
     <string name="cinema_open_all">Pokaż wszystko</string>
     <string name="cinema_open_franchise">Otwórz franczyzę</string>
     <string name="cinema_continue_watching">Kontynuuj oglądanie</string>
@@ -343,4 +349,14 @@
     <string name="cinema_live_need_player_hint">Kanały z Twojej playlisty odtwarza odtwarzacz wideo, a na tym urządzeniu go nie ma.</string>
     <string name="cinema_live_need_player_why">Darmowy, open source, bez reklam</string>
     <string name="cinema_live_youtube_hint">YouTube · na żywo</string>
+    <string name="cinema_live_menu_edit">Edytuj kanały na telefonie</string>
+    <string name="cinema_live_menu_edit_hint">Kolejność, nazwy, źródła i duplikaty</string>
+    <string name="cinema_live_edit_title">Lista kanałów</string>
+    <string name="cinema_live_edit_step1">Skieruj aparat telefonu na kod QR</string>
+    <string name="cinema_live_edit_step2">Zaznaczaj, sortuj, zmieniaj nazwy, łącz</string>
+    <string name="cinema_live_edit_step3">Naciśnij Zapisz, a lista tutaj się odświeży</string>
+    <string name="cinema_live_edit_opened">Strona otwarta na telefonie</string>
+    <string name="cinema_live_edit_saved">Zapisano, odświeżam listę</string>
+    <string name="cinema_live_install_tv">Zainstaluj Likhtar TV</string>
+    <string name="cinema_live_install_tv_why">Nasz odtwarzacz kanałów: przełączanie ↑↓, program TV, archiwum</string>
 </resources>

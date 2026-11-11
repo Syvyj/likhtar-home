@@ -1,5 +1,6 @@
 package com.likhtar.home.core.catalog.media
 
+import com.likhtar.home.core.catalog.R
 import com.likhtar.home.core.data.Secrets
 import android.content.Context
 import android.util.Log
@@ -108,6 +109,8 @@ class MediaLibrary @Inject constructor(
     private val marks: com.likhtar.home.core.catalog.TitleMarksRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    init { MediaTexts.resources = context.resources }
+
     private val indexFile = File(context.filesDir, "media_library.json")
     private val scanLock = Mutex()
     private val smb = ConcurrentHashMap<String, SmbAccess>()
@@ -147,13 +150,18 @@ class MediaLibrary @Inject constructor(
     suspend fun add(source: MediaSource) {
         context.mediaStore.edit { prefs ->
             val list = decodeSources(Secrets.open(prefs[KEY_SOURCES])).filterNot { it.address == source.address } + source
+            // Те саме джерело під новим id — старе з'єднання закрити, а не лишати висіти.
+            decodeSources(Secrets.open(prefs[KEY_SOURCES])).filter { it.address == source.address && it.id != source.id }
+                .forEach { old -> smb.remove(old.id)?.let { a -> withContext(Dispatchers.IO) { a.close() } } }
             // Паролі SMB — лише шифрованими (Secrets), увесь список одним рядком.
             prefs[KEY_SOURCES] = Secrets.seal(encodeSources(list))
         }
         remember(source)
     }
 
-    suspend fun remove(id: String) {
+    // Під scanLock і в IO: скан, що йде, інакше дописував файли щойно прибраного джерела, а
+    // close() SMB на головному потоці мовчки падав (NetworkOnMainThread) і сесія лишалась.
+    suspend fun remove(id: String) = withContext(Dispatchers.IO) { scanLock.withLock {
         context.mediaStore.edit { prefs -> prefs[KEY_SOURCES] = Secrets.seal(encodeSources(decodeSources(Secrets.open(prefs[KEY_SOURCES])).filterNot { it.id == id })) }
         smb.remove(id)?.close()
         servers.remove(id)
@@ -163,11 +171,12 @@ class MediaLibrary @Inject constructor(
             s.copy(titles = titles, other = other, status = summary(titles.sumOf { it.files.size } + other.size, titles.size, other.size))
         }
         save()
-    }
+    } }
 
     /** Перевірити SMB-джерело до збереження: текст помилки або `null`, якщо папка відкрилась. */
     suspend fun check(source: MediaSource): String? = withContext(Dispatchers.IO) {
-        runCatching { SmbAccess(source).apply { list("") }.close() }.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName }
+        // close() і коли list() упав: інакше SMB-сесія лишалась відкритою.
+        runCatching { SmbAccess(source).let { a -> try { a.list("") } finally { a.close() } } }.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName }
     }
 
     fun newId(): String = UUID.randomUUID().toString().take(8)
@@ -193,11 +202,11 @@ class MediaLibrary @Inject constructor(
             val deadline = System.currentTimeMillis() + PLEX_PIN_MS
             var token: String? = null
             while (token == null) {
-                if (System.currentTimeMillis() > deadline) error("код застарів — спробуйте ще раз")
+                if (System.currentTimeMillis() > deadline) error(mediaText(R.string.catalog_media_err_code_expired))
                 delay(PLEX_POLL_MS)
                 token = Plex.pinToken(clientId, pin)
             }
-            Plex.servers(clientId, token).ifEmpty { error("в акаунті немає серверів Plex") }
+            Plex.servers(clientId, token).ifEmpty { error(mediaText(R.string.catalog_media_err_no_plex_servers)) }
                 .map { MediaSource(newId(), MediaSource.Kind.PLEX, it.name, it.address, "", it.token) }
         }
     }
@@ -268,16 +277,20 @@ class MediaLibrary @Inject constructor(
     }
 
     suspend fun scan() = scanLock.withLock {
-        _state.update { it.copy(scanning = true, status = "Обходжу папки…") }
+        _state.update { it.copy(scanning = true, status = mediaText(R.string.catalog_media_status_walking)) }
         val files = mutableListOf<LocalFile>()
+        val before = _state.value.let { st -> st.titles.flatMap { it.files } + st.other }
         for (source in sources.first()) {
-            _state.update { it.copy(status = "Обходжу «${source.name}»…") }
+            _state.update { it.copy(status = mediaText(R.string.catalog_media_status_walking_one, source.name)) }
             runCatching { files += walk(source) }.onFailure {
                 Log.w(TAG, "скан ${source.name}", it)
-                _state.update { s -> s.copy(status = "«${source.name}»: ${it.message ?: "недоступне"}") }
+                _state.update { s -> s.copy(status = "«${source.name}»: ${it.message ?: mediaText(R.string.catalog_media_err_unavailable)}") }
+                // NAS спить чи сервер не відповів — лишаємо те, що знали про це джерело: інакше
+                // його фільми зникали з медіатеки й «Продовжити» до наступного скану.
+                files += before.filter { f -> f.sourceId == source.id }
             }
         }
-        _state.update { it.copy(status = "Шукаю назви в TMDB… (файлів: ${files.size})") }
+        _state.update { it.copy(status = mediaText(R.string.catalog_media_status_tmdb, files.size)) }
         val (titles, other) = match(files)
         val done = LibraryState(
             titles = titles,
@@ -332,7 +345,7 @@ class MediaLibrary @Inject constructor(
     }
 
     private fun walkDlna(source: MediaSource): List<LocalFile> {
-        val server = Dlna.describe(source.address) ?: error("сервер не відповідає")
+        val server = Dlna.describe(source.address) ?: error(mediaText(R.string.catalog_media_err_no_answer))
         // Один файл DLNA показує в кількох «видах» (Усе відео, Папки, За датою) — лишаємо той
         // шлях, де більше папок: з нього назва серіалу береться надійніше.
         val byUrl = LinkedHashMap<String, LocalFile>()
@@ -402,7 +415,7 @@ class MediaLibrary @Inject constructor(
     }
 
     private fun summary(files: Int, titles: Int, other: Int) =
-        "Файлів: $files, назв: $titles" + if (other > 0) ", не впізнано: $other" else ""
+        mediaText(R.string.catalog_media_summary, files, titles) + if (other > 0) mediaText(R.string.catalog_media_summary_other, other) else ""
 
     private fun extOf(url: String) = url.substringBefore('?').substringAfterLast('.', "mkv").take(4)
 
@@ -523,3 +536,13 @@ class MediaLibrary @Inject constructor(
         }
     }
 }
+
+/**
+ * Тексти помилок і статусів медіатеки мовою інтерфейсу. Клієнти Jellyfin/Plex/SMB — без `Context`,
+ * тож ресурси сюди кладе [MediaLibrary] при створенні.
+ */
+// ponytail: спільні ресурси процесу; якщо клієнти стануть класами з Context — передавати його.
+internal object MediaTexts { @Volatile var resources: android.content.res.Resources? = null }
+
+internal fun mediaText(id: Int, vararg args: Any): String =
+    MediaTexts.resources?.getString(id, *args) ?: "media#$id"

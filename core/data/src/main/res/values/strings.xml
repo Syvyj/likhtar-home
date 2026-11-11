@@ -26,4 +26,7 @@
     <string name="data_open_with">Open with</string>
     <string name="data_roms_no_emulator">Install RetroArch or Lemuroid to play this game.</string>
     <string name="data_roms_launch_failed">Couldn\'t start the game. Open RetroArch once and download the core for this console: Online Updater → Core Downloader.</string>
+    <string name="data_drop_incomplete">“%1$s” arrived incomplete</string>
+    <string name="data_drop_failed">“%1$s” was not received: %2$s</string>
+    <string name="data_drop_connection_lost">connection lost</string>
 </resources>

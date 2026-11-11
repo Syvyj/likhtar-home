@@ -20,5 +20,6 @@
     <string name="error_tls">This TV only allows wireless debugging with pairing, which this app does not support yet. Install with Downloader or a USB stick instead.</string>
     <string name="error_connection">The connection to the TV dropped. Try again.</string>
     <string name="error_download">Could not download Likhtar. Check the phone\'s internet.</string>
+    <string name="error_checksum">The downloaded file does not match the release. Try again later.</string>
     <string name="error_install">The TV refused the install:</string>
 </resources>

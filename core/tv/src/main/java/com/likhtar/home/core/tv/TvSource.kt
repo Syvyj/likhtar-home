@@ -33,29 +33,6 @@ class BuiltinTvSource @Inject constructor(
     override suspend fun channels(): List<ChannelLink> = links.links()
 }
 
-/**
- * Стан розділу → картки сітки.
- *
- * Категорія береться з першої групи, яка містить канал: у сітці 5B це назва вкладки, і канал
- * без групи має лишитися видимим, а не зникнути разом із порожньою назвою.
- */
-fun TvGuideState.toChannelLinks(): List<ChannelLink> {
-    val groupTitles = channels.associate { channel ->
-        channel.id to groups.firstOrNull { group ->
-            group.channelsFrom(channels).any { it.id == channel.id }
-        }?.name.orEmpty()
-    }
-    return channels.map { channel ->
-        ChannelLink(
-            name = channel.name,
-            packageName = channelApps[channel.id].orEmpty(),
-            url = "",
-            category = groupTitles[channel.id].orEmpty(),
-            epgId = channel.id,
-            logo = channel.logo.orEmpty(),
-        )
-    }
-}
 
 /**
  * Канали з плейлиста M3U, який вказала сама людина.
@@ -90,7 +67,7 @@ class PlaylistTvSource @Inject constructor(
         runCatching { cache.get(url) { etag, lastModified -> download(url, etag, lastModified) } }
             // Адреса плейлиста часто несе токен провайдера, а текст винятку — усю адресу: логуємо
             // лише хост і клас помилки.
-            .onFailure { Log.w("LikhtarTv", "Плейлист не завантажився: ${java.net.URI(url).host ?: "файл"} (${it.javaClass.simpleName})") }
+            .onFailure { Log.w("LikhtarTv", "Плейлист не завантажився: ${runCatching { java.net.URI(url).host }.getOrNull() ?: "файл"} (${it.javaClass.simpleName})") }
             .getOrDefault(emptyList())
     }
 
@@ -102,6 +79,7 @@ class PlaylistTvSource @Inject constructor(
             return ConditionalCache.Fetched(file.inputStream().use { links(it) }, null, null)
         }
         val conditional = buildMap {
+            put("Cache-Control", NO_HTTP_CACHE)
             etag?.let { put("If-None-Match", it) }
             lastModified?.let { put("If-Modified-Since", it) }
         }
@@ -122,7 +100,7 @@ class PlaylistTvSource @Inject constructor(
             category = channel.group,
             epgId = channel.id,
             logo = channel.logo,
-            archive = ChannelArchive.of(channel.catchupType, channel.catchupDays, channel.catchupSource),
+            archive = ChannelArchive.of(channel.catchupType, channel.catchupDays, channel.catchupSource, channel.url),
         )
     }
 
@@ -155,6 +133,9 @@ internal class ConditionalCache<T : Collection<*>>(
 
     @Volatile private var entry: Entry<T>? = null
 
+    // Один завантажувач за раз: паралельні виклики (ТБ Ефір і редактор каналів) інакше кожен
+    // качали той самий плейлист на мегабайти.
+    @Synchronized
     fun get(key: String, fetch: (etag: String?, lastModified: String?) -> Fetched<T>?): T {
         val old = entry?.takeIf { it.key == key }
         if (old != null && now() - old.at < ttlMs) return old.fetched.value
@@ -190,3 +171,11 @@ class DefaultTvSource @Inject constructor(
         return own + builtin.channels().filter { it.url !in urls }
     }
 }
+
+/**
+ * Плейлист і XMLTV — повз HTTP-кеш лаунчера (`HttpResponseCache` у LikhtarApplication). Провайдер
+ * віддає їх з `max-age` на 30 днів, і кеш місяць підсовував перший завантажений файл — більшість
+ * каналів стояла «Прямим ефіром». Свіжість цих файлів ми тримаємо самі (свій кеш, ETag), а десятки мегабайтів
+ * у спільному кеші лише витісняли б постери.
+ */
+internal const val NO_HTTP_CACHE = "no-cache, no-store"

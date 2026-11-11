@@ -24,6 +24,7 @@
         <item>Jeszcze chwila…</item>
     </string-array>
     <string name="ds_phone_drop">Wyślij na TV z telefonu</string>
+    <string name="ds_new_episodes">Nowe odcinki</string>
     <string name="ds_support_title">Wesprzyj autora</string>
     <string name="ds_support_lead">Likhtar jest darmowy i taki zostanie. Zeskanuj wygodny sposób — płatność otworzy się w telefonie.</string>
     <string name="ds_support_kofi">Ko-fi</string>

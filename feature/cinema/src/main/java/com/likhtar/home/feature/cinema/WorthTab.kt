@@ -1,6 +1,7 @@
 package com.likhtar.home.feature.cinema
 
 import androidx.compose.foundation.background
+import com.likhtar.home.core.designsystem.LikhtarDimens
 import com.likhtar.home.core.designsystem.LikhtarColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -123,7 +124,7 @@ internal fun WorthTab(card: LikhtarCard) {
                         background = LikhtarColors.Surface.copy(alpha = 0.8f),
                         focusedBackground = LikhtarColors.SurfaceHigh,
                         borderColor = Color.Transparent,
-                        focusedScale = 1.04f,
+                        focusedScale = LikhtarDimens.ControlFocusScale,
                         focusLighten = 0f,
                     ) { focused ->
                         Text(

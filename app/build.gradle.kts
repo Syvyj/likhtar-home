@@ -35,9 +35,9 @@ android {
             dimension = "dist"
             // Публічні випуски нумеруються від версії, а не від комітів: публічний репозиторій
             // має власну, коротку історію, і з нього номер збірки впав би нижче вже виданого.
-            // 0.1.0 → 100, 0.1.1 → 101, 0.2.0 → 200, 0.3.0 → 300. Мікропатч 0.1.9.1 зайняв 110.
-            versionName = "0.3.0"
-            versionCode = 300
+            // 0.1.0 → 100, 0.1.1 → 101, 0.2.0 → 200, 0.3.0 → 300, 0.3.1 → 301. Мікропатч 0.1.9.1 зайняв 110.
+            versionName = "0.3.1"
+            versionCode = 301
         }
     }
 
@@ -66,6 +66,14 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName(if (releaseKeystore != null) "release" else "debug")
+        }
+    }
+    // Публічний APK без справжнього ключа не збирається: debug-підписаний «реліз» ставиться начисто,
+    // але поверх виданого людям не оновлюється — і з лаунчера, і з інсталятора.
+    // Домашня збірка лишає запасний debug-підпис навмисно (див. вище).
+    if (releaseKeystore == null) {
+        tasks.matching { it.name == "packagePlayRelease" }.configureEach {
+            doFirst { throw GradleException("packagePlayRelease needs a release key: set LIKHTAR_KEYSTORE in .env or with -P. Use assemblePlayDebug to try the app.") }
         }
     }
 

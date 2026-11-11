@@ -10,6 +10,7 @@ import com.likhtar.home.core.catalog.TitleKind
 import com.likhtar.home.core.data.AppsRepository
 import com.likhtar.home.core.data.RecentChannel
 import com.likhtar.home.core.data.RecentHistoryRepository
+import com.likhtar.home.core.tv.rolledTo
 import com.likhtar.home.core.tv.ChannelLink
 import com.likhtar.home.core.tv.ChannelSchedule
 import com.likhtar.home.core.tv.NowOnAirAggregator
@@ -24,6 +25,7 @@ import com.likhtar.home.core.tv.mergeChannels
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -147,6 +149,17 @@ class LiveNowViewModel @Inject constructor(
     }
 
     init {
+        // «Мої канали» — одразу після повернення з плеєра, а не з наступним оновленням за 5 хв:
+        // канал, на який перемкнулись у плеєрі, записується вже після виходу з нього.
+        viewModelScope.launch {
+            recent.channels.map { list -> list.map { it.url } }.distinctUntilChanged().collect { urls ->
+                recentUrls = urls
+                _state.value = _state.value.let { if (it.channels.isEmpty()) it else it.copy(mine = mineCards(it.channels, it.pinned, urls)) }
+            }
+        }
+    }
+
+    init {
         // Оновлюємо лише поки екран дивиться: `collectAsStateWithLifecycle` відписується на
         // onStop, і цикл стає разом з ним — у фоні ні мережі, ні Sweet.TV-віяла. Повернення
         // не смикає мережу, якщо з останнього оновлення не минуло 5 хв.
@@ -180,14 +193,24 @@ class LiveNowViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Розбір XMLTV плейлиста — один за раз. Наступне оновлення скасовує попередній: інакше
+     * старий розбір (хвилина й більше) дописував програму до каналів старого плейлиста вже
+     * після нового, а кеш розділу записувався з адресою нового.
+     */
+    // lazy: init вище запускає оновлення на Main.immediate раніше, ніж дійде до цього рядка.
+    private val guideJob by lazy { com.likhtar.home.core.data.LatestJob(viewModelScope) }
+
     private suspend fun refresh() {
+        guideJob.cancel()
+        // Адреса плейлиста, з якого будуються саме ці канали, — для кешу розділу.
+        val playlistAt = runCatching { settings.settings.first().tvPlaylistUrl }.getOrDefault("")
         // Час кожного кроку — у журнал: «ТВ Ефір довго відкривається» без нього не розібрати.
         var mark = System.currentTimeMillis()
         val took = { step: String -> val now = System.currentTimeMillis(); android.util.Log.i("LikhtarLive", "$step: ${now - mark} мс"); mark = now }
         val hidden = runCatching { groups.hiddenChannels.first() }.getOrDefault(emptySet())
         // Набори шоу (посилання на /video/) телепрограми не мають — їм тут нема що показати.
-        // Плейлист провайдера — НА ДОДАЧУ до каналів застосунків, а не замість (
-        // розділ показує, що де є). Публічна збірка — без нашого сервера: лише плейлист і XMLTV.
+        // Плейлист провайдера — НА ДОДАЧУ до каналів застосунків, а не замість (        // розділ показує, що де є). Публічна збірка — без нашого сервера: лише плейлист і XMLTV.
         val store = com.likhtar.home.core.model.Distribution.store
         val playlistUrls = runCatching { playlistSource.channels() }.getOrDefault(emptyList()).map { it.url }.toSet()
         val playlist = store || playlistUrls.isNotEmpty()
@@ -219,17 +242,21 @@ class LiveNowViewModel @Inject constructor(
         // Доки XMLTV розбирається, у каналів плейлиста лишається попередня програма: без неї
         // кожне оновлення (і повернення з плеєра) на хвилину стирало розклад.
         val previous = _state.value.schedules
-        val kept = fromPlaylist.mapNotNull { l -> previous[l.url]?.let { l.url to it } }.toMap()
-        publish(links, kept + fast, fetched, playlist, own.isEmpty(), tvAll)
+        // Передача могла змінитись, доки стара програма лежала, — пересуваємо її на «зараз».
+        // Холодний старт (попередньої немає) — з останнього розбору на диску.
+        val kept = System.currentTimeMillis().let { at -> fromPlaylist.mapNotNull { l -> previous[l.url]?.rolledTo(at)?.let { l.url to it } }.toMap() }
+            .ifEmpty { runCatching { guide.lastSchedules(fromPlaylist) }.getOrDefault(emptyMap()) }
+        publish(links, kept + fast, fetched, playlist, own.isEmpty(), tvAll, playlistAt)
         LiveNowMemory.edits = edits
         if (fromPlaylist.isNotEmpty()) {
             // XMLTV провайдера — десятки мегабайтів, розбір на приставці хвилину й більше. Канали
             // показуємо одразу, а програму дописуємо, щойно розбереться: доти екран стояв на
             // ліхтарику півтори хвилини.
-            viewModelScope.launch {
+            guideJob.launch {
                 val schedules = runCatching { guide.schedulesFor(fromPlaylist) }.getOrDefault(emptyMap())
+                ensureActive()
                 took("телепрограма плейлиста (${fromPlaylist.size} каналів)")
-                if (schedules.isNotEmpty()) publish(links, fast + schedules, fetched, playlist, own.isEmpty(), tvAll)
+                if (schedules.isNotEmpty()) publish(links, fast + schedules, fetched, playlist, own.isEmpty(), tvAll, playlistAt)
             }
         }
     }
@@ -241,6 +268,7 @@ class LiveNowViewModel @Inject constructor(
         playlist: Boolean,
         noOwn: Boolean,
         tvAll: TvCatalog,
+        playlistAt: String,
     ) {
         // На зіставлення — лише те, що йде зараз: уся програма трьохсот каналів — це три
         // тисячі назв на кожне оновлення.
@@ -274,7 +302,7 @@ class LiveNowViewModel @Inject constructor(
         if (guide.isNotEmpty()) {
             LiveNowMemory.state = _state.value
             LiveNowMemory.at = System.currentTimeMillis()
-            LiveNowMemory.playlist = runCatching { settings.settings.first().tvPlaylistUrl }.getOrDefault("")
+            LiveNowMemory.playlist = playlistAt
         }
     }
 
@@ -321,6 +349,8 @@ class LiveNowViewModel @Inject constructor(
             now = streams.map { c -> if (c.bare || c.endMillis < now) "" else c.raw },
             index = index,
             guide = runCatching { writeGuide(streams) }.getOrDefault(""),
+            offset = from,
+            channels = streams.map { RecentChannel(url = it.link.url, name = it.link.name, image = it.link.logo, packageName = it.link.packageName) },
         )
     }
 

@@ -14,6 +14,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -63,22 +64,31 @@ class OpenMeteoWeatherRepository @Inject constructor(
         //: Головна вміє чекати без неї.
         hit?.let { emit(it.snapshot) }
 
-        val now = System.currentTimeMillis()
-        if (hit != null && now - hit.atMs < CACHE_MS) return@flow
-
-        // Без мережі (приставка стартувала раніше за Wi-Fi) — дочекатися її й спитати ще раз,
-        // а не мовчати до наступного оновлення.
-        val fetched = runCatching { fetch(place) }
-            .onFailure { Log.w(TAG, "Не вдалося отримати погоду", it) }
-            .getOrNull()
-            ?: run {
-                awaitOnline(context)
-                runCatching { fetch(place) }.getOrNull()
+        // Далі — по колу, поки Головна підписана: раніше погода бралась раз і стояла годинами
+        // (фоновий режим), а «найближчі години» йшли в минуле.
+        while (true) {
+            val now = System.currentTimeMillis()
+            val fresh = cached?.takeIf { it.place == place.city }
+            if (fresh != null && now - fresh.atMs < CACHE_MS) {
+                delay(CACHE_MS - (now - fresh.atMs))
+                continue
             }
-            ?: return@flow
-
-        cached = Cached(place = place.city, atMs = now, snapshot = fetched)
-        emit(fetched)
+            // Без мережі (приставка стартувала раніше за Wi-Fi) — дочекатися її й спитати ще раз,
+            // а не мовчати до наступного оновлення.
+            val fetched = runCatching { fetch(place) }
+                .onFailure { Log.w(TAG, "Не вдалося отримати погоду", it) }
+                .getOrNull()
+                ?: run {
+                    awaitOnline(context)
+                    runCatching { fetch(place) }.getOrNull()
+                }
+            if (fetched == null) {
+                delay(RETRY_MS)
+                continue
+            }
+            cached = Cached(place = place.city, atMs = System.currentTimeMillis(), snapshot = fetched)
+            emit(fetched)
+        }
     }
 
     private fun fetch(place: Place): WeatherSnapshot {
@@ -238,6 +248,7 @@ class OpenMeteoWeatherRepository @Inject constructor(
     private companion object {
         const val TAG = "LikhtarWeather"
         const val CACHE_MS = 15 * 60 * 1000L
+        private const val RETRY_MS = 5 * 60 * 1000L
         const val TIMEOUT_MS = 5_000
         const val FORECAST_DAYS = 7
         // Картка Головної показує 3 години, сторінка погоди — добу вперед.

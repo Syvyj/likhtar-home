@@ -167,6 +167,35 @@ class CatalogRepository @Inject constructor(
         CatalogListingKind.COLLECTION -> collectionListing(key)
         CatalogListingKind.UKRAINIAN -> ukrainianListing()
         CatalogListingKind.NETWORK -> networkListing(key)
+        CatalogListingKind.COMPANY -> companyListing(key)
+    }
+
+    /**
+     * Сторінка студії чи каналу TMDB: нове, популярне й серіали з discover. Курації тут
+     * немає — студій тисячі, і TMDB знає їхній доробок краще за нас.
+     */
+    private suspend fun companyListing(key: String): CatalogListing {
+        val studio = tmdb.studio(key)
+            ?: return CatalogListing(message = context.getString(R.string.catalog_msg_server_no_reply))
+        val id = studio.id.toString()
+        fun row(rowId: String, title: Int, path: String, params: Map<String, String>) =
+            CatalogRow(id = "studio-$rowId", title = context.getString(title), source = "tmdb", path = path, params = params)
+        val definitions = if (studio.network) listOf(
+            row("new-tv", R.string.catalog_studio_new_series, "discover/tv", mapOf("with_networks" to id, "sort_by" to "first_air_date.desc", "first_air_date.lte" to "{current_date}")),
+            row("top-tv", R.string.catalog_studio_popular, "discover/tv", mapOf("with_networks" to id, "sort_by" to "popularity.desc")),
+        ) else listOf(
+            row("new", R.string.catalog_studio_new, "discover/movie", mapOf("with_companies" to id, "sort_by" to "primary_release_date.desc", "primary_release_date.lte" to "{current_date}")),
+            row("top", R.string.catalog_studio_popular_movies, "discover/movie", mapOf("with_companies" to id, "sort_by" to "popularity.desc")),
+            row("tv", R.string.catalog_studio_series, "discover/tv", mapOf("with_companies" to id, "sort_by" to "popularity.desc")),
+        )
+        val rows = fill(definitions)
+        return CatalogListing(
+            title = studio.name,
+            subtitle = context.getString(if (studio.network) R.string.catalog_subtitle_channel else R.string.catalog_subtitle_studio),
+            rows = rows,
+            message = if (rows.isEmpty()) context.getString(R.string.catalog_msg_tmdb_nothing_for, studio.name) else null,
+            studio = studio,
+        )
     }
 
     /** Мовники з живими джерелами — сервер порожніх не віддає, тож фільтрувати нічого. */
@@ -1014,7 +1043,6 @@ class CatalogRepository @Inject constructor(
             "anime" to R.string.catalog_page_anime,
             "upcoming" to R.string.catalog_page_upcoming,
         )
-        val FREE_OFFERS = setOf("FREE", "ADS")
         const val SEARCH_LIMIT = 40
     }
 

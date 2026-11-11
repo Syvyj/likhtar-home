@@ -1,6 +1,7 @@
 package com.likhtar.home.core.smarthome
 
 import com.likhtar.home.core.data.text
+import com.likhtar.home.core.data.Secrets
 import com.likhtar.home.core.data.http
 import android.content.Context
 import android.util.Log
@@ -32,6 +33,8 @@ data class HaGrant(val url: String, val clientId: String, val refreshToken: Stri
  * `homeassistant.json`: інші застосунки його не прочитають.
  */
 @Singleton
+// Refresh-токен на диску — шифрований ключем Android Keystore (Secrets), як і решта секретів;
+// файл, записаний раніше відкритим текстом, переписується шифрованим при першому ж читанні.
 class HaAuth @Inject constructor(@ApplicationContext private val context: Context) {
     private val file = File(context.filesDir, FILE)
     private val lock = Mutex()
@@ -45,7 +48,10 @@ class HaAuth @Inject constructor(@ApplicationContext private val context: Contex
     fun grant(): HaGrant? = runCatching {
         if (!file.exists()) return null
         val json = JSONObject(file.readText())
-        HaGrant(json.getString("url"), json.getString("client_id"), json.getString("refresh_token"))
+        val stored = json.getString("refresh_token")
+        // Записаний до шифрування — переписати шифрованим одразу, а не з наступним оновленням.
+        if (stored.isNotEmpty() && !Secrets.isSealed(stored)) file.writeText(json.put("refresh_token", Secrets.seal(stored)).toString())
+        HaGrant(json.getString("url"), json.getString("client_id"), Secrets.open(stored))
     }.getOrNull()?.takeIf { it.url.isNotBlank() && it.refreshToken.isNotBlank() }
 
     /**
@@ -56,7 +62,7 @@ class HaAuth @Inject constructor(@ApplicationContext private val context: Contex
     fun moveTo(url: String) {
         val grant = grant() ?: return
         file.writeText(
-            JSONObject().put("url", url).put("client_id", grant.clientId).put("refresh_token", grant.refreshToken).toString(),
+            JSONObject().put("url", url).put("client_id", grant.clientId).put("refresh_token", Secrets.seal(grant.refreshToken)).toString(),
         )
         access = null
         _revision.value += 1
@@ -74,7 +80,7 @@ class HaAuth @Inject constructor(@ApplicationContext private val context: Contex
             val json = tokenRequest(url, "grant_type=authorization_code&code=${enc(code)}&client_id=${enc(clientId)}")
             val refresh = json.optString("refresh_token").ifBlank { error(context.getString(R.string.smarthome_auth_no_refresh)) }
             file.writeText(
-                JSONObject().put("url", url).put("client_id", clientId).put("refresh_token", refresh).toString(),
+                JSONObject().put("url", url).put("client_id", clientId).put("refresh_token", Secrets.seal(refresh)).toString(),
             )
             access = json.optString("access_token").takeIf { it.isNotBlank() }
                 ?.let { it to System.currentTimeMillis() + json.optLong("expires_in", 1800) * 1000 }

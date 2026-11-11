@@ -20,5 +20,6 @@
     <string name="error_tls">Цей телевізор дозволяє лише бездротове налагодження з парою, його застосунок поки не вміє. Встановіть через Downloader або флешку.</string>
     <string name="error_connection">З\'єднання з телевізором обірвалось. Спробуйте ще раз.</string>
     <string name="error_download">Не вдалося завантажити Ліхтар. Перевірте інтернет на телефоні.</string>
+    <string name="error_checksum">Завантажений файл не збігся з випуском. Спробуйте пізніше.</string>
     <string name="error_install">Телевізор не прийняв встановлення:</string>
 </resources>

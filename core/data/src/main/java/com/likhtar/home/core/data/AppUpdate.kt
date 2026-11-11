@@ -25,8 +25,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-/** Новіший випуск на GitHub: номер, що змінилось, і пряме посилання на APK. */
-data class AppRelease(val version: String, val notes: String, val apkUrl: String)
+/**
+ * Новіший випуск на GitHub: номер, що змінилось, пряме посилання на APK і його SHA-256 з приміток
+ * (порожньо — у примітках її немає).
+ */
+data class AppRelease(val version: String, val notes: String, val apkUrl: String, val sha256: String = "")
 
 /**
  * Оновлення лаунчера з GitHub без магазину: раз на добу питаємо `releases/latest` (один запит
@@ -57,6 +60,8 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
     val awaitingPermission: StateFlow<Boolean> = _awaitingPermission.asStateFlow()
     @Volatile private var waiting: AppRelease? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    /** Одне завантаження за раз: Головна й «Про застосунок» писали б той самий файл разом. */
+    private val busy = java.util.concurrent.atomic.AtomicBoolean(false)
 
     val installed: String by lazy {
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
@@ -124,42 +129,61 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
                 .onFailure { _error.value = it.message ?: it.javaClass.simpleName }
             return@withContext
         }
-        val dir = File(context.cacheDir, "updates").apply { mkdirs() }
-        val apk = File(dir, "likhtar-home.apk")
+        if (!busy.compareAndSet(false, true)) return@withContext
         try {
             _progress.value = 0f
-            http(release.apkUrl, TIMEOUT_MS, DOWNLOAD_TIMEOUT_MS) { c ->
-                if (c.responseCode != 200) error("GitHub відповів ${c.responseCode}")
-                val total = c.contentLengthLong.coerceAtLeast(1)
-                c.inputStream.use { input ->
-                    apk.outputStream().use { output ->
-                        val buf = ByteArray(64 * 1024)
-                        var done = 0L
-                        while (true) {
-                            val n = input.read(buf)
-                            if (n < 0) break
-                            output.write(buf, 0, n)
-                            done += n
-                            _progress.value = (done.toFloat() / total).coerceAtMost(1f)
-                        }
-                    }
-                }
-            }
-            // Той самий застосунок і справді новіший — інакше система показала б незрозумілу помилку.
-            val info = context.packageManager.getPackageArchiveInfo(apk.path, 0) ?: error("файл пошкоджено")
-            if (info.packageName != context.packageName) error("це інший застосунок")
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", apk)
-            context.startActivity(
-                Intent(Intent.ACTION_VIEW)
-                    .setDataAndType(uri, "application/vnd.android.package-archive")
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK),
-            )
+            val apk = download(release.apkUrl, APK_NAME) { _progress.value = it }
+            openInstaller(apk, context.packageName, release.sha256)
         } catch (e: Exception) {
             Log.w(TAG, "оновлення", e)
             _error.value = e.message ?: e.javaClass.simpleName
         } finally {
             _progress.value = null
+            busy.set(false)
         }
+    }
+
+    /** APK з [url] у кеш оновлень під ім'ям [name]; [onProgress] — частка 0–1. */
+    private fun download(url: String, name: String, onProgress: (Float) -> Unit = {}): File {
+        val apk = File(File(context.cacheDir, "updates").apply { mkdirs() }, name)
+        http(url, TIMEOUT_MS, DOWNLOAD_TIMEOUT_MS) { c ->
+            if (c.responseCode != 200) error("GitHub відповів ${c.responseCode}")
+            val total = c.contentLengthLong.coerceAtLeast(1)
+            c.inputStream.use { input ->
+                apk.outputStream().use { output ->
+                    val buf = ByteArray(64 * 1024)
+                    var done = 0L
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        output.write(buf, 0, n)
+                        done += n
+                        onProgress((done.toFloat() / total).coerceAtMost(1f))
+                    }
+                }
+            }
+        }
+        return apk
+    }
+
+    /**
+     * Перевірити й відкрити системне встановлення. Контрольна сума з приміток випуску — якщо вона
+     * там є: досі її лише вирізали з тексту, а не звіряли. Пакет — той, що чекаємо:
+     * інакше система показала б незрозумілу помилку.
+     */
+    private fun openInstaller(apk: File, pkg: String, sha256: String) {
+        if (sha256.isNotEmpty() && !sha256.equals(sha256Of(apk), ignoreCase = true)) {
+            apk.delete()
+            error("файл не збігся з контрольною сумою випуску")
+        }
+        val info = context.packageManager.getPackageArchiveInfo(apk.path, 0) ?: error("файл пошкоджено")
+        if (info.packageName != pkg) error("це інший застосунок")
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", apk)
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW)
+                .setDataAndType(uri, "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
     }
 
     /**
@@ -175,29 +199,20 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
             return@withContext runCatching { context.startActivity(ask) }.isSuccess
         }
         runCatching {
-            val url = http(LATEST, TIMEOUT_MS, headers = mapOf("Accept" to "application/vnd.github+json")) { c ->
-                if (c.responseCode != 200) error("GitHub відповів ${c.responseCode}") else assetUrl(c.text(), TV_PLAYER_APK)
-            } ?: error("у випуску немає $TV_PLAYER_APK")
-            val apk = File(File(context.cacheDir, "updates").apply { mkdirs() }, TV_PLAYER_APK)
-            http(url, TIMEOUT_MS, DOWNLOAD_TIMEOUT_MS) { c ->
+            val (url, sha) = http(LATEST, TIMEOUT_MS, headers = mapOf("Accept" to "application/vnd.github+json")) { c ->
                 if (c.responseCode != 200) error("GitHub відповів ${c.responseCode}")
-                c.inputStream.use { input -> apk.outputStream().use { input.copyTo(it) } }
+                val body = c.text()
+                (assetUrl(body, TV_PLAYER_APK) ?: error("у випуску немає $TV_PLAYER_APK")) to
+                    sha256Of(JSONObject(body).optString("body"), TV_PLAYER_APK)
             }
-            val info = context.packageManager.getPackageArchiveInfo(apk.path, 0) ?: error("файл пошкоджено")
-            if (info.packageName != TV_PLAYER) error("це інший застосунок")
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", apk)
-            context.startActivity(
-                Intent(Intent.ACTION_VIEW)
-                    .setDataAndType(uri, "application/vnd.android.package-archive")
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK),
-            )
+            openInstaller(download(url, TV_PLAYER_APK), TV_PLAYER, sha)
         }.onFailure { Log.w(TAG, "Ліхтар ТБ", it) }.isSuccess
     }
 
-    private fun encode(r: AppRelease) = JSONObject().put("v", r.version).put("n", r.notes).put("u", r.apkUrl).toString()
+    private fun encode(r: AppRelease) = JSONObject().put("v", r.version).put("n", r.notes).put("u", r.apkUrl).put("s", r.sha256).toString()
 
     private fun decode(raw: String) = runCatching {
-        JSONObject(raw).let { AppRelease(it.getString("v"), it.optString("n"), it.getString("u")) }
+        JSONObject(raw).let { AppRelease(it.getString("v"), it.optString("n"), it.getString("u"), it.optString("s")) }
     }.getOrNull()
 
     companion object {
@@ -214,12 +229,15 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
         private const val DOWNLOAD_TIMEOUT_MS = 120_000
         private const val KEY_CHECKED = "checked_at"
         private const val KEY_RELEASE = "release"
+        /** Рядок контрольної суми з приміток: на екрані ТБ він був набором цифр. */
+        private val HASH_LINE = Regex("""`[^`]+\.apk`\s+`[0-9a-fA-F]{64}`""")
 
         /** Відповідь GitHub → випуск; без APK у вкладеннях — `null`. */
         internal fun parse(json: String): AppRelease? {
             val o = JSONObject(json)
             val apk = assetUrl(json, APK_NAME) ?: return null
-            return AppRelease(o.optString("tag_name").removePrefix("v"), plainNotes(o.optString("body")), apk)
+            val body = o.optString("body")
+            return AppRelease(o.optString("tag_name").removePrefix("v"), plainNotes(body), apk, sha256Of(body, APK_NAME))
         }
 
         /** Пряме посилання на вкладення [name] у відповіді GitHub; немає — `null`. */
@@ -229,9 +247,27 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
                 .firstOrNull { it.optString("name") == name }?.optString("browser_download_url")
         }
 
-        /** Markdown приміток — простим текстом для екрана ТБ: без зірочок, посилань і контрольної суми. */
+        /** SHA-256 вкладення [name] з приміток: рядок «`name` `<64 hex>`»; немає — порожньо. */
+        internal fun sha256Of(body: String, name: String): String =
+            Regex("""`${Regex.escape(name)}`\s+`([0-9a-fA-F]{64})`""").find(body)?.groupValues?.get(1)?.lowercase().orEmpty()
+
+        /** SHA-256 файла, малими hex. */
+        internal fun sha256Of(file: File): String {
+            val md = java.security.MessageDigest.getInstance("SHA-256")
+            file.inputStream().use { input ->
+                val buf = ByteArray(64 * 1024)
+                while (true) {
+                    val n = input.read(buf)
+                    if (n < 0) break
+                    md.update(buf, 0, n)
+                }
+            }
+            return md.digest().joinToString("") { "%02x".format(it) }
+        }
+
+        /** Markdown приміток — простим текстом для екрана ТБ: без зірочок, посилань і контрольних сум. */
         internal fun plainNotes(body: String): String = body.lines()
-            .filterNot { it.startsWith("SHA-256") || it.startsWith("Install over") }
+            .filterNot { it.startsWith("SHA-256") || it.startsWith("Install over") || HASH_LINE.containsMatchIn(it) }
             .joinToString("\n")
             .replace(Regex("""\[([^]]+)]\([^)]+\)"""), "$1")
             .replace(Regex("""[*`]"""), "")

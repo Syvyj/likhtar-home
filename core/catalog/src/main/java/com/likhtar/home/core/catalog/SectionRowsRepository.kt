@@ -375,7 +375,7 @@ class SectionRowsRepository @Inject constructor(
         val GENRE_TONES = listOf(0xFF8A4B2AL, 0xFF6B5A2EL, 0xFF5A3A4AL, 0xFF3E4A3AL, 0xFF4A3E2EL)
 
         /** Ряд-пул шапки — так його звуть і сервер, і екрани (CinemaViewModel, RealityViewModel). */
-        const val SLIDER = "Слайдер"
+        const val SLIDER = SLIDER_ROW_KEY
         // 20 с, а не 8: перший запит після перезапуску сервера збирає всі ряди наново й
         // TMDB холодний, і Кінозал двічі відкрився з самими «Закладками». Поки
         // чекаємо, стоїть екран завантаження — це краще за напівпорожній розділ.
@@ -438,6 +438,9 @@ fun List<SectionRow>.arranged(order: List<String>, hidden: Set<String>): List<Se
         .iterator()
     return shown.map { if (it.movable) moved.next() else it }
 }
+/** Ключ ряду-пулу шапки — так його звуть і сервер, і екрани; ключ, а не назва: назви сервер перекладає. */
+const val SLIDER_ROW_KEY = "Слайдер"
+
 /** Ряд від сервера разом із тим, чого немає в самій картці. */
 data class SectionRow(
     val title: String,

@@ -306,6 +306,52 @@ class TmdbClient @Inject constructor(
         }.onFailure { Log.w(TAG, "Не вдалося розібрати франшизу $id", it) }.getOrNull()
     }
 
+    /** Остання серія серіалу, що вже вийшла (`last_episode_to_air`); `null` — немає чи збій. */
+    suspend fun lastAired(tmdbId: Int): AiredEpisode? {
+        val key = config.tmdbKey() ?: return null
+        val body = get("${config.tmdbApi()}/tv/$tmdbId?api_key=$key&language=${config.locale().tmdbLanguage}") ?: return null
+        return runCatching {
+            val json = JSONObject(body)
+            val last = json.optJSONObject("last_episode_to_air") ?: return@runCatching null
+            val date = last.optString("air_date").takeIf { it.length >= 10 } ?: return@runCatching null
+            fun path(k: String) = json.optString(k).takeIf { it.isNotBlank() && it != "null" }
+            AiredEpisode(
+                item = CatalogItem(
+                    tmdbId = tmdbId,
+                    kind = TitleKind.TV,
+                    title = json.optString("name"),
+                    originalTitle = json.optString("original_name"),
+                    year = json.optString("first_air_date").take(4),
+                    posterPath = path("poster_path"),
+                    backdropPath = path("backdrop_path"),
+                ),
+                season = last.optInt("season_number"),
+                episode = last.optInt("episode_number"),
+                name = last.optString("name"),
+                airDate = date,
+            )
+        }.getOrNull()
+    }
+
+    /** Назва й лого студії чи каналу за ключем [StudioRef.key] — голова її сторінки. */
+    suspend fun studio(key: String): StudioRef? {
+        val (network, id) = StudioRef.parseKey(key) ?: return null
+        val apiKey = config.tmdbKey() ?: return null
+        val body = get("${config.tmdbApi()}/${if (network) "network" else "company"}/$id?api_key=$apiKey") ?: return null
+        return runCatching {
+            val json = JSONObject(body)
+            StudioRef(id, json.optString("name"), json.optString("logo_path").takeIf { it.isNotBlank() && it != "null" }, network)
+        }.getOrNull()?.takeIf { it.name.isNotBlank() }
+    }
+
+    private fun studios(array: org.json.JSONArray?, network: Boolean): List<StudioRef> =
+        (0 until (array?.length() ?: 0)).mapNotNull { i ->
+            val o = array?.optJSONObject(i) ?: return@mapNotNull null
+            val id = o.optInt("id").takeIf { it > 0 } ?: return@mapNotNull null
+            val name = o.optString("name").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            StudioRef(id, name, o.optString("logo_path").takeIf { it.isNotBlank() && it != "null" }, network)
+        }.take(6)
+
     /** Постер колекції без напису (мова «null»): на ньому стоїть наше лого. */
     suspend fun textlessCollectionPoster(id: Int): String? {
         val key = config.tmdbKey() ?: return null
@@ -684,6 +730,7 @@ class TmdbClient @Inject constructor(
                 (0 until a.length()).mapNotNull { a.optJSONObject(it)?.optString("name")?.takeIf(String::isNotBlank) }.joinToString(", ")
             }.orEmpty(),
             network = json.optJSONArray("networks")?.optJSONObject(0)?.optString("name").orEmpty(),
+            studios = studios(json.optJSONArray("networks"), network = true) + studios(json.optJSONArray("production_companies"), network = false),
             episodeCount = json.optInt("number_of_episodes"),
             premiere = date,
             seasonNumbers = seasonNumbers,

@@ -22,8 +22,10 @@ object MediaNames {
 
     private val SXE = Regex("""(?i)\bS(\d{1,2})[ ._-]?E(\d{1,3})\b""")
     private val NXN = Regex("""(?i)\b(\d{1,2})x(\d{2,3})\b""")
-    private val EPISODE_ONLY = Regex("""(?i)\b(?:E|Ep|Episode|Серія|Серия|Епізод)[ ._-]?(\d{1,3})\b""")
-    private val SEASON_DIR = Regex("""(?i)^(?:Season|Сезон|S)[ ._-]?(\d{1,2})\b.*|^(\d{1,2})[ ._-]?(?:Season|Сезон)\b.*""")
+    // Межі слова — lookaround по \p{L}\p{N}, а не \b: на JVM 19+ \b бачить лише ASCII-букви, і
+    // «Серія 03» / «Сезон 2» не розпізнавались (тест падав). (?U) не годиться — Android його не приймає.
+    private val EPISODE_ONLY = Regex("""(?i)(?<![\p{L}\p{N}])(?:E|Ep|Episode|Серія|Серия|Епізод)[ ._-]?(\d{1,3})(?![\p{L}\p{N}])""")
+    private val SEASON_DIR = Regex("""(?i)^(?:Season|Сезон|S)[ ._-]?(\d{1,2})(?![\p{L}\p{N}]).*|^(\d{1,2})[ ._-]?(?:Season|Сезон)(?![\p{L}\p{N}]).*""")
     private val YEAR = Regex("""(?:^|[\s(\[])((?:19|20)\d{2})(?:$|[\s)\]])""")
     private val TAGS = Regex(
         """(?i)\b(?:2160p|1080p|1080i|720p|576p|480p|4k|uhd|hdr10?\+?|hdr|dv|dolby[ ._-]?vision|web[ ._-]?dl|web[ ._-]?rip|webrip|bdrip|brrip|blu[ ._-]?ray|bdremux|remux|hdtv|dvdrip|hdrip|x264|x265|h[ ._]?264|h[ ._]?265|hevc|avc|aac|ac3|dts|ddp?5[ ._]1|atmos|proper|repack|extended|unrated|imax|multi|ukr|rus|eng|sub|subs)\b""",

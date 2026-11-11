@@ -65,7 +65,7 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
             .joinToString("") { "%02x".format(it) }.also { prefs.edit().putString("token", it).apply() }
     }
     private val busy = AtomicBoolean(false)
-    private var received = 0
+    @Volatile private var received = 0
 
     private val _state = MutableStateFlow<DropState>(DropState.Waiting)
     val state: StateFlow<DropState> = _state.asStateFlow()
@@ -74,7 +74,7 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
     private val _arrivals = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val arrivals: SharedFlow<Unit> = _arrivals.asSharedFlow()
 
-    @Volatile private var address: String? = null
+    @Volatile private var port: Int = 0
 
     /** До Android 10 MediaStore не пише в «Завантаження» без дозволу — тоді власна тека лаунчера. */
     private val legacyDir: File by lazy {
@@ -86,16 +86,20 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
     @Synchronized
     fun start(): String? {
         if (_state.value is DropState.Failed) _state.value = DropState.Waiting
-        address?.let { return it }
+        // Адреса — щоразу свіжа: після зміни IP (DHCP) QR вів на стару, а сервер той самий.
         val ip = lanAddress() ?: return null
-        val server = PORTS.firstNotNullOfOrNull { runCatching { ServerSocket(it) }.getOrNull() } ?: return null
-        thread(name = "phone-drop", isDaemon = true) {
-            while (true) {
-                val socket = runCatching { server.accept() }.getOrNull() ?: break
-                thread(isDaemon = true) { runCatching { socket.use(::serve) }.onFailure { Log.w(TAG, "запит", it) } }
+        if (port == 0) {
+            val server = PORTS.firstNotNullOfOrNull { runCatching { ServerSocket(it) }.getOrNull() } ?: return null
+            thread(name = "phone-drop", isDaemon = true) {
+                while (true) {
+                    val socket = runCatching { server.accept() }.getOrNull() ?: break
+                    if (!socket.fromLocalNetwork()) { runCatching { socket.close() }; continue }
+                    thread(isDaemon = true) { runCatching { socket.use(::serve) }.onFailure { Log.w(TAG, "запит", it) } }
+                }
             }
+            port = server.localPort
         }
-        return "http://$ip:${server.localPort}/$token/".also { address = it }
+        return "http://$ip:$port/$token/"
     }
 
     /** Діалог закрили — лічильник з нуля, наступний показ чекає телефон заново. */
@@ -105,16 +109,16 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
     }
 
     /** Чи піднімали сервер — без нього файлам нізвідки прийти, і стежити нема за чим. */
-    val started: Boolean get() = address != null
+    val started: Boolean get() = port != 0
 
     private fun serve(socket: Socket) {
         socket.soTimeout = 60_000
         val input = socket.getInputStream().buffered(256 * 1024)
         val out = socket.getOutputStream()
-        val request = input.line() ?: return
+        val request = input.httpLine() ?: return
         var length = -1L
         while (true) {
-            val h = input.line() ?: break
+            val h = input.httpLine() ?: break
             if (h.isEmpty()) break
             if (h.startsWith("content-length:", ignoreCase = true)) length = h.substringAfter(':').trim().toLongOrNull() ?: -1
         }
@@ -138,7 +142,7 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
                     _arrivals.tryEmit(Unit)
                     out.reply(200, "application/json", "{}")
                 } else {
-                    out.reply(400, "application/json", """{"error":"Це не посилання"}""")
+                    out.reply(400, "application/json", """{"error":"not_link"}""")
                 }
             }
             method == "POST" && route == "upload" -> upload(input, out, query["name"].orEmpty(), length)
@@ -147,15 +151,15 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
     }
 
     private fun upload(input: InputStream, out: OutputStream, rawName: String, length: Long) {
-        if (length <= 0) return out.reply(411, "application/json", """{"error":"Невідомий розмір"}""")
-        if (length + MARGIN > free()) return out.reply(507, "application/json", """{"error":"Не вистачає місця на приставці"}""")
-        if (!busy.compareAndSet(false, true)) return out.reply(409, "application/json", """{"error":"Приставка вже приймає файл"}""")
+        if (length <= 0) return out.reply(411, "application/json", """{"error":"no_size"}""")
+        if (length + MARGIN > free()) return out.reply(507, "application/json", """{"error":"no_space"}""")
+        if (!busy.compareAndSet(false, true)) return out.reply(409, "application/json", """{"error":"busy"}""")
         val name = safeName(rawName)
         val mime = mimeOf(name)
         val target = runCatching { create(name, mime) }.getOrElse {
             busy.set(false)
             Log.w(TAG, "створити $name", it)
-            return out.reply(500, "application/json", """{"error":"Не вдалося створити файл"}""")
+            return out.reply(500, "application/json", """{"error":"no_file"}""")
         }
         try {
             var done = 0L
@@ -176,8 +180,8 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
             }
             if (done < length) {
                 discard(target)
-                _state.value = DropState.Failed("«${target.name}» прийшов не весь")
-                return out.reply(400, "application/json", """{"error":"Передачу перервано"}""")
+                _state.value = DropState.Failed(context.getString(R.string.data_drop_incomplete, target.name))
+                return out.reply(400, "application/json", """{"error":"cut"}""")
             }
             publish(target)
             received++
@@ -186,7 +190,7 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
             out.reply(200, "application/json", "{}")
         } catch (e: Exception) {
             discard(target)
-            _state.value = DropState.Failed("«${target.name}» не прийнято: ${e.message ?: "з'єднання обірвалось"}")
+            _state.value = DropState.Failed(context.getString(R.string.data_drop_failed, target.name, e.message ?: context.getString(R.string.data_drop_connection_lost)))
             throw e
         } finally {
             busy.set(false)
@@ -249,15 +253,6 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
         flush()
     }
 
-    private fun InputStream.line(): String? {
-        val sb = StringBuilder()
-        while (true) {
-            val c = read()
-            if (c < 0) return if (sb.isEmpty()) null else sb.toString()
-            if (c == '\n'.code) return sb.toString().trimEnd('\r')
-            sb.append(c.toChar())
-        }
-    }
 
     private fun InputStream.readExactly(n: Int): ByteArray {
         val out = ByteArray(n)

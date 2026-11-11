@@ -2,6 +2,8 @@
 <resources>
     <string name="app_open_with">Otwórz za pomocą</string>
     <string name="drop_title">Wyślij na TV z telefonu</string>
+    <string name="new_episodes_title">Nowe odcinki</string>
+    <string name="new_episodes_hint">Z ostatnich dwóch tygodni, z oglądanych i zapisanych seriali</string>
     <string name="drop_no_network">Dekoder nie jest w sieci domowej — kod QR nie ma dokąd prowadzić.</string>
     <string name="drop_step1">1. Skieruj aparat telefonu na kod</string>
     <string name="drop_step2">2. Wybierz plik lub wklej link</string>

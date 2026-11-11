@@ -1,8 +1,8 @@
 package com.likhtar.home.core.catalog.media
 
 import android.util.Base64
+import com.likhtar.home.core.data.httpLine
 import android.util.Log
-import java.io.InputStream
 import java.io.OutputStream
 import java.net.InetAddress
 import java.net.ServerSocket
@@ -47,10 +47,10 @@ class LocalStream(private val access: (sourceId: String) -> SmbAccess?) {
     private fun serve(socket: Socket) {
         val input = socket.getInputStream()
         val out = socket.getOutputStream()
-        val request = input.line() ?: return
+        val request = input.httpLine() ?: return
         var range: String? = null
         while (true) {
-            val h = input.line() ?: break
+            val h = input.httpLine() ?: break
             if (h.isEmpty()) break
             if (h.startsWith("range:", ignoreCase = true)) range = h.substringAfter(':').trim()
         }
@@ -66,8 +66,15 @@ class LocalStream(private val access: (sourceId: String) -> SmbAccess?) {
                 var from = 0L
                 var to = size - 1
                 val partial = range?.removePrefix("bytes=")?.split('-')?.let { r ->
-                    r[0].toLongOrNull()?.let { from = it }
-                    r.getOrNull(1)?.toLongOrNull()?.let { to = minOf(it, size - 1) }
+                    val start = r[0].toLongOrNull()
+                    val end = r.getOrNull(1)?.toLongOrNull()
+                    if (start == null && end != null) {
+                        // «bytes=-500» — останні 500 байт (хвіст MKV з індексом), не перші 501.
+                        from = maxOf(0L, size - end)
+                    } else {
+                        start?.let { from = it }
+                        end?.let { to = minOf(it, size - 1) }
+                    }
                     true
                 } ?: false
                 if (from >= size) return out.status(416, "Content-Range: bytes */$size\r\n")
@@ -107,15 +114,6 @@ class LocalStream(private val access: (sourceId: String) -> SmbAccess?) {
         write("HTTP/1.1 $code X\r\n${extra}Content-Length: 0\r\nConnection: close\r\n\r\n".toByteArray())
     }
 
-    private fun InputStream.line(): String? {
-        val sb = StringBuilder()
-        while (true) {
-            val c = read()
-            if (c < 0) return if (sb.isEmpty()) null else sb.toString()
-            if (c == '\n'.code) return sb.toString().trimEnd('\r')
-            sb.append(c.toChar())
-        }
-    }
 
     private fun mimeOf(path: String) = when (path.substringAfterLast('.').lowercase()) {
         "mp4", "m4v" -> "video/mp4"

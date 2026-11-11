@@ -33,4 +33,25 @@ class AppUpdateTest {
     fun `без APK у вкладеннях — оновлення немає`() {
         assertNull(AppUpdate.parse("""{"tag_name":"v0.1.5","assets":[]}"""))
     }
+
+    @Test
+    fun `контрольна сума з приміток — для свого вкладення, а з тексту прибрана`() {
+        val home = "e6e344ab7c9a5466e63a8c067dfbea0ada509a24e3682c5fcbad7551711f6060"
+        val tv = "c99ab8b88169d73227ed344a76653a1ade1986f97e8b3ac3f8925fd2dd409206"
+        val body = "**New.** Channels.\n\nSHA-256\n`likhtar-home.apk` `$home`\n`likhtar-tv.apk` `$tv`"
+        val json = org.json.JSONObject().put("tag_name", "v0.3.0").put("body", body).put(
+            "assets", org.json.JSONArray().put(org.json.JSONObject().put("name", "likhtar-home.apk").put("browser_download_url", "https://x/h.apk")),
+        ).toString()
+        val r = AppUpdate.parse(json)!!
+        assertEquals(home, r.sha256)
+        assertEquals(tv, AppUpdate.sha256Of(body, "likhtar-tv.apk"))
+        assertEquals("", AppUpdate.sha256Of(body, "likhtar-installer.apk"))
+        assertEquals("New. Channels.", r.notes)
+    }
+
+    @Test
+    fun `SHA-256 файла`() {
+        val f = java.io.File.createTempFile("apk", ".bin").apply { writeText("abc"); deleteOnExit() }
+        assertEquals("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", AppUpdate.sha256Of(f))
+    }
 }

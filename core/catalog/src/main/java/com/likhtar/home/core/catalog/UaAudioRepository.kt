@@ -146,6 +146,10 @@ class UaAudioRepository @Inject constructor(
     }
 }
 
+/** Якість із `/api/ua` для картки, що прийшла без неї (TMDB discover, пошук): ряди сервера її вже мають. */
+fun CatalogItem.withQuality(audio: UaAudio?): CatalogItem =
+    if (quality > 0 || audio == null || audio.quality <= 0) this else copy(quality = audio.quality, hdr = hdr.ifBlank { audio.hdr })
+
 /**
  * Розбір відповіді `/api/ua`.
  *

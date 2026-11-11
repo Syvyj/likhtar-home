@@ -26,4 +26,7 @@
     <string name="data_open_with">Otwórz za pomocą</string>
     <string name="data_roms_no_emulator">Aby zagrać, zainstaluj RetroArch lub Lemuroid.</string>
     <string name="data_roms_launch_failed">Nie udało się uruchomić gry. Otwórz RetroArch i pobierz rdzeń dla tej konsoli: Aktualizator online → Pobieranie rdzeni.</string>
+    <string name="data_drop_incomplete">„%1$s” dotarł niekompletny</string>
+    <string name="data_drop_failed">„%1$s” nie został odebrany: %2$s</string>
+    <string name="data_drop_connection_lost">połączenie przerwane</string>
 </resources>

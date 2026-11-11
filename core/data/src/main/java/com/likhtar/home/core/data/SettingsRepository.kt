@@ -274,7 +274,7 @@ class SettingsRepository @Inject constructor(
             smartHomeToken = Secrets.open(prefs[KEY_SMART_HOME_TOKEN]),
             voiceCommandsEnabled = prefs[KEY_VOICE_COMMANDS] ?: true,
             tvCountries = prefs[KEY_TV_COUNTRIES].orEmpty(),
-            tvEpgUrl = prefs[KEY_TV_EPG_URL] ?: "",
+            tvEpgUrl = Secrets.open(prefs[KEY_TV_EPG_URL]),
             tvPlaylistUrl = Secrets.open(prefs[KEY_TV_PLAYLIST_URL]),
             tmdbApiKey = Secrets.open(prefs[KEY_TMDB_KEY]),
             likhtarBaseUrl = prefs[KEY_LIKHTAR_URL] ?: "",
@@ -375,7 +375,7 @@ class SettingsRepository @Inject constructor(
     }
 
     suspend fun setTvEpgUrl(url: String) {
-        context.settingsDataStore.edit { it[KEY_TV_EPG_URL] = url.trim() }
+        context.settingsDataStore.edit { it[KEY_TV_EPG_URL] = Secrets.seal(url.trim()) }
     }
 
     suspend fun setTvPlaylistUrl(url: String) {
@@ -563,7 +563,7 @@ class SettingsRepository @Inject constructor(
         val KEY_AI_KEY = stringPreferencesKey("ai_key")
 
         /** Що лежить на диску лише шифрованим ([Secrets]). */
-        private val SECRET_KEYS = listOf(KEY_SMART_HOME_TOKEN, KEY_TV_PLAYLIST_URL, KEY_TMDB_KEY, KEY_AI_KEY)
+        private val SECRET_KEYS = listOf(KEY_SMART_HOME_TOKEN, KEY_TV_PLAYLIST_URL, KEY_TV_EPG_URL, KEY_TMDB_KEY, KEY_AI_KEY)
         val KEY_VIDEO_PLAYER = stringPreferencesKey("video_player_package")
         val KEY_AVAILABILITY_COUNTRIES = stringSetPreferencesKey("availability_countries")
         val KEY_TITLE_ACTIONS = stringPreferencesKey("title_actions_order")

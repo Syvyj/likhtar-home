@@ -1,5 +1,6 @@
 package com.likhtar.home.core.catalog.media
 
+import com.likhtar.home.core.catalog.R
 import com.likhtar.home.core.data.http
 import com.likhtar.home.core.data.text
 import java.net.URLEncoder
@@ -33,7 +34,7 @@ internal object Plex : MediaServer {
     /** Новий код входу. */
     fun createPin(clientId: String): PlexPin {
         val text = http("$PLEX_TV/pins?strong=false", TIMEOUT_MS, method = "POST", headers = tvHeaders(clientId), body = "") { c ->
-            if (c.responseCode !in 200..299) error("plex.tv відповів ${c.responseCode}")
+            if (c.responseCode !in 200..299) error(mediaText(R.string.catalog_media_err_plex_http, c.responseCode))
             c.text()
         }
         val o = JSONObject(text)
@@ -43,7 +44,7 @@ internal object Plex : MediaServer {
     /** Токен, якщо людина вже ввела код; `null` — ще ні. */
     fun pinToken(clientId: String, pin: PlexPin): String? {
         val text = http("$PLEX_TV/pins/${pin.id}", TIMEOUT_MS, headers = tvHeaders(clientId)) { c ->
-            if (c.responseCode == 404) error("код застарів — спробуйте ще раз")
+            if (c.responseCode == 404) error(mediaText(R.string.catalog_media_err_code_expired))
             if (c.responseCode != 200) null else c.text()
         } ?: return null
         return JSONObject(text).optString("authToken").takeIf { it.isNotBlank() && it != "null" }
@@ -52,7 +53,7 @@ internal object Plex : MediaServer {
     /** Сервери акаунта: адреса в домашній мережі — першою, бо так файл іде напряму. */
     fun servers(clientId: String, token: String): List<PlexServer> {
         val text = http("$PLEX_TV/resources?includeHttps=1", TIMEOUT_MS, headers = tvHeaders(clientId) + ("X-Plex-Token" to token)) { c ->
-            if (c.responseCode != 200) error("plex.tv відповів ${c.responseCode}")
+            if (c.responseCode != 200) error(mediaText(R.string.catalog_media_err_plex_http, c.responseCode))
             c.text()
         }
         return parseServers(text)
@@ -62,8 +63,8 @@ internal object Plex : MediaServer {
     fun direct(address: String, token: String = ""): PlexServer {
         val base = MediaServer.normalize(address)
         val text = http("$base/", TIMEOUT_MS, headers = headers(token)) { c ->
-            if (c.responseCode == 401) error("сервер просить входу — увійдіть через plex.tv")
-            if (c.responseCode != 200) error("сервер відповів ${c.responseCode}")
+            if (c.responseCode == 401) error(mediaText(R.string.catalog_media_err_plex_login))
+            if (c.responseCode != 200) error(mediaText(R.string.catalog_media_err_http, c.responseCode))
             c.text()
         }
         val name = JSONObject(text).optJSONObject("MediaContainer")?.optString("friendlyName").orEmpty().ifBlank { "Plex" }
@@ -71,7 +72,7 @@ internal object Plex : MediaServer {
     }
 
     override fun walk(source: MediaSource): List<LocalFile> {
-        val sections = items(get(source, "/library/sections", LIST_TIMEOUT_MS) ?: error("сервер не відповідає"), "Directory")
+        val sections = items(get(source, "/library/sections", LIST_TIMEOUT_MS) ?: error(mediaText(R.string.catalog_media_err_no_answer)), "Directory")
         val out = mutableListOf<LocalFile>()
         for (section in sections) {
             val key = section.optString("key")
@@ -163,13 +164,13 @@ internal object Plex : MediaServer {
 
     private fun get(source: MediaSource, path: String, readTimeoutMs: Int = TIMEOUT_MS): String? =
         http(MediaServer.normalize(source.address) + path, TIMEOUT_MS, readTimeoutMs, headers = headers(source.password)) { c ->
-            if (c.responseCode == 401) error("вхід застарів — додайте сервер знову")
+            if (c.responseCode == 401) error(mediaText(R.string.catalog_media_err_stale))
             if (c.responseCode == 200) c.text() else null
         }
 
     private fun send(source: MediaSource, path: String) {
         val code = http(MediaServer.normalize(source.address) + path, TIMEOUT_MS, headers = headers(source.password)) { it.responseCode }
-        if (code !in 200..299) error("сервер відповів $code")
+        if (code !in 200..299) error(mediaText(R.string.catalog_media_err_http, code))
     }
 
     private fun headers(token: String): Map<String, String> = buildMap {

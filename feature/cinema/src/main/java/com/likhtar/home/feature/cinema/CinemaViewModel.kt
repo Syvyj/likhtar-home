@@ -47,11 +47,6 @@ data class CinemaUiState(
     val localOther: List<com.likhtar.home.core.catalog.media.LocalFile> = emptyList(),
     /** Плитки сервісів — єдиний вхід у куровану частину каталогу. */
     val studios: List<CatalogStudio> = emptyList(),
-    /**
-     * Одна українська стрічка: нові фільми й серіали з TMDB та нашого каталогу.
-     * Стоїть після загальних «Нові фільми» і «Нові серіали», а не на початку екрана.
-     */
-    val ukrainianRows: List<CatalogRow> = emptyList(),
     /** [CatalogItem.id] того, що профіль уже додивився. */
     val watched: Set<String> = emptySet(),
     /** Прибирати переглянуте з рядів, а не лише позначати галочкою. */
@@ -83,17 +78,8 @@ data class CinemaUiState(
     val genres: List<SectionGenre> = emptyList(),
     /** Позиції, які тримаються на російській доріжці: мітка на картці інша. */
     val russianAudio: Set<Int> = emptySet(),
-    /** Типові добірки під кандидатами: новинки, топи, серіали, фільми. */
-    val collections: Map<WatchCollection, List<CatalogItem>> = emptyMap(),
     /** Пул слайдера — серверний ряд «Слайдер». */
     val trendingPool: List<CatalogItem> = emptyList(),
-    /**
-     * «Незабаром українською»: дата появи ще не настала.
-     *
-     * Окремий ряд, а не хвіст «Нового»: вмикати тут поки нічого, і ставити ці картки
-     * поруч із тим, що вже грає, означало б обіцяти кнопку, якої немає.
-     */
-    val soon: List<CatalogItem> = emptyList(),
     /**
      * Тайтли слайдера, у яких ми САМІ бачили українську доріжку.
      *
@@ -202,7 +188,9 @@ class CinemaViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            state.update { it.copy(watched = watchProgress.finishedKeys()) }
+            // Запит — до update: лямбда update повторюється на кожній гонці CAS, і мережа йшла б кілька разів.
+            val watched = watchProgress.finishedKeys()
+            state.update { it.copy(watched = watched) }
         }
         viewModelScope.launch {
             // Синхронізація перед підпискою: локальний кеш малюється одразу, а сервер
@@ -263,7 +251,8 @@ class CinemaViewModel @Inject constructor(
                 // що справді відкривається, і воно українське за походженням — мітку
                 // ставимо всім, не перепитуючи.
                 val ids = ukrainian.flatMap { row -> row.items.map { it.tmdbId } }.toSet()
-                state.update { it.copy(ukrainianRows = ukrainian, uaAudio = it.uaAudio + ids) }
+                // Самі ряди екран не малює — потрібні лише мітки UA на картках.
+                state.update { it.copy(uaAudio = it.uaAudio + ids) }
             }
             state.update {
                 it.copy(
@@ -458,7 +447,8 @@ class CinemaViewModel @Inject constructor(
             // перебудова.
             // Лише ряд, який сервер назвав слайдером: коли його немає (порожній пул), першим
             // ішов би «Нові серії» — і зникав із рядів, ставши шапкою.
-            val slider = rows.firstOrNull()?.takeIf { it.title == "Слайдер" }
+            // За ключем, не за назвою: з &lang=en/pl сервер перекладає назви рядів.
+            val slider = rows.firstOrNull()?.takeIf { it.key == com.likhtar.home.core.catalog.SLIDER_ROW_KEY }
             val hero = slider?.items.orEmpty()
             val rest = if (slider != null) rows.drop(1) else rows
             if (hero.isNotEmpty()) setSlidePool(hero)

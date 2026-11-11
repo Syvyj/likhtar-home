@@ -104,10 +104,14 @@ internal fun EpisodesScene(
     onVideo: (TitleVideo) -> Unit,
     onOpenTitle: (CatalogItem) -> Unit,
     onFranchiseParts: (Int) -> Unit,
+    /** Плитка ряду «Студії й канали»; `null` — ряду немає. */
+    onOpenStudio: ((com.likhtar.home.core.catalog.StudioRef) -> Unit)? = null,
     /** «Що було в N−1 сезоні» першим рядком серій; `null` — рядка немає (шоу Телепорталу). */
     onRecap: ((Int) -> Unit)? = null,
     /** Вкладка, з якої почати; `null` — перша. */
     startTab: TitleTab? = null,
+    /** Росте — фокус повертається на рядок курсора (після вікна озвучок чи невдалої підготовки). */
+    refocus: Int = 0,
     /** Підпис сезону. У серіалі TMDB це номер, у шоу Телепорталу — власна назва
      *  («Сезон 2026», «Сила таланту»), і вигадувати замість неї номер означало б брехати. */
     seasonLabel: ((Int) -> String)? = null,
@@ -230,7 +234,6 @@ internal fun EpisodesScene(
         ) {
             when (tab) {
                 TitleTab.EPISODES -> {
-                    val episodeScroll = rememberCoroutineScope()
                     // Ряд сезонів — нульовий у списку (.seasons усередині .list), далі
                     // «Що було в N−1 сезоні», далі серії.
                     val recapBefore = if (onRecap != null && state.episodes.isNotEmpty()) state.recapBefore else 0
@@ -242,7 +245,7 @@ internal fun EpisodesScene(
                         ?: if (state.episodes.isNotEmpty()) lead else 0
                     var cursor by remember(state.season, rows, resumeRow) { mutableStateOf(resumeRow) }
                     val anchorPx = with(androidx.compose.ui.platform.LocalDensity.current) { 30.dp.roundToPx() }
-                    LaunchedEffect(cursor, state.episodes.size, state.recap == null) {
+                    LaunchedEffect(cursor, state.episodes.size, state.recap == null, refocus) {
                         if (state.recap != null) return@LaunchedEffect
                         // [data-scroll="60"]: рядок у фокусі — на 60 px від верху панелі, вище
                         // лишається попередня серія. Сезони — коли курсор на них — угорі.
@@ -335,6 +338,7 @@ internal fun EpisodesScene(
                         overviewMaxLines = overviewMaxLines,
                         castLabel = castLabel,
                         channel = channel,
+                        onOpenStudio = onOpenStudio,
                     )
                 }
 
@@ -517,7 +521,7 @@ private fun SeasonPill(
         background = LikhtarColors.Surface.copy(alpha = 0.85f),
         focusedBackground = LikhtarColors.Paper,
         borderColor = if (active) LikhtarColors.Paper.copy(alpha = 0.5f) else Color.Transparent,
-        focusedScale = 1.04f,
+        focusedScale = LikhtarDimens.ControlFocusScale,
         instantFill = true,
     ) { focused ->
         Row(
@@ -821,6 +825,7 @@ private fun DetailsTab(
     overviewMaxLines: Int = Int.MAX_VALUE,
     castLabel: String = stringResource(R.string.cinema_cast),
     channel: String = "",
+    onOpenStudio: ((com.likhtar.home.core.catalog.StudioRef) -> Unit)? = null,
 ) {
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(end = LikhtarDimens.ScreenPadding)) {
         Text(
@@ -859,6 +864,49 @@ private fun DetailsTab(
                 items(people, key = { it.name }) { person -> PersonCard(person) }
             }
         }
+        if (onOpenStudio != null && details.studios.isNotEmpty()) {
+            com.likhtar.home.core.designsystem.SectionTitle(stringResource(R.string.cinema_studios))
+            LikhtarRail(gap = 14.dp) {
+                items(details.studios, key = { it.key }) { studio -> StudioCard(studio) { onOpenStudio(studio) } }
+            }
+        }
+    }
+}
+
+/** Студія чи канал: лого TMDB на світлій плашці (знаки здебільшого темні), без лого — назва. */
+@Composable
+private fun StudioCard(studio: com.likhtar.home.core.catalog.StudioRef, onClick: () -> Unit) {
+    FocusableSurface(
+        onClick = onClick,
+        modifier = Modifier
+            .padding(vertical = 6.dp)
+            .width(130.dp)
+            .aspectRatio(2f)
+            .focusGlow(ProtoCardCorner),
+        shape = RoundedCornerShape(ProtoCardCorner),
+        background = LikhtarColors.Paper,
+        focusedBackground = LikhtarColors.Paper,
+        focusedScale = LikhtarDimens.CardFocusScale,
+    ) { focused ->
+        if (studio.logoPath != null) {
+            AsyncImage(
+                model = TmdbImages.logo(studio.logoPath),
+                contentDescription = studio.name,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 12.dp),
+            )
+        } else {
+            Text(
+                studio.name,
+                style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 12.sp, lineHeight = 13.sp),
+                color = LikhtarColors.BackgroundDeep,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 10.dp),
+            )
+        }
+        FocusRing(focused, ProtoCardCorner)
     }
 }
 

@@ -103,10 +103,6 @@ fun CinemaScreen(
     }
     val menuFocusRequester = remember { FocusRequester() }
     val contentFocusRequester = remember { FocusRequester() }
-    // Перехід превʼю ↔ колонки робимо руками: пошук фокуса між ними то тікав у меню,
-    // то не бачив колонок за межами вікна.
-    val columnsEntry = remember { FocusRequester() }
-
     // Перше, на чому має стояти фокус при відкритті розділу, — кнопка превʼю. Інакше
     // після приходу даних він осідав у колонці радника, і сторінка відкривалась
     // прокрученою вбік.
@@ -263,6 +259,10 @@ fun CinemaScreen(
                 var first = true
                 var railCount = 0
                 val scope = this
+                // Ключ ряду — з назви, і два ряди сервера з однаковою (перекладеною) назвою клали
+                // Кінозал «Key … was already used». Повтор дістає номер.
+                val usedKeys = HashMap<String, Int>()
+                val uniqueKey = { k: String -> (usedKeys.merge(k, 1, Int::plus) ?: 1).let { n -> if (n == 1) k else "$k#$n" } }
 
                 // ↑ з першого ряду робить те саме, що BACK: згортає ряди й повертає нагору.
                 val exitUpIfFirst: (Boolean) -> (() -> Unit)? = { isFirst ->
@@ -285,7 +285,7 @@ fun CinemaScreen(
                             val index = railCount
                             railCount += 1
                             first = false
-                            scope.item(key = "wide-${row.title}", contentType = "wide") {
+                            scope.item(key = uniqueKey("wide-${row.title}"), contentType = "wide") {
                                 // Широка секція: один тайтл або франшиза на всю ширину.
                                 TitleSpotlight(
                                     item = wideItem,
@@ -310,7 +310,7 @@ fun CinemaScreen(
                             val index = railCount
                             railCount += 1
                             first = false
-                            scope.item(key = "row-${row.title}", contentType = "rail") {
+                            scope.item(key = uniqueKey("row-${row.title}"), contentType = "rail") {
                                 CollectionRail(
                                     // Мікс форм, як в Apple TV: де прогрес чи підпис серії
                                     // («Нові серії», «Незабаром») і де немає постерів

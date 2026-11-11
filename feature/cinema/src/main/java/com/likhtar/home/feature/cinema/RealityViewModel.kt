@@ -117,7 +117,7 @@ class RealityViewModel @Inject constructor(
             // Слайдер приходить окремим рядом із сервера — свіже неігрове, десять позицій.
             // Коли його немає (старий сервер), лишається попередній спосіб: по одній
             // позиції з кожного ряду, кожна з них перша у своєму, тобто найсвіжіша в темі.
-            val slider = all.firstOrNull()?.takeIf { it.title == SLIDER_ROW }
+            val slider = all.firstOrNull()?.takeIf { it.key == SLIDER_ROW }
             // Слайдера бракує (не українцю сервер вирізає з нього портали) — добираємо першими з рядів.
             val pool = (
                 slider?.items.orEmpty() +
@@ -170,7 +170,7 @@ class RealityViewModel @Inject constructor(
 
     /** Ряд слайдера малюється шапкою, а не рядом постерів: у переліку його бути не має. */
     private fun withoutSlider(all: List<RealitySection>): List<RealitySection> =
-        if (all.firstOrNull()?.title == SLIDER_ROW) all.drop(1) else all
+        if (all.firstOrNull()?.key == SLIDER_ROW) all.drop(1) else all
 
     /** Кадр проєкту для картки «Продовжити»: у рядку прогресу зображень немає. */
     fun artOf(card: ResumeCard): String? =
@@ -304,6 +304,7 @@ class RealityViewModel @Inject constructor(
 
 
         /** Назва ряду, який сервер віддає під шапку розділу. */
-        const val SLIDER_ROW = "Слайдер"
+        /** Ключ ряду-пулу шапки (не назва: назви сервер перекладає). */
+        const val SLIDER_ROW = com.likhtar.home.core.catalog.SLIDER_ROW_KEY
     }
 }

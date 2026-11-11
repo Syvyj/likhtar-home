@@ -1,6 +1,8 @@
 package com.likhtar.home.core.smarthome
 
 import android.content.Context
+import com.likhtar.home.core.data.fromLocalNetwork
+import com.likhtar.home.core.data.httpLine
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.os.Handler
@@ -8,8 +10,6 @@ import android.os.Looper
 import android.util.Log
 import com.likhtar.home.core.data.lanAddress
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.ByteArrayOutputStream
-import java.io.InputStream
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.URI
@@ -71,6 +71,7 @@ class HaPhoneLink @Inject constructor(
             thread(name = "ha-link", isDaemon = true) {
                 while (true) {
                     val socket = runCatching { server.accept() }.getOrNull() ?: break
+                    if (!socket.fromLocalNetwork()) { runCatching { socket.close() }; continue }
                     thread(isDaemon = true) { runCatching { serve(socket) }.onFailure { Log.w(TAG, "запит телефону", it) } }
                 }
             }
@@ -115,16 +116,16 @@ class HaPhoneLink @Inject constructor(
     private fun serve(socket: Socket): Unit = socket.use { s ->
         s.soTimeout = 15_000
         val input = s.getInputStream().buffered()
-        val target = input.line()?.split(' ')?.getOrNull(1) ?: return
-        while (input.line()?.isNotEmpty() == true) Unit
+        val target = input.httpLine()?.split(' ')?.getOrNull(1) ?: return
+        while (input.httpLine()?.isNotEmpty() == true) Unit
         val path = target.substringBefore('?')
         val query = target.substringAfter('?', "").split('&').mapNotNull { pair ->
             pair.split('=', limit = 2).takeIf { it.size == 2 }?.let { (k, v) -> k to URLDecoder.decode(v, "UTF-8") }
         }.toMap()
         val root = base ?: return
-        val reply = when {
+        val reply = when (haRoute(path, nonce)) {
             // Сторінка `client_id`: HA показує людині, кому вона дає доступ.
-            path == "/" -> Reply(
+            HaRoute.ABOUT -> Reply(
                 200,
                 html(
                     context.getString(R.string.smarthome_brand),
@@ -132,11 +133,11 @@ class HaPhoneLink @Inject constructor(
                         "${str(R.string.smarthome_link_tagline)}.</div>",
                 ),
             )
-            path == "/$nonce/" -> {
+            HaRoute.FORM -> {
                 _status.value = HaLinkStatus.Opened
                 Reply(200, formPage())
             }
-            path == "/$nonce/go" -> {
+            HaRoute.GO -> {
                 val url = query["ha"].orEmpty().trim().trimEnd('/').removeSuffix("/api")
                 if (!url.startsWith("http://") && !url.startsWith("https://") || runCatching { URI(url).host }.getOrNull().isNullOrBlank()) {
                     Reply(200, formPage(context.getString(R.string.smarthome_link_bad_url)))
@@ -147,8 +148,8 @@ class HaPhoneLink @Inject constructor(
                     Reply(302, "", location = authorize)
                 }
             }
-            path == "/cb" -> callback(query, root)
-            else -> Reply(404, "Not found")
+            HaRoute.CALLBACK -> callback(query, root)
+            HaRoute.NOT_FOUND -> Reply(404, "Not found")
         }
         val bytes = reply.body.toByteArray(Charsets.UTF_8)
         val status = when (reply.code) { 200 -> "200 OK"; 302 -> "302 Found"; else -> "404 Not Found" }
@@ -166,7 +167,7 @@ class HaPhoneLink @Inject constructor(
     private fun callback(query: Map<String, String>, root: String): Reply {
         val url = pendingUrl
         val code = query["code"]
-        if (query["state"] != nonce || url == null || code.isNullOrBlank()) {
+        if (nonce.isEmpty() || query["state"] != nonce || url == null || code.isNullOrBlank()) {
             return Reply(
                 200,
                 html(
@@ -238,14 +239,17 @@ border:0;border-radius:12px;background:#FFFAF2;color:#1C1A17;font-weight:600}.er
     }
 }
 
-/** Рядок HTTP-заголовка до CRLF; `null` — з'єднання закрилось. */
-private fun InputStream.line(): String? {
-    val out = ByteArrayOutputStream()
-    while (true) {
-        val b = read()
-        if (b < 0) return if (out.size() == 0) null else out.toString(Charsets.ISO_8859_1.name())
-        if (b == '\n'.code) return out.toString(Charsets.ISO_8859_1.name()).trimEnd('\r')
-        if (out.size() > 8192) return null
-        out.write(b)
-    }
+internal enum class HaRoute { ABOUT, FORM, GO, CALLBACK, NOT_FOUND }
+
+/**
+ * Куди веде шлях запиту. Після зв'язування nonce порожній, а сервер живе далі: без першої умови
+ * `//go` і `/cb?state=` від будь-кого в мережі переписували прив'язку HA.
+ */
+internal fun haRoute(path: String, nonce: String): HaRoute = when {
+    path == "/" -> HaRoute.ABOUT
+    nonce.isEmpty() -> HaRoute.NOT_FOUND
+    path == "/$nonce/" -> HaRoute.FORM
+    path == "/$nonce/go" -> HaRoute.GO
+    path == "/cb" -> HaRoute.CALLBACK
+    else -> HaRoute.NOT_FOUND
 }

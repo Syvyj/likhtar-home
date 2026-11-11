@@ -38,27 +38,48 @@
 </head>
 <body>
 <main>
-  <h1>Передати на телевізор</h1>
-  <p class="sub">Відео, фото чи APK — приставка запропонує, що з ним зробити. Усе лягає в «Завантаження → Likhtar» на приставці. Цю сторінку можна зберегти в закладки.</p>
-  <label class="pick">Вибрати файли<input id="files" type="file" multiple></label>
+  <h1 data-t="title"></h1>
+  <p class="sub" data-t="sub"></p>
+  <label class="pick"><span data-t="pick"></span><input id="files" type="file" multiple></label>
   <div class="free" id="free"></div>
   <ul id="list"></ul>
-  <h2>Або посилання</h2>
+  <h2 data-t="or"></h2>
   <form class="link" id="linkForm">
     <input id="url" type="url" inputmode="url" placeholder="https://youtu.be/…" autocomplete="off">
-    <button type="submit">Відкрити</button>
+    <button type="submit" data-t="open"></button>
   </form>
   <div class="note" id="note"></div>
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
-const size = (b) => b > 1e9 ? (b / 1e9).toFixed(1) + ' ГБ' : (b / 1e6).toFixed(b > 1e8 ? 0 : 1) + ' МБ';
+// Мова сторінки — мова телефона: українська або англійська.
+const T = /^uk/i.test(navigator.language) ? {
+  title: 'Передати на телевізор',
+  sub: 'Відео, фото чи APK — приставка запропонує, що з ним зробити. Усе лягає в «Завантаження → Likhtar» на приставці. Цю сторінку можна зберегти в закладки.',
+  pick: 'Вибрати файли', or: 'Або посилання', open: 'Відкрити', gb: 'ГБ', mb: 'МБ',
+  free: 'Вільно на приставці: ', done: 'на ТБ', error: 'помилка', lost: 'зв\'язок обірвався', waits: 'чекає',
+  need_link: 'Вставте посилання, що починається з https://', sent: 'Готово — підтвердіть на телевізорі', not_sent: 'Не вдалося передати',
+  not_link: 'Це не посилання', no_size: 'Невідомий розмір', no_space: 'не вистачає місця', busy: 'Приставка вже приймає файл',
+  no_file: 'Не вдалося створити файл', cut: 'Передачу перервано',
+} : {
+  title: 'Send to the TV',
+  sub: 'A video, a photo or an APK — the TV box will offer what to do with it. Everything lands in “Downloads → Likhtar” on the box. You can bookmark this page.',
+  pick: 'Choose files', or: 'Or a link', open: 'Open', gb: 'GB', mb: 'MB',
+  free: 'Free on the TV box: ', done: 'on the TV', error: 'error', lost: 'connection lost', waits: 'waiting',
+  need_link: 'Paste a link that starts with https://', sent: 'Done — confirm on the TV', not_sent: 'Could not send',
+  not_link: 'Not a link', no_size: 'Unknown size', no_space: 'not enough space', busy: 'The TV box is already receiving a file',
+  no_file: 'Could not create the file', cut: 'Transfer interrupted',
+};
+document.title = T.title;
+document.documentElement.lang = /^uk/i.test(navigator.language) ? 'uk' : 'en';
+document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = T[el.dataset.t]; });
+const size = (b) => b > 1e9 ? (b / 1e9).toFixed(1) + ' ' + T.gb : (b / 1e6).toFixed(b > 1e8 ? 0 : 1) + ' ' + T.mb;
 let free = null;
 
 async function refreshFree() {
   try {
     free = (await (await fetch('space', { cache: 'no-store' })).json()).free;
-    $('free').textContent = 'Вільно на приставці: ' + size(free);
+    $('free').textContent = T.free + size(free);
   } catch (_) { $('free').textContent = ''; }
 }
 
@@ -73,11 +94,11 @@ function send(file, li) {
       bar.style.width = p + '%'; pct.textContent = p + '%';
     };
     xhr.onload = () => {
-      if (xhr.status === 200) { li.className = 'ok'; bar.style.width = '100%'; pct.textContent = 'на ТБ'; }
-      else { li.className = 'bad'; try { pct.textContent = JSON.parse(xhr.responseText).error; } catch (_) { pct.textContent = 'помилка'; } }
+      if (xhr.status === 200) { li.className = 'ok'; bar.style.width = '100%'; pct.textContent = T.done; }
+      else { li.className = 'bad'; let code = ''; try { code = JSON.parse(xhr.responseText).error; } catch (_) {} pct.textContent = T[code] || T.error; }
       done();
     };
-    xhr.onerror = () => { li.className = 'bad'; pct.textContent = 'зв\'язок обірвався'; done(); };
+    xhr.onerror = () => { li.className = 'bad'; pct.textContent = T.lost; done(); };
     xhr.send(file);
   });
 }
@@ -87,14 +108,15 @@ $('files').addEventListener('change', async (e) => {
   e.target.value = '';
   const items = files.map((f) => {
     const li = document.createElement('li');
-    li.innerHTML = '<div class="row"><span class="name"></span><span class="pct">чекає</span></div><div class="bar"><i></i></div>';
+    li.innerHTML = '<div class="row"><span class="name"></span><span class="pct"></span></div><div class="bar"><i></i></div>';
+    li.querySelector('.pct').textContent = T.waits;
     li.querySelector('.name').textContent = f.name + ' · ' + size(f.size);
     $('list').prepend(li);
     return [f, li];
   });
   // По одному: приставка приймає один файл за раз, а диск і так один.
   for (const [f, li] of items) {
-    if (free !== null && f.size > free) { li.className = 'bad'; li.querySelector('.pct').textContent = 'не вистачає місця'; continue; }
+    if (free !== null && f.size > free) { li.className = 'bad'; li.querySelector('.pct').textContent = T.no_space; continue; }
     await send(f, li);
     await refreshFree();
   }
@@ -103,9 +125,9 @@ $('files').addEventListener('change', async (e) => {
 $('linkForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const url = $('url').value.trim();
-  if (!/^https?:\/\//.test(url)) { $('note').textContent = 'Вставте посилання, що починається з https://'; return; }
+  if (!/^https?:\/\//.test(url)) { $('note').textContent = T.need_link; return; }
   const r = await fetch('link', { method: 'POST', body: url }).catch(() => null);
-  $('note').textContent = r && r.ok ? 'Готово — підтвердіть на телевізорі' : 'Не вдалося передати';
+  $('note').textContent = r && r.ok ? T.sent : T.not_sent;
   if (r && r.ok) $('url').value = '';
 });
 

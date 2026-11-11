@@ -185,10 +185,11 @@ class ThemedWallpaperProvider @Inject constructor(
  * Спільний GET для джерел шпалер.
  *
  * User-Agent проставляємо явно: wallhaven відповідає 403 на запити без нього, а Bing
- * без нього іноді віддає інший формат.
+ * без нього іноді віддає інший формат. `no-cache` — бо серед адрес є вказані людиною (маніфест
+ * шпалер), а HTTP-кеш лаунчера тримав би відповідь стільки, скільки дозволить чужий `max-age`.
  */
 internal fun httpGet(url: String): String =
-    http(url, TIMEOUT_MS, headers = mapOf("User-Agent" to USER_AGENT, "Accept" to "application/json")) { it.text() }
+    http(url, TIMEOUT_MS, headers = mapOf("User-Agent" to USER_AGENT, "Accept" to "application/json", "Cache-Control" to "no-cache")) { it.text() }
 
 private const val TIMEOUT_MS = 8_000
 private const val USER_AGENT = "LIKHTAR-TV-launcher/0.1 (Android TV)"

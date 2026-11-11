@@ -401,6 +401,10 @@ class RealityTitleViewModel @Inject constructor(
         val season = state.value.seasons.getOrNull(number - 1) ?: return
         viewModelScope.launch {
             val raw = oldestFirst(runCatching { teleportal.episodes(show, season) }.getOrDefault(emptyList())) { it.date }
+            // Відповідь іншого, вже перемкнутого сезону: ні серій, ні адрес випусків не чіпаємо.
+            // Адреси раніше писались до цієї перевірки, і OK на «Випуск 2» вмикав випуск
+            // попереднього сезону.
+            if (state.value.season != number) return@launch
             hashes = raw.mapIndexed { index, episode -> index + 1 to episode.hash }.toMap()
             state.update { current ->
                 if (current.season != number) return@update current
@@ -428,6 +432,10 @@ class RealityTitleViewModel @Inject constructor(
         val season = plus1Seasons.getOrNull(number - 1) ?: return
         viewModelScope.launch {
             val raw = oldestFirst(runCatching { plus1.episodes(season) }.getOrDefault(emptyList())) { it.date }
+            // Відповідь іншого, вже перемкнутого сезону: ні серій, ні адрес випусків не чіпаємо.
+            // Адреси раніше писались до цієї перевірки, і OK на «Випуск 2» вмикав випуск
+            // попереднього сезону.
+            if (state.value.season != number) return@launch
             hashes = raw.mapIndexed { index, episode -> index + 1 to episode.id }.toMap()
             state.update { current ->
                 if (current.season != number) return@update current

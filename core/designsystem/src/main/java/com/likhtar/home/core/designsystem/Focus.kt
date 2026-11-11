@@ -34,11 +34,20 @@ fun rememberInitialFocusRequester(key: Any? = Unit): FocusRequester {
  */
 suspend fun FocusRequester.requestWithRetry(frames: Int = FOCUS_FRAMES): Boolean {
     repeat(frames) {
-        if (runCatching { requestFocus() }.isSuccess) return true
+        if (tryFocus()) return true
         withFrameNanos { }
     }
     return false
 }
+
+/**
+ * Запит фокуса з відповіддю, чи вдалося. `requestFocus()` без аргументів у Compose 1.12 нічого не
+ * повертає й на неприєднаному вузлі не кидає (лише друкує FocusRelatedWarning), тож «немає
+ * винятку» більше не означає «фокус узяли»: помічник ніколи не повторював спробу.
+ * Варіант з напрямком повертає Boolean; runCatching — для FocusRequester.Default/Cancel.
+ */
+fun FocusRequester.tryFocus(): Boolean =
+    runCatching { requestFocus(androidx.compose.ui.focus.FocusDirection.Enter) }.getOrDefault(false)
 
 /** Дванадцять кадрів — з запасом на LazyColumn, що компонує вміст на етапі розмітки. */
 const val FOCUS_FRAMES = 12

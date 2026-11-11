@@ -14,8 +14,8 @@ android {
         applicationId = "com.likhtar.installer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
     }
 
     // Той самий ключ, що й у лаунчера (`.env` або `-P`); без нього — debug-підпис.
@@ -39,6 +39,12 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
             signingConfig = signingConfigs.getByName(if (releaseKeystore != null) "release" else "debug")
+        }
+    }
+    // Інсталятор лише публічний: debug-підписаний реліз не роздаємо.
+    if (releaseKeystore == null) {
+        tasks.matching { it.name == "packageRelease" }.configureEach {
+            doFirst { throw GradleException("packageRelease needs a release key: set LIKHTAR_KEYSTORE in .env or with -P. Use assembleDebug to try the app.") }
         }
     }
 

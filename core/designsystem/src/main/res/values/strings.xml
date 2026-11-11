@@ -24,6 +24,7 @@
         <item>Just a moment…</item>
     </string-array>
     <string name="ds_phone_drop">Send to TV from phone</string>
+    <string name="ds_new_episodes">New episodes</string>
     <string name="ds_support_title">Support the author</string>
     <string name="ds_support_lead">Likhtar is free and will stay free. Scan the way that suits you — the payment opens on your phone.</string>
     <string name="ds_support_kofi">Ko-fi</string>

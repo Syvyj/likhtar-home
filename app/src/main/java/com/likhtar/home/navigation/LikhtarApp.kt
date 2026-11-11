@@ -17,7 +17,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import com.likhtar.home.core.catalog.cleanStreamLabel
 import com.likhtar.home.core.catalog.playbackResult
-import com.likhtar.home.core.catalog.putResumePosition
 import com.likhtar.home.core.catalog.TmdbImages
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -223,7 +222,11 @@ fun LikhtarApp(
                 "data=${result.data?.data?.let { "${it.host}${it.path.orEmpty().takeLast(60)}" }}",
         )
         // `data` результату — серія, на якій плеєр вийшов (Just+ кладе її адресу).
-        viewModel.onPlayerClosed(position, duration, result.data?.dataString)
+        viewModel.onPlayerClosed(
+            position, duration, result.data?.dataString,
+            // Режим ТБ: індекс каналу, на якому вийшли з плеєра.
+            tvIndex = result.data?.getIntExtra("likhtar.tv.index", -1) ?: -1,
+        )
     }
     val context = LocalContext.current
     val openWith = androidx.compose.ui.res.stringResource(com.likhtar.home.R.string.app_open_with)
@@ -307,7 +310,27 @@ fun LikhtarApp(
         drop.drop.arrivals.collect { dropOpen = true }
     }
 
+    val episodes: com.likhtar.home.episodes.NewEpisodesViewModel = hiltViewModel()
+    val episodesState by episodes.state.collectAsStateWithLifecycle()
+    var episodesOpen by remember { mutableStateOf(false) }
+    if (episodesOpen) com.likhtar.home.episodes.NewEpisodesDialog(
+        list = episodesState.list,
+        onOpen = { item ->
+            episodesOpen = false
+            navController.navigate(CinemaViewModel.titleRoute(item))
+        },
+        onDismiss = { episodesOpen = false },
+    )
+
     CompositionLocalProvider(
+        com.likhtar.home.core.designsystem.LocalNewEpisodesBell provides com.likhtar.home.core.designsystem.NewEpisodesBell(
+            total = episodesState.list.size,
+            unseen = episodesState.unseen,
+            onOpen = {
+                episodesOpen = true
+                episodes.markSeen()
+            },
+        ),
         LocalVisibleSections provides visibleSections,
         com.likhtar.home.core.designsystem.LocalTitleUnderLogo provides titleUnderLogo,
         LocalAmbientIdle provides idle,
@@ -443,6 +466,9 @@ fun LikhtarApp(
                         navController.navigate(
                             CatalogListViewModel.route(CatalogListingKind.FRANCHISE, franchise.id.toString()),
                         )
+                    },
+                    onOpenStudio = { studio ->
+                        navController.navigate(CatalogListViewModel.route(CatalogListingKind.COMPANY, studio.key))
                     },
                 )
             }

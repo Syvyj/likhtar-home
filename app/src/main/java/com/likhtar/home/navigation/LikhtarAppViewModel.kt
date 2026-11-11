@@ -35,8 +35,8 @@ class LikhtarAppViewModel @Inject constructor(
 ) : ViewModel() {
 
     /** Плеєр закрився: віддаємо таймкод тому, хто вміє його записати. */
-    fun onPlayerClosed(positionMs: Long, durationMs: Long, endedUri: String? = null) {
-        viewModelScope.launch { playback.onPlayerClosed(positionMs, durationMs, endedUri) }
+    fun onPlayerClosed(positionMs: Long, durationMs: Long, endedUri: String? = null, tvIndex: Int = -1) {
+        viewModelScope.launch { playback.onPlayerClosed(positionMs, durationMs, endedUri, tvIndex) }
     }
 
     /**

@@ -388,6 +388,7 @@
     <string name="settings_ai_model_hint">порожньо — типова провайдера</string>
     <string name="settings_ai_url">Адреса (Ollama, LM Studio)</string>
     <string name="settings_ai_key">Ключ API</string>
+    <string name="settings_ha_need_token">Home Assistant: для нової адреси вкажіть і токен</string>
     <string name="settings_ai_need_key">AI: вкажіть ключ API</string>
     <string name="settings_ai_need_url">AI: вкажіть адресу свого сервера</string>
     <string name="settings_ai_need_model">AI: вкажіть назву моделі</string>

@@ -1,5 +1,6 @@
 package com.likhtar.home.core.catalog.media
 
+import com.likhtar.home.core.catalog.R
 import com.likhtar.home.core.data.http
 import com.likhtar.home.core.data.text
 import java.net.URLEncoder
@@ -32,12 +33,12 @@ internal object Jellyfin : MediaServer {
             body = body,
         ) { c -> c.responseCode to (if (c.responseCode in 200..299) c.text() else null) }
         val (code, text) = reply
-        if (code == 401) error("невірний логін або пароль")
-        if (text == null) error("сервер відповів $code")
+        if (code == 401) error(mediaText(R.string.catalog_media_err_login))
+        if (text == null) error(mediaText(R.string.catalog_media_err_http, code))
         val o = JSONObject(text)
         val token = o.optString("AccessToken")
         val userId = o.optJSONObject("User")?.optString("Id").orEmpty()
-        if (token.isBlank() || userId.isBlank()) error("сервер не дав токена")
+        if (token.isBlank() || userId.isBlank()) error(mediaText(R.string.catalog_media_err_no_token))
         val serverName = o.optString("ServerName").ifBlank { "Jellyfin" }
         return JellyfinLogin(serverName, userId, token)
     }
@@ -46,8 +47,8 @@ internal object Jellyfin : MediaServer {
         val url = "${normalize(source.address)}/Users/${enc(source.user)}/Items" +
             "?Recursive=true&IncludeItemTypes=Movie,Series,Episode&Fields=ProviderIds,MediaSources&EnableImages=false"
         val text = http(url, TIMEOUT_MS, LIST_TIMEOUT_MS, headers = mapOf("Accept" to "application/json", "Authorization" to auth(source.id, source.password))) { c ->
-            if (c.responseCode == 401) error("вхід застарів — додайте сервер знову")
-            if (c.responseCode != 200) error("сервер відповів ${c.responseCode}")
+            if (c.responseCode == 401) error(mediaText(R.string.catalog_media_err_stale))
+            if (c.responseCode != 200) error(mediaText(R.string.catalog_media_err_http, c.responseCode))
             c.text()
         }
         return parseItems(text, source)
@@ -128,7 +129,7 @@ internal object Jellyfin : MediaServer {
             if (json != null) put("Content-Type", "application/json")
         }
         val code = http(normalize(source.address) + path, TIMEOUT_MS, method = method, headers = headers, body = json) { it.responseCode }
-        if (code !in 200..299) error("сервер відповів $code")
+        if (code !in 200..299) error(mediaText(R.string.catalog_media_err_http, code))
     }
 
     private fun epochMs(iso: String): Long? = runCatching { java.time.Instant.parse(iso).toEpochMilli() }.getOrNull()

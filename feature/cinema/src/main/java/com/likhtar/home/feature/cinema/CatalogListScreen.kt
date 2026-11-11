@@ -149,6 +149,16 @@ fun CatalogListScreen(
         marks = viewModel.rowMarks,
         // «Відкрити всі» в кінці кожного ряду сторінки — сітка саме цього ряду.
         onOpenAll = { row -> onOpenListing(CatalogListingKind.COLLECTION, viewModel.rowKey(row)) },
+        headerAction = listing.studio?.let {
+            {
+                ProtoButton(
+                    label = stringResource(if (state.subscribed) R.string.cinema_studio_unsubscribe else R.string.cinema_studio_subscribe),
+                    onClick = viewModel::toggleSubscription,
+                    icon = null,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+            }
+        },
     )
 }
 
@@ -171,9 +181,11 @@ internal fun ListingPage(
     marks: RowMarks,
     /** Сітка одного ряду; null — сторінка без «Відкрити всі». */
     onOpenAll: ((CatalogRow) -> Unit)? = null,
+    /** Кнопка під заголовком (підписка на студію). */
+    headerAction: (@Composable () -> Unit)? = null,
 ) {
     CompositionLocalProvider(LocalLongOpen provides marks::open) {
-        ListingPageBody(listing, loading, hideWatched, watched, uaAudio, onItemFocused, open, onOpenAll)
+        ListingPageBody(listing, loading, hideWatched, watched, uaAudio, onItemFocused, open, onOpenAll, headerAction)
     }
     RowMarkPanel(marks)
 }
@@ -189,6 +201,7 @@ private fun ListingPageBody(
     onItemFocused: (CatalogItem) -> Unit,
     open: (CatalogItem) -> Unit,
     onOpenAll: ((CatalogRow) -> Unit)?,
+    headerAction: (@Composable () -> Unit)?,
 ) {
     // Пам'ять фокуса: Back з тайтла чи з «Відкрити всі» повертає на ту саму картку. Досі
     // сторінка просила першу картку, а список уже стояв прокручений — фокус губився.
@@ -257,8 +270,9 @@ private fun ListingPageBody(
             if (listing.backdropPath != null) item(key = "head") { FranchiseHead(listing) }
             // Поки назви ще немає — жодного заголовка: лише ліхтар по центру.
             else if (listing.title.isNotBlank() || !loading) item(key = "head") {
-                Column {
+                Column(Modifier.onFocusChanged { if (it.hasFocus) focusedItem = 0 }) {
                     PageHeader(title = listing.title.ifBlank { stringResource(R.string.cinema_collection) }, subtitle = listing.subtitle)
+                    headerAction?.invoke()
                     listing.message?.let {
                         Text(
                             text = it,

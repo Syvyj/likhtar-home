@@ -92,7 +92,15 @@ data class TvLineup(
     val index: Int,
     /** `content://` файла з групами, програмою й архівом каналів (за тим самим індексом). */
     val guide: String = "",
-)
+    /** Скільки каналів списку до цього вікна: плеєр показує номер у всьому списку, а не у вікні. */
+    val offset: Int = 0,
+    /** Ті самі канали записами «Мої канали» (у плеєр не їдуть): за індексом із результату. */
+    val channels: List<com.likhtar.home.core.data.RecentChannel> = emptyList(),
+) {
+    /** Канал, на якому людина вийшла з плеєра, якщо це не той, з якого зайшла. */
+    fun leftOn(endedIndex: Int): com.likhtar.home.core.data.RecentChannel? =
+        channels.getOrNull(endedIndex)?.takeIf { endedIndex != index }
+}
 
 /**
  * Запуск зовнішнього плеєра «на результат».
@@ -169,7 +177,11 @@ class PlaybackController @Inject constructor(
     private var playingQueue: List<QueueEntry> = emptyList()
     private var playingQueueVariants: List<List<Pair<String, String>>> = emptyList()
 
+    /** Список каналів сеансу ТБ: плеєр перемикає сам, результат каже, на якому вийшли. */
+    private var playingTv: TvLineup? = null
+
     fun play(request: PlayRequest): Boolean {
+        playingTv = request.tv
         playing = request.title
         playingEpisode = request.episode
         playingWith = request.packageName
@@ -192,8 +204,10 @@ class PlaybackController @Inject constructor(
     }
 
     /** Плеєр закрився. Повідомляє [LikhtarApp], розібравши extras результату. */
-    suspend fun onPlayerClosed(positionMs: Long, durationMs: Long, endedUri: String? = null) {
+    suspend fun onPlayerClosed(positionMs: Long, durationMs: Long, endedUri: String? = null, tvIndex: Int = -1) {
         try {
+            // Канал, на який перемкнулись уже в плеєрі, — у «Мої канали», як і відкритий з лаунчера.
+            playingTv?.also { playingTv = null }?.leftOn(tvIndex)?.let { history.rememberChannel(it) }
             recordClosed(positionMs, durationMs, endedUri)
         } finally {
             _saved.tryEmit(Unit)
@@ -294,23 +308,6 @@ class PlaybackController @Inject constructor(
     }
 }
 
-/**
- * Дописує в намір стартову позицію в тих ключах, які розуміють поширені плеєри.
- *
- * Ключі різні й несумісні: MX Player (і Just Player за ним) читає `position` у
- * мілісекундах, VLC — `extra_position`. Кладемо обидва: зайвий extra плеєр просто
- * проігнорує, а вгадувати за іменем пакета — це список, який застаріє з першим оновленням.
- */
-fun Intent.putResumePosition(resumeMs: Long): Intent {
-    if (resumeMs <= 0L) return this
-    putExtra("position", resumeMs.toInt())
-    putExtra("extra_position", resumeMs)
-    // ViMu не розуміє жодного з двох попередніх ключів — запуск із
-    // resume=452272 починався з нуля, поки тут не було `startfrom`. Він же гасить питання
-    // «продовжити?»: рішення вже прийняте нами, і зайвий діалог на пульті лише заважає.
-    putExtra("startfrom", resumeMs.toInt())
-    return this
-}
 
 /** Позиція й тривалість із результату плеєра, мс. Нулі означають «плеєр не сказав». */
 fun Intent?.playbackResult(resultCode: Int): Pair<Long, Long> {

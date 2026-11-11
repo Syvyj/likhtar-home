@@ -1,56 +1,34 @@
 package com.likhtar.home.core.tv
 
 /**
- * Архів каналу провайдера (`catchup-*` у плейлисті) і адреса передачі в ньому.
+ * Архів каналу провайдера (`catchup-*` у плейлисті): тип, глибина й шаблон адреси.
  *
- * Перевірено на справжньому провайдері (Flussonic): `…/mpegts?token` →
- * `…/archive-{початок}-{тривалість}.ts?token` віддає передачу цілим файлом, і плеєр мотає її,
- * як фільм.
+ * Адресу передачі в архіві будує плеєр («Ліхтар ТБ», `TvChannels.timeshiftUrl/archiveUrl`) — лаунчер
+ * лише передає йому ці три поля у файлі програми. Своя збірка адрес тут була мертвим кодом, що вже
+ * розійшовся з плеєром, тож її прибрано; лишилось одне спільне правило — [of]:
+ * архів є лише там, де плеєр знає, як його відкрити.
  */
 data class ChannelArchive(val type: String, val days: Int, val source: String) {
 
-    /** Адреса передачі [startMillis]..[endMillis] для потоку [liveUrl]; `null` — схеми не знаємо. */
-    fun url(liveUrl: String, startMillis: Long, endMillis: Long, nowMillis: Long = System.currentTimeMillis()): String? {
-        val start = startMillis / 1000
-        val end = endMillis / 1000
-        val duration = (end - start).coerceAtLeast(60)
-        val now = nowMillis / 1000
-        if (source.isNotBlank()) {
-            val filled = fill(source, start, end, duration, now)
-            return when {
-                filled.startsWith("http") -> filled
-                // append: шаблон дописується до адреси ефіру.
-                else -> liveUrl + filled
-            }
-        }
-        return when (type) {
-            "flussonic", "flussonic-ts", "fs", "flussonic-hls" -> flussonic(liveUrl, start, duration)
-            // shift / default без шаблону — найпоширеніша форма: utc і lutc у запиті.
-            "shift", "default" -> liveUrl + (if ('?' in liveUrl) "&" else "?") + "utc=$start&lutc=$now"
-            else -> null
-        }
-    }
-
-    private fun flussonic(liveUrl: String, start: Long, duration: Long): String? {
-        val query = liveUrl.substringAfter('?', "").let { if (it.isEmpty()) "" else "?$it" }
-        val path = liveUrl.substringBefore('?')
-        val base = path.substringBeforeLast('/')
-        return when (path.substringAfterLast('/')) {
-            "mpegts", "video.ts", "index.ts" -> "$base/archive-$start-$duration.ts$query"
-            "index.m3u8", "video.m3u8", "mono.m3u8", "tracks-v1a1.m3u8" -> "$base/index-$start-$duration.m3u8$query"
-            else -> null
-        }
-    }
-
-    private fun fill(template: String, start: Long, end: Long, duration: Long, now: Long): String = template
-        .replace("\${start}", "$start").replace("\${end}", "$end").replace("\${timestamp}", "$now")
-        .replace("{utc}", "$start").replace("{start}", "$start").replace("{utcend}", "$end").replace("{end}", "$end")
-        .replace("{lutc}", "$now").replace("{now}", "$now").replace("{timestamp}", "$now")
-        .replace("{duration}", "$duration").replace("{offset}", "${now - start}")
-
     companion object {
-        /** З атрибутів плейлиста; без типу чи без днів — архіву немає. */
-        fun of(type: String, days: Int, source: String): ChannelArchive? =
-            if (type.isBlank() || days <= 0) null else ChannelArchive(type, days, source)
+        /**
+         * З атрибутів плейлиста для потоку [liveUrl]; `null` — архіву немає чи плеєр не збудує адресу.
+         * Те саме правило, що `TvChannels.hasArchiveAt` у плеєрі: шаблон `catchup-source`; `shift` /
+         * `default`; Flussonic (`flussonic*`, `fs`), коли потік — `mpegts`, `*.ts` чи `*.m3u8`.
+         * Інакше (`append`, `xc` без шаблону) жовта й ←/→ рухали смугу й нічого не робили.
+         */
+        fun of(type: String, days: Int, source: String, liveUrl: String = ""): ChannelArchive? {
+            if (type.isBlank() && source.isBlank() || days <= 0) return null
+            val playable = when {
+                source.isNotBlank() -> true
+                type == "shift" || type == "default" -> true
+                type.startsWith("flussonic") || type == "fs" -> {
+                    val last = liveUrl.substringBefore('?').substringAfterLast('/')
+                    last == "mpegts" || last.endsWith(".ts") || last.endsWith(".m3u8")
+                }
+                else -> false
+            }
+            return if (playable) ChannelArchive(type, days, source) else null
+        }
     }
 }

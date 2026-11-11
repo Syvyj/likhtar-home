@@ -1,6 +1,7 @@
 package com.likhtar.home.feature.cinema
 
 import com.likhtar.home.core.tv.channelLabel
+import com.likhtar.home.core.designsystem.LikhtarDimens
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -141,7 +142,7 @@ internal fun LiveChannelCard(
         focusedBackground = LikhtarColors.Surface,
         borderColor = Color.Transparent,
         focusLighten = 0f,
-        focusedScale = 1.07f,
+        focusedScale = LikhtarDimens.CardFocusScale,
     ) { focused ->
         Column {
             Box(Modifier.fillMaxWidth().height(115.dp).background(LikhtarColors.BackgroundDeep)) {
@@ -253,6 +254,9 @@ internal fun LiveGuide(
     }
 
     val move = tween<Dp>(250)
+    // Лічильники груп — раз на список: тіло перескладається на кожному кадрі анімації груп, і
+    // count по 20 тис. каналів на кожну з 15 груп ішов щокадру.
+    val groupCounts = remember(channels) { channels.groupingBy { liveGroup(it) }.eachCount() }
     val railWidth by animateDpAsState(if (groupsOpen) 200.dp else 56.dp, move, label = "groups")
     val shift by animateDpAsState(if (groupsOpen) 144.dp else 0.dp, move, label = "shift")
     val listAlpha by animateFloatAsState(if (groupsOpen) 0.55f else 1f, tween(250), label = "dim")
@@ -327,7 +331,7 @@ internal fun LiveGuide(
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
             (listOf(GuideAll) + groups).forEach { g ->
-                val count = if (g == GuideAll) channels.size else channels.count { liveGroup(it) == g }
+                val count = if (g == GuideAll) channels.size else groupCounts[g] ?: 0
                 GroupItem(
                     title = if (g == GuideAll) res.getString(R.string.cinema_live_group_all) else liveGroupTitle(res, g),
                     icon = groupIcon(g),
@@ -423,7 +427,7 @@ private fun GuideRow(card: LiveCard, now: Long, onFocused: () -> Unit, onClick: 
         background = Color.Transparent,
         focusedBackground = LikhtarColors.Paper,
         borderColor = Color.Transparent,
-        focusedScale = 1.02f,
+        focusedScale = LikhtarDimens.PanelFocusScale,
         instantFill = true,
     ) { focused ->
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp), modifier = Modifier.padding(horizontal = 9.dp).fillMaxSize()) {

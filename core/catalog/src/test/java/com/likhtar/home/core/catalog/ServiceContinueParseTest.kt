@@ -17,7 +17,7 @@ class ServiceContinueParseTest {
     fun `позиція сервісу стає карткою з діплінком`() {
         val body = """{"count":2,"results":[
             {"ext_id":"10246315","title":"Голі й налякані","poster":"https://s8.vcdn.biz/a.jpg",
-             "deeplink":"megogo://video/10246315","catalog_id":-1087,"kind":"tv"},
+             "deeplink":"megogo://video/10246315","catalog_id":-1087,"kind":"tv","progress":0.94},
             {"ext_id":"1","title":"Без діплінка","poster":"","deeplink":""}
         ]}"""
         val items = parseServiceContinue(body)
@@ -27,5 +27,6 @@ class ServiceContinueParseTest {
         assertEquals("megogo://video/10246315", items[0].deeplink)
         assertEquals("com.megogo.application", items[0].packageName)
         assertEquals("https://s8.vcdn.biz/a.jpg", items[0].imageUrl)
+        assertEquals(0.94f, items[0].progress!!, 0.001f)
     }
 }

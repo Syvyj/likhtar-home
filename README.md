@@ -179,7 +179,7 @@ Requirements: Android Studio (latest stable), JDK 17.
 
 ```bash
 ./gradlew assemblePlayDebug        # public build, debug
-./gradlew assemblePlayRelease      # public build, release
+./gradlew assemblePlayRelease      # public build, release (needs your own key, see below)
 ./gradlew testPlayDebugUnitTest lintPlayRelease
 ```
 
@@ -187,7 +187,7 @@ Optional, in a local `.env` (never committed):
 
 ```properties
 TMDB_key=your-tmdb-api-key            # use TMDB directly instead of the gateway
-LIKHTAR_KEYSTORE=/path/to/release.jks # sign release builds with your own key
+LIKHTAR_KEYSTORE=/path/to/release.jks # required for release builds: your own key
 LIKHTAR_KEYSTORE_PASSWORD=…
 LIKHTAR_KEY_ALIAS=…
 LIKHTAR_KEY_PASSWORD=…

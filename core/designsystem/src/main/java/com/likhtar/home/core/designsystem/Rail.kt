@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
@@ -63,6 +64,10 @@ fun LikhtarRail(
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
     gap: Dp = LikhtarDimens.RailGap,
+    /** Як стоять картки різної висоти (пігулка поруч із карткою на Головній). */
+    verticalAlignment: Alignment.Vertical = Alignment.Top,
+    /** Запас по краях під збільшення сфокусованої картки. */
+    bleed: Dp = LikhtarDimens.FocusBleed,
     content: LazyListScope.() -> Unit,
 ) {
     // Сфокусована картка не притискається до краю екрана: за нею лишається смуга, у якій
@@ -120,7 +125,7 @@ fun LikhtarRail(
         LazyRow(
             state = state,
             modifier = modifier
-                .bleedHorizontally(LikhtarDimens.FocusBleed)
+                .bleedHorizontally(bleed)
                 .onPreviewKeyEvent(wrap::onKey)
                 .focusGroup()
                 .focusProperties {
@@ -141,7 +146,8 @@ fun LikhtarRail(
                     }
                 },
             horizontalArrangement = Arrangement.spacedBy(gap),
-            contentPadding = PaddingValues(horizontal = LikhtarDimens.FocusBleed),
+            verticalAlignment = verticalAlignment,
+            contentPadding = PaddingValues(horizontal = bleed),
             content = { FirstMarked(this, first, keeper, edges).content() },
         )
     }

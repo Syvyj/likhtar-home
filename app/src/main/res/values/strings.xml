@@ -19,6 +19,8 @@
     <string name="assistant_no_time">Didn\'t catch when to remind you.</string>
     <string name="assistant_service_off">Turn on the remote buttons service in Settings — I can\'t do this without it.</string>
     <string name="drop_title">Send to TV from your phone</string>
+    <string name="new_episodes_title">New episodes</string>
+    <string name="new_episodes_hint">Last two weeks, from shows you watch or saved</string>
     <string name="drop_no_network">The box is not on your home network — there is nowhere to show the QR code.</string>
     <string name="drop_step1">1. Point the phone camera at the code</string>
     <string name="drop_step2">2. Pick a file or paste a link</string>

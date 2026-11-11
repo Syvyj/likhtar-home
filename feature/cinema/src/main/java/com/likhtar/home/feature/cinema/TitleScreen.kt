@@ -63,6 +63,7 @@ import androidx.compose.foundation.onFocusedBoundsChanged
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.draw.rotate
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusDirection
@@ -82,6 +83,7 @@ fun TitleScreen(
     onBack: () -> Unit,
     onOpenFranchise: (FranchiseRef) -> Unit,
     onOpenTitle: (CatalogItem) -> Unit,
+    onOpenStudio: (com.likhtar.home.core.catalog.StudioRef) -> Unit = {},
     viewModel: TitleViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -132,6 +134,12 @@ fun TitleScreen(
     // Дві окремі сцени, а не одна довга сторінка: так блок серій не ділить екран з hero.
     // BACK у серіях повертає на hero; наступний BACK уже обробить навігація застосунку.
     BackHandler(enabled = viewingEpisodes) { viewingEpisodes = false }
+    // Back під «Готую…» скасовує запуск і на сцені серій: раніше сцена мінялась на hero, а
+    // плеєр однаково вмикався до 45 с потому. Оголошений пізніше — має перевагу.
+    BackHandler(enabled = state.preparing) { viewModel.cancelPreparing() }
+    // Після вікна озвучок чи відмови підготовки фокус — на рядок серії, де натиснули OK, а не на
+    // серію «продовжити» (вона могла бути за екраном, і фокуса не лишалось зовсім).
+    var episodesRefocus by remember { mutableIntStateOf(0) }
     // З «Продовжити» серіалу — одразу серії: щойно сторінка знає, що це серіал і на якій
     // серії продовжувати (фокус на ній ставить ефект нижче).
     var openedOnEpisodes by rememberSaveable { mutableStateOf(false) }
@@ -171,7 +179,8 @@ fun TitleScreen(
     // повернути: інакше після виходу з плеєра сторінка стояла без фокуса, і пульт
     // «оживав» лише зі стрілки.
     LaunchedEffect(state.preparing) {
-        if (!state.preparing && !viewingEpisodes) firstActionFocus.requestAfterFrame()
+        if (state.preparing) return@LaunchedEffect
+        if (!viewingEpisodes) firstActionFocus.requestAfterFrame() else episodesRefocus++
     }
     // Те саме для вікна озвучок: Назад із нього лишав сторінку без фокуса.
     val pickerOpen = state.picker != null
@@ -180,7 +189,7 @@ fun TitleScreen(
         if (!viewingEpisodes) {
             firstActionFocus.requestAfterFrame()
         } else {
-            (if (resumeIndex >= 0) resumeEpisodeFocus else seasonFocus).requestAfterFrame()
+            episodesRefocus++
         }
     }
 
@@ -345,6 +354,8 @@ fun TitleScreen(
                 onVideo = viewModel::openVideo,
                 onOpenTitle = onOpenTitle,
                 onFranchiseParts = viewModel::loadFranchise,
+                onOpenStudio = onOpenStudio,
+                refocus = episodesRefocus,
                 onRecap = viewModel::openRecap,
                 startTab = episodesTab,
             )

@@ -53,6 +53,12 @@
     <string name="cinema_detail_seasons_episodes">Seasons and episodes</string>
     <string name="cinema_detail_premiere">Premiere</string>
     <string name="cinema_actors">Cast</string>
+    <string name="cinema_studios">Studios and channels</string>
+    <string name="cinema_studio_subscribe">Subscribe</string>
+    <string name="cinema_studio_unsubscribe">Unsubscribe</string>
+    <string name="cinema_my_studios">My studios</string>
+    <string name="cinema_studio_kind_channel">Channel</string>
+    <string name="cinema_studio_kind_studio">Studio</string>
     <string name="cinema_open_all">Open all</string>
     <string name="cinema_open_franchise">Open franchise</string>
     <string name="cinema_continue_watching">Continue watching</string>

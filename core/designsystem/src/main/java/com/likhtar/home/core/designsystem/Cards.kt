@@ -97,7 +97,7 @@ fun AppTile(
             background = TileFill,
             focusedBackground = TileFillActive,
             borderColor = TileLine,
-            focusedScale = 1.04f,
+            focusedScale = LikhtarDimens.ControlFocusScale,
             focusedLift = 5.dp,
         ) { _ ->
             Box(
