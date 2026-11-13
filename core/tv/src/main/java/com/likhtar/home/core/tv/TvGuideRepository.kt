@@ -347,7 +347,7 @@ class TvGuideRepository @Inject constructor(
         const val USER_AGENT = "LIKHTAR-TV-launcher/0.1 (Android TV)"
         const val TIMEOUT_MS = 15_000
         const val GUIDE_PREFIX = "xmltv-"
-        const val UPCOMING = 12
+        const val UPCOMING = 40
 
         /** XMLTV провайдера буває на кількадесят мегабайтів — читання довше за з'єднання. */
         const val READ_TIMEOUT_MS = 60_000

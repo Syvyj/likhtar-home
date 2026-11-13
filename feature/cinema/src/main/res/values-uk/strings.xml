@@ -367,4 +367,26 @@
     <string name="cinema_live_menu_remind_hint">О %1$s — поверх будь-чого на екрані</string>
     <string name="cinema_live_menu_unremind">Не нагадувати: %1$s</string>
     <string name="cinema_live_menu_unremind_hint">Нагадування о %1$s буде знято</string>
+    <string name="cinema_live_schedule">Вся програма</string>
+    <string name="cinema_live_open_title">Картка в Кінозалі</string>
+    <string name="cinema_live_schedule_hint">→ Вся програма</string>
+    <string name="cinema_live_schedule_menu_hint">Що далі на каналі — і нагадування про будь-яку передачу</string>
+    <string name="cinema_live_schedule_now">Зараз · %1$s · OK — дивитись</string>
+    <string name="cinema_live_schedule_remind">OK — нагадати за хвилину до початку</string>
+    <string name="cinema_live_schedule_reminded">Нагадаю · OK — скасувати</string>
+    <string name="cinema_live_schedule_empty">Програми для цього каналу немає</string>
+    <string name="cinema_live_group_up">Вище</string>
+    <string name="cinema_live_group_up_hint">Група стане на одне місце вище в списку</string>
+    <string name="cinema_live_group_down">Нижче</string>
+    <string name="cinema_live_group_down_hint">Група стане на одне місце нижче в списку</string>
+    <string name="cinema_live_group_first">Уже перша</string>
+    <string name="cinema_live_group_last">Уже остання</string>
+    <string name="cinema_live_group_rename">Перейменувати</string>
+    <string name="cinema_live_group_rename_hint">Своя назва для цієї групи</string>
+    <string name="cinema_live_group_hide">Сховати групу</string>
+    <string name="cinema_live_group_hide_hint">З усіма її каналами; повертає довге OK на «Усі канали»</string>
+    <string name="cinema_live_group_show_hidden">Показати сховані групи (%1$d)</string>
+    <string name="cinema_live_group_show_hidden_hint">Сховані групи повернуться з усіма каналами</string>
+    <string name="cinema_live_group_restore_name">Повернути назву «%1$s»</string>
+    <string name="cinema_live_group_restore_name_hint">Назва, з якою група прийшла</string>
 </resources>

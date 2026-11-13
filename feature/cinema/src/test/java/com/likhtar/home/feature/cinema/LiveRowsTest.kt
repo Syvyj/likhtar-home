@@ -144,4 +144,41 @@ class SearchChannelsTest {
         assertEquals(listOf("http://a/PolsatRodzina/video.m3u8"), b["stalker://p/1-2/video.m3u8"])
         assertEquals(null, b["http://a/TVP3/video.m3u8"])
     }
+
+    @Test
+    fun frame() {
+        val archived = ChannelLink(name = "A", packageName = "", url = "http://cdn.example/live/A/video.m3u8?token=t",
+            archive = com.likhtar.home.core.tv.ChannelArchive("flussonic", 3, ""))
+        // 1_000_000 с − 90 с, вниз до 5 хв.
+        assertEquals("http://cdn.example/live/A/999900-preview.jpg?token=t", channelFrame(archived, 1_000_000_000L))
+        assertEquals("http://cdn.example/live/A/999900-preview.jpg?token=t", channelFrame(archived.copy(archive = null), 1_000_000_000L))
+        assertEquals(null, channelFrame(archived.copy(url = "http://other/live/A.m3u8"), 1_000_000_000L))
+        assertEquals(null, channelFrame(archived.copy(url = "stalker://p/1-2/video.m3u8"), 1_000_000_000L))
+    }
+
+    @Test
+    fun groupEdits() {
+        val links = listOf(
+            ChannelLink(name = "A", packageName = "", url = "a", category = "Польща"),
+            ChannelLink(name = "B", packageName = "", url = "b", category = "Болгарія"),
+            ChannelLink(name = "C", packageName = "", url = "c", category = ""),
+        )
+        val edits = com.likhtar.home.core.tv.ChannelEdits(groupNames = mapOf("Польща" to "PL"), groupHidden = setOf("Болгарія"))
+        assertEquals(listOf("PL", ""), groupEdited(links, edits).map { it.category })
+        // Перейменування перейменованого: ключ — первісна назва, порядок і сховані йдуть за назвою.
+        val twice = edits.copy(groupOrder = listOf("PL", "Болгарія")).renameGroup("PL", "Polska")
+        assertEquals(mapOf("Польща" to "Polska"), twice.groupNames)
+        assertEquals(listOf("Polska", "Болгарія"), twice.groupOrder)
+        assertEquals(mapOf<String, String>(), twice.renameGroup("Polska", "Польща").groupNames)
+    }
+
+    @Test
+    fun userGroupOrder() {
+        val card = { url: String, g: String -> LiveCard(ChannelLink(name = url, packageName = "", url = url, category = g), "", 0, 0, null, null) }
+        val live = listOf(card("a", "X"), card("b", "Y"), card("c", "Z"))
+        assertEquals(listOf("c", "a", "b"), guideChannels(live, listOf("X", "Y", "Z"), emptyList(), userGroups = listOf("Z")).map { it.link.url })
+        // Перейменована група стоїть там, де стояла під первісною назвою.
+        val renamed = listOf(card("a", "X"), card("b", "Mine"), card("c", "Z"))
+        assertEquals(listOf("a", "b", "c"), guideChannels(renamed, listOf("X", "Y", "Z"), emptyList(), originals = mapOf("Mine" to "Y")).map { it.link.url })
+    }
 }

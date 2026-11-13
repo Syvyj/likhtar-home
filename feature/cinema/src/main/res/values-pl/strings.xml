@@ -367,4 +367,26 @@
     <string name="cinema_live_menu_remind_hint">O %1$s — nad wszystkim na ekranie</string>
     <string name="cinema_live_menu_unremind">Nie przypominaj: %1$s</string>
     <string name="cinema_live_menu_unremind_hint">Przypomnienie o %1$s zostanie usunięte</string>
+    <string name="cinema_live_schedule">Cały program</string>
+    <string name="cinema_live_open_title">Otwórz w Kinie</string>
+    <string name="cinema_live_schedule_hint">→ Cały program</string>
+    <string name="cinema_live_schedule_menu_hint">Co dalej na kanale — i przypomnienia o dowolnym programie</string>
+    <string name="cinema_live_schedule_now">Teraz · %1$s · OK — oglądaj</string>
+    <string name="cinema_live_schedule_remind">OK — przypomnij minutę przed</string>
+    <string name="cinema_live_schedule_reminded">Przypomnę · OK — anuluj</string>
+    <string name="cinema_live_schedule_empty">Brak programu dla tego kanału</string>
+    <string name="cinema_live_group_up">Wyżej</string>
+    <string name="cinema_live_group_up_hint">Grupa przesunie się o jedno miejsce wyżej</string>
+    <string name="cinema_live_group_down">Niżej</string>
+    <string name="cinema_live_group_down_hint">Grupa przesunie się o jedno miejsce niżej</string>
+    <string name="cinema_live_group_first">Już pierwsza</string>
+    <string name="cinema_live_group_last">Już ostatnia</string>
+    <string name="cinema_live_group_rename">Zmień nazwę</string>
+    <string name="cinema_live_group_rename_hint">Własna nazwa tej grupy</string>
+    <string name="cinema_live_group_hide">Ukryj grupę</string>
+    <string name="cinema_live_group_hide_hint">Ze wszystkimi kanałami; długie OK na Wszystkie kanały przywraca</string>
+    <string name="cinema_live_group_show_hidden">Pokaż ukryte grupy (%1$d)</string>
+    <string name="cinema_live_group_show_hidden_hint">Ukryte grupy wrócą ze wszystkimi kanałami</string>
+    <string name="cinema_live_group_restore_name">Przywróć nazwę „%1$s”</string>
+    <string name="cinema_live_group_restore_name_hint">Pierwotna nazwa grupy</string>
 </resources>

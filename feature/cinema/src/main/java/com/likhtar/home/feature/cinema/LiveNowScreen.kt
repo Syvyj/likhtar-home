@@ -82,6 +82,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun LiveNowScreen(
     onSelectSection: (LikhtarSection) -> Unit,
+    /** «Картка в Кінозалі» під кадром сцени 2: сторінка тайтла, Back — назад у ТБ Ефір. */
+    onOpenTitle: (com.likhtar.home.core.catalog.CatalogItem) -> Unit = {},
     viewModel: LiveNowViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -105,8 +107,9 @@ fun LiveNowScreen(
     }
     BackHandler(enabled = rowsHaveFocus) { runCatching { menuFocus.requestFocus() } }
     // Сцена 2 (список і прев'ю): відкрита — група; null — сцена 1, шапка й «Мої канали».
-    var guideGroup by remember { mutableStateOf<String?>(null) }
-    var guideWasOpen by remember { mutableStateOf(false) }
+    // Saveable: зі сторінки тайтла («Картка в Кінозалі») Back вертає в ту саму сцену.
+    var guideGroup by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+    var guideWasOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val mine = state.mine.takeIf { it.isNotEmpty() }
     val railState = remember { androidx.compose.foundation.lazy.LazyListState() }
     // Без своїх каналів сцени 1 немає — одразу сцена 2.
@@ -118,6 +121,7 @@ fun LiveNowScreen(
     // Довге OK: меню каналу (обрані / приховати); refocus — повернути фокус у ряд, коли
     // приховану картку прибрано з-під нього.
     var menuCard by remember { mutableStateOf<LiveCard?>(null) }
+    var scheduleCard by remember { mutableStateOf<LiveCard?>(null) }
     /** QR редактора каналів; "" — приставка не в домашній мережі. */
     var editUrl by remember { mutableStateOf<String?>(null) }
     var refocus by remember { mutableIntStateOf(0) }
@@ -314,6 +318,14 @@ fun LiveNowScreen(
                 onGroup = { guideGroup = it },
                 onOpen = viewModel::open,
                 onLong = { menuCard = it },
+                onSchedule = { scheduleCard = it },
+                onOpenTitle = onOpenTitle,
+                onGroupMove = viewModel::moveGroup,
+                onGroupHide = viewModel::hideGroup,
+                onGroupRename = viewModel::renameGroup,
+                hiddenGroups = viewModel.hiddenGroups,
+                onShowHiddenGroups = viewModel::showHiddenGroups,
+                originalGroup = viewModel::originalGroup,
                 refocus = refocus,
                 // Спершу фокус на «Усі канали» під сценою 2, потім закриваємо: інакше, поки
                 // сцена 2 зникає, фокус падав у верхнє меню.
@@ -349,6 +361,22 @@ fun LiveNowScreen(
                 next = nextProgramme(state.schedules[card.link.url], now),
                 reminded = nextProgramme(state.schedules[card.link.url], now)?.let { reminderKey(card, it) in reminderKeys } == true,
                 onRemind = { nextProgramme(state.schedules[card.link.url], now)?.let { viewModel.toggleReminder(card, it) } },
+                onSchedule = { scheduleCard = card },
+            )
+        }
+
+        scheduleCard?.let { card ->
+            ChannelScheduleDialog(
+                card = card,
+                schedule = state.schedules[card.link.url],
+                now = now,
+                reminded = { reminderKey(card, it) in reminderKeys },
+                onRemind = { viewModel.toggleReminder(card, it) },
+                onWatch = { viewModel.open(card) },
+                onDismiss = {
+                    scheduleCard = null
+                    refocus++
+                },
             )
         }
 

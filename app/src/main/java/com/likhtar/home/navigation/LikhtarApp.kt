@@ -169,6 +169,11 @@ fun LikhtarApp(
                     navigate(LikhtarSection.CINEMA)
                     navController.navigate(CatalogListViewModel.route(CatalogListingKind.STUDIO, request.brand))
                 }
+                // «Картка в Кінозалі» з плеєра: сторінка тайтла поверх Кінозалу (Back — у Кінозал).
+                is OpenRequest.Title -> {
+                    navigate(LikhtarSection.CINEMA)
+                    navController.navigate(TitleRoute(CinemaViewModel.kindOf(request.kind).name, request.id))
+                }
             }
         }
     }
@@ -245,6 +250,8 @@ fun LikhtarApp(
             // Що саме віддати плеєру — чиста функція під тестом (PlayerPlan.kt, core:catalog).
             val plan = request.playerPlan(takesM3u, companion)
             val intent = plan.toIntent()
+            // «Ліхтар ТБ» відкриває картку в Кінозалі саме цього лаунчера (personal і play — різні пакети).
+            if (request.tv != null) intent.putExtra("likhtar.tv.home", context.packageName)
             val asQueue = plan.asQueue
             Log.i(
                 "LikhtarPlayback",
@@ -484,7 +491,7 @@ fun LikhtarApp(
                 )
             }
             composable(LikhtarSection.LIVE_TV.route) {
-                LiveNowScreen(onSelectSection = navigateTo)
+                LiveNowScreen(onSelectSection = navigateTo, onOpenTitle = { item -> navController.navigate(CinemaViewModel.titleRoute(item)) })
             }
             composable(LikhtarSection.REALITY.route) {
                 RealityScreen(
@@ -609,4 +616,5 @@ sealed interface OpenRequest {
     data class Assistant(val question: String? = null) : OpenRequest
     data class Section(val section: LikhtarSection) : OpenRequest
     data class Streaming(val brand: String) : OpenRequest
+    data class Title(val kind: String, val id: Int) : OpenRequest
 }

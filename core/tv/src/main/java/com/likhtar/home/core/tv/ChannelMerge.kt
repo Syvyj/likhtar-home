@@ -20,6 +20,12 @@ data class ChannelEdits(
     val joins: Map<String, String> = emptyMap(),
     /** Ключ → група (жанр), куди людина переставила канал; "" — «Інші канали». */
     val groups: Map<String, String> = emptyMap(),
+    /** Порядок груп, заданий людиною (довге OK на групі → «Вище»/«Нижче»); решта — після, як ішли. */
+    val groupOrder: List<String> = emptyList(),
+    /** Сховані групи — з усім вмістом; повертає довге OK на «Усі канали». */
+    val groupHidden: Set<String> = emptySet(),
+    /** Група → своя назва. */
+    val groupNames: Map<String, String> = emptyMap(),
 ) {
     fun keyOf(name: String): String = channelKey(name).let { joins[it] ?: it }
 
@@ -30,6 +36,9 @@ data class ChannelEdits(
         .put("names", JSONObject(names))
         .put("joins", JSONObject(joins))
         .put("groups", JSONObject(groups))
+        .put("groupOrder", JSONArray(groupOrder))
+        .put("groupHidden", JSONArray(groupHidden.toList()))
+        .put("groupNames", JSONObject(groupNames))
         .toString()
 
     companion object {
@@ -37,7 +46,10 @@ data class ChannelEdits(
             val o = JSONObject(raw.orEmpty())
             fun list(k: String) = o.optJSONArray(k)?.let { a -> List(a.length()) { a.getString(it) } }.orEmpty()
             fun map(k: String) = o.optJSONObject(k)?.let { m -> m.keys().asSequence().associateWith { m.getString(it) } }.orEmpty()
-            ChannelEdits(list("order"), list("hidden").toSet(), map("source"), map("names"), map("joins"), map("groups"))
+            ChannelEdits(
+                list("order"), list("hidden").toSet(), map("source"), map("names"), map("joins"), map("groups"),
+                list("groupOrder"), list("groupHidden").toSet(), map("groupNames"),
+            )
         }.getOrDefault(ChannelEdits())
     }
 }

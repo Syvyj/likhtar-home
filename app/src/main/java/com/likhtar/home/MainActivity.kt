@@ -32,6 +32,9 @@ class MainActivity : ComponentActivity() {
 
         /** Кнопка пульта → сторінка стрімінгу в Кінозалі (ключ сервера). */
         const val EXTRA_STREAMING = "likhtar.streaming"
+        /** «Картка в Кінозалі» з «Ліхтар ТБ»: вид (`MOVIE`/`TV`) і номер TMDB — сторінка тайтла. */
+        const val EXTRA_TITLE_KIND = "likhtar.title.kind"
+        const val EXTRA_TITLE_ID = "likhtar.title.id"
 
         /** Кнопка пульта → голосовий асистент. */
         const val EXTRA_ASSISTANT = "likhtar.assistant"
@@ -177,3 +180,4 @@ private fun Intent.openRequest(textQuestions: Boolean): OpenRequest? =
         .takeIf { getBooleanExtra(MainActivity.EXTRA_ASSISTANT, false) || it.question != null }
         ?: getStringExtra(MainActivity.EXTRA_STREAMING)?.let(OpenRequest::Streaming)
         ?: getStringExtra(MainActivity.EXTRA_SECTION)?.let(LikhtarSection::fromRoute)?.let(OpenRequest::Section)
+        ?: getIntExtra(MainActivity.EXTRA_TITLE_ID, 0).takeIf { it > 0 }?.let { OpenRequest.Title(getStringExtra(MainActivity.EXTRA_TITLE_KIND).orEmpty(), it) }

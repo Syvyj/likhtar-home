@@ -355,4 +355,26 @@
     <string name="cinema_live_menu_remind_hint">At %1$s, over anything on screen</string>
     <string name="cinema_live_menu_unremind">Don’t remind me: %1$s</string>
     <string name="cinema_live_menu_unremind_hint">Reminder at %1$s will be removed</string>
+    <string name="cinema_live_schedule">Full schedule</string>
+    <string name="cinema_live_open_title">Open in Cinema</string>
+    <string name="cinema_live_schedule_hint">→ Full schedule</string>
+    <string name="cinema_live_schedule_menu_hint">What is on next, and reminders for any of it</string>
+    <string name="cinema_live_schedule_now">On now · %1$s · OK — watch</string>
+    <string name="cinema_live_schedule_remind">OK — remind me a minute before</string>
+    <string name="cinema_live_schedule_reminded">Reminder set · OK — cancel</string>
+    <string name="cinema_live_schedule_empty">There is no schedule for this channel</string>
+    <string name="cinema_live_group_up">Move up</string>
+    <string name="cinema_live_group_up_hint">The group goes one place higher in the list</string>
+    <string name="cinema_live_group_down">Move down</string>
+    <string name="cinema_live_group_down_hint">The group goes one place lower in the list</string>
+    <string name="cinema_live_group_first">Already first</string>
+    <string name="cinema_live_group_last">Already last</string>
+    <string name="cinema_live_group_rename">Rename</string>
+    <string name="cinema_live_group_rename_hint">Your own name for this group</string>
+    <string name="cinema_live_group_hide">Hide the group</string>
+    <string name="cinema_live_group_hide_hint">With all its channels; Hold OK on All channels brings it back</string>
+    <string name="cinema_live_group_show_hidden">Show hidden groups (%1$d)</string>
+    <string name="cinema_live_group_show_hidden_hint">Hidden groups come back with their channels</string>
+    <string name="cinema_live_group_restore_name">Back to “%1$s”</string>
+    <string name="cinema_live_group_restore_name_hint">The group’s original name</string>
 </resources>

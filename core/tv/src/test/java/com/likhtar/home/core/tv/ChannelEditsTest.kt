@@ -32,4 +32,12 @@ class ChannelEditsTest {
         assertEquals(e, ChannelEdits.decode(e.encode()))
         assertEquals(ChannelEdits(), ChannelEdits.decode(null))
     }
+
+    @Test
+    fun `group edits survive the disk`() {
+        val e = ChannelEdits(order = listOf("a"), groupOrder = listOf("PL", "BG"), groupHidden = setOf("BG"), groupNames = mapOf("Польща" to "PL"))
+        assertEquals(e, ChannelEdits.decode(e.encode()))
+        // Старі збережені правки (без груп) читаються як раніше.
+        assertEquals(ChannelEdits(order = listOf("a")), ChannelEdits.decode("{\"order\":[\"a\"]}"))
+    }
 }

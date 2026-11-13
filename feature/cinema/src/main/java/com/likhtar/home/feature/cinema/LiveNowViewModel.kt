@@ -155,6 +155,7 @@ class LiveNowViewModel @Inject constructor(
     private var groupOrder: List<String> = emptyList()
     private var lead: List<String> = emptyList()
     private var userOrder: List<String> = emptyList()
+    private var groupEdits = ChannelEdits()
     val state: StateFlow<LiveNowState> = _state
 
     /** Коли востаннє оновлено до кінця; 0 — ще ні разу. */
@@ -250,7 +251,9 @@ class LiveNowViewModel @Inject constructor(
         val tv = tvAll.copy(channels = tvAll.channels.filter { usable(it.link.packageName) })
         val edits = runCatching { groups.channelEdits.first() }.getOrDefault(ChannelEdits())
         userOrder = edits.order
-        val (links, extra) = mergeChannels(own, tv, edits)
+        val (merged, extra) = mergeChannels(own, tv, edits)
+        val links = groupEdited(merged, edits)
+        groupEdits = edits
         backups = com.likhtar.home.core.tv.channelBackups(own, tv, edits)
         android.util.Log.i("LikhtarLive", "свої ${ownAll.size} (доступні ${own.size}), каталог ${tvAll.channels.size} (доступні ${tv.channels.size}), сховані ${hidden.size}, правки: сховано ${edits.hidden.size}, склеєно ${edits.joins.size}")
         groupOrder = tv.groups
@@ -311,7 +314,7 @@ class LiveNowViewModel @Inject constructor(
         recentUrls = mine
         val pinned = runCatching { settings.settings.first().pinnedChannels }.getOrDefault(emptySet())
         val mineCards = mineCards(live, pinned, mine)
-        val guide = guideChannels(live, groupOrder, lead, userOrder)
+        val guide = guideChannels(live, groupOrder, lead, userOrder, groupEdits.groupOrder, groupEdits.groupNames.entries.associate { (o, n) -> n to o })
         val old = _state.value
         _state.value = old.copy(
             loading = false,
@@ -360,6 +363,60 @@ class LiveNowViewModel @Inject constructor(
         }
     }
 
+    /** Довге OK на групі → «Вище»/«Нижче»: групи міняються місцями одразу, порядок — у правки. */
+    fun moveGroup(group: String, delta: Int) {
+        val order = _state.value.groups.toMutableList()
+        val i = order.indexOf(group)
+        val j = i + delta
+        if (i < 0 || j !in order.indices) return
+        java.util.Collections.swap(order, i, j)
+        saveGroups { it.copy(groupOrder = order) }
+        _state.value = _state.value.let { s ->
+            s.copy(channels = s.channels.groupBy { liveGroup(it) }.let { by -> order.flatMap { by[it].orEmpty() } }, groups = order)
+        }
+    }
+
+    /** «Приховати групу»: зникає з усім вмістом; «Показати сховані групи» на «Усі канали» повертає. */
+    fun hideGroup(group: String) {
+        saveGroups { it.copy(groupHidden = it.groupHidden + group) }
+        _state.value = _state.value.let { s ->
+            val channels = s.channels.filter { liveGroup(it) != group }
+            s.copy(channels = channels, mine = s.mine.filter { liveGroup(it) != group }, groups = s.groups - group)
+        }
+    }
+
+    fun renameGroup(group: String, name: String) {
+        val clean = name.trim()
+        if (clean.isEmpty() || clean == group) return
+        saveGroups { it.renameGroup(group, clean) }
+        val rename = { c: LiveCard -> if (liveGroup(c) == group) c.copy(link = c.link.copy(category = clean)) else c }
+        _state.value = _state.value.let { s ->
+            s.copy(channels = s.channels.map(rename), mine = s.mine.map(rename), groups = s.groups.map { if (it == group) clean else it }.distinct())
+        }
+    }
+
+    /** Первісна назва перейменованої групи; `null` — група своєї назви не має. */
+    fun originalGroup(group: String): String? = groupEdits.groupNames.entries.firstOrNull { it.value == group }?.key
+
+    /** Скільки груп сховано — для «Показати сховані групи». */
+    val hiddenGroups: Int get() = groupEdits.groupHidden.size
+
+    fun showHiddenGroups() {
+        saveGroups { it.copy(groupHidden = emptySet()) }
+        viewModelScope.launch { refresh() }
+    }
+
+    private fun saveGroups(change: (ChannelEdits) -> ChannelEdits) {
+        groupEdits = change(groupEdits)
+        val edits = groupEdits
+        LiveNowMemory.state = null
+        viewModelScope.launch {
+            // Від свіжих правок на диску: сторінка з телефона могла тим часом зберегти свої.
+            val stored = runCatching { groups.channelEdits.first() }.getOrDefault(ChannelEdits())
+            groups.setChannelEdits(stored.copy(groupOrder = edits.groupOrder, groupHidden = edits.groupHidden, groupNames = edits.groupNames))
+        }
+    }
+
     /**
      * Канали-потоки в порядку списку ТБ Ефіру — щоб плеєр перемикав їх ↑↓, не виходячи. Лише
      * ті, що грає плеєр (канали застосунків відкриваються самими застосунками).
@@ -405,7 +462,8 @@ class LiveNowViewModel @Inject constructor(
                     image = cardImage(c) ?: it.image,
                 )
             }
-            (s?.past.orEmpty().asReversed() + listOfNotNull(liveNow) + s?.upcoming.orEmpty()).forEach { p ->
+            // Наперед — 12: «Вся програма» тримає 40, а файл плеєра на тисячу каналів не мусить рости.
+            (s?.past.orEmpty().asReversed() + listOfNotNull(liveNow) + s?.upcoming.orEmpty().take(12)).forEach { p ->
                 programmes.put(
                     org.json.JSONArray().put(p.startMillis).put(p.endMillis).put(p.title)
                         .put(p.image.orEmpty()).put(p.description.take(400)),
@@ -418,6 +476,8 @@ class LiveNowViewModel @Inject constructor(
                     .put("p", programmes)
                     .apply {
                         _state.value.backups[c.link.url]?.let { put("b", org.json.JSONArray(it)) }
+                        // Твір поточної передачі — для «Картка в Кінозалі» в плеєрі (лише впізнана передача).
+                        c.work?.takeIf { it.tmdbId > 0 }?.let { w -> put("w", org.json.JSONObject().put("k", w.kind.name).put("i", w.tmdbId).put("s", c.startMillis)) }
                         c.link.archive?.let { a -> put("a", org.json.JSONObject().put("t", a.type).put("d", a.days).put("s", a.source)) }
                     },
             )
@@ -525,10 +585,29 @@ internal fun liveCards(
     val on = rolled?.live
         ?: rolled?.upcoming?.firstOrNull()?.let { NowOnAir(title = it.title, description = it.description, image = it.image, startMillis = it.startMillis, endMillis = it.endMillis) }
         // Потік свого плейлиста (без пакета) лишається й без програми — це канал людини.
-        ?: return@mapNotNull if (link.packageName.isBlank()) LiveCard(link, "", 0, 0, null, null) else null
+        ?: return@mapNotNull if (link.packageName.isBlank()) LiveCard(link, "", 0, 0, channelFrame(link, now), null) else null
     if (on.endMillis != 0L && on.endMillis <= now) return@mapNotNull null
-    LiveCard(link, on.title, on.startMillis, on.endMillis, on.image, matches[on.title], on.description)
+    // Без кадру з програми — кадр самого каналу (живе передача, а не порожня картка).
+    LiveCard(link, on.title, on.startMillis, on.endMillis, on.image ?: channelFrame(link, now), matches[on.title], on.description)
 }
+
+/**
+ * Кадр каналу на цю хвилину: Flussonic віддає знімок з DVR за адресою
+ * `<тека потоку>/<unix>-preview.jpg?<той самий токен>`. Час — кратний 5 хв і на півтори хвилини
+ * позаду, щоб знімок уже був, а картинки кешувались, доки картки не оновляться (раз на 5 хв).
+ * Пробуємо для кожного потоку з адресою на манер Flussonic: плейлист позначає архів далеко не в
+ * усіх каналів, де DVR (і кадри) є. Не дав кадру — картка показує знак каналу.
+ */
+internal fun channelFrame(link: ChannelLink, now: Long): String? {
+    val url = link.url.takeIf { it.startsWith("http") && link.packageName.isBlank() } ?: return null
+    val path = url.substringBefore('?')
+    if (path.substringAfterLast('/') !in FlussonicNames) return null
+    val query = url.substringAfter('?', "").let { if (it.isEmpty()) "" else "?$it" }
+    val at = (now / 1000 - 90) / 300 * 300
+    return path.substringBeforeLast('/') + "/$at-preview.jpg" + query
+}
+
+private val FlussonicNames = setOf("video.m3u8", "index.m3u8", "mono.m3u8", "mpegts")
 
 /** Канали без групи в каталогі. */
 internal const val LiveRowOther = "Інші канали"
@@ -542,15 +621,46 @@ internal fun liveGroup(card: LiveCard): String = card.link.category.ifBlank { Li
  * Канали сцени 2: групи в порядку сервера (невідомі й «Інші» — наприкінці), усередині
  * українських — головні канали першими, далі як ідуть. Один канал — одна картка.
  */
-internal fun guideChannels(live: List<LiveCard>, order: List<String>, lead: List<String>, userOrder: List<String> = emptyList()): List<LiveCard> {
+internal fun guideChannels(
+    live: List<LiveCard>,
+    order: List<String>,
+    lead: List<String>,
+    userOrder: List<String> = emptyList(),
+    userGroups: List<String> = emptyList(),
+    /** Своя назва групи → первісна: порядок сервера й головні канали ведуться за первісною. */
+    originals: Map<String, String> = emptyMap(),
+): List<LiveCard> {
+    val base = { c: LiveCard -> liveGroup(c).let { originals[it] ?: it } }
     val rank = { g: String -> if (g == LiveRowOther) Int.MAX_VALUE else order.indexOf(g).takeIf { it >= 0 } ?: (Int.MAX_VALUE - 1) }
     val auto = live.distinctBy { it.link.url }
-        .sortedWith(compareBy<LiveCard>({ rank(liveGroup(it)) }, { if (liveGroup(it) == UaGroup) uaChannelRank(it.link.name, lead) else 0 }))
-    if (userOrder.isEmpty()) return auto
+        .sortedWith(compareBy<LiveCard>({ rank(base(it)) }, { if (base(it) == UaGroup) uaChannelRank(it.link.name, lead) else 0 }))
     // Порядок з редактора; нові канали — після впорядкованих. Групи лишаються суцільними:
     // група стоїть там, де її перший канал.
     val index = userOrder.withIndex().associate { (i, k) -> k to i }
-    return auto.sortedBy { index[it.link.key] ?: Int.MAX_VALUE }.groupBy { liveGroup(it) }.values.flatten()
+    val byChannels = if (userOrder.isEmpty()) auto else auto.sortedBy { index[it.link.key] ?: Int.MAX_VALUE }.groupBy { liveGroup(it) }.values.flatten()
+    if (userGroups.isEmpty()) return byChannels
+    // Порядок груп, заданий на ТБ, — понад усе; групи, яких у ньому немає (нові), — після.
+    val at = userGroups.withIndex().associate { (i, g) -> g to i }
+    return byChannels.groupBy { liveGroup(it) }.entries.sortedBy { at[it.key] ?: Int.MAX_VALUE }.flatMap { it.value }
+}
+
+/** Правки груп людини: своя назва й сховані групи (з усім вмістом). */
+internal fun groupEdited(links: List<ChannelLink>, edits: ChannelEdits): List<ChannelLink> =
+    if (edits.groupNames.isEmpty() && edits.groupHidden.isEmpty()) links else links.mapNotNull { l ->
+        val named = edits.groupNames[l.category.ifBlank { LiveRowOther }]
+        if ((named ?: l.category.ifBlank { LiveRowOther }) in edits.groupHidden) null
+        else if (named != null) l.copy(category = named) else l
+    }
+
+/** Нові правки груп: [group] перейменовано на [name] — назва, порядок і сховані йдуть за нею. */
+internal fun ChannelEdits.renameGroup(group: String, name: String): ChannelEdits {
+    val original = groupNames.entries.firstOrNull { it.value == group }?.key ?: group
+    val names = (groupNames - original).let { if (name == original) it else it + (original to name) }
+    return copy(
+        groupNames = names,
+        groupOrder = groupOrder.map { if (it == group) name else it },
+        groupHidden = groupHidden.map { if (it == group) name else it }.toSet(),
+    )
 }
 
 /** Головні канали ([lead] від сервера) — першими й саме так; решта — після них (сортування стабільне). */

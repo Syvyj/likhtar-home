@@ -92,28 +92,23 @@ fun LikhtarTopMenu(
     weatherLabel: String? = null,
 ) {
     val isHome = current == LikhtarSection.HOME
-    Box(
+    // Меню — по центру, доки вміщається між логотипом і правим блоком; ні — зсувається вліво, а не
+    // наїжджає на годинник (сім розділів, дзвіночок і телефон разом на 1080p не вміщались).
+    androidx.compose.ui.layout.Layout(
         modifier = modifier
             .fillMaxWidth()
             .height(LikhtarDimens.TopMenuHeight)
             .padding(horizontal = LikhtarDimens.ScreenPadding),
-    ) {
+        content = {
         // Ліворуч: логотип та погода (на не-Головних екранах; на Головній це шапка лівої стрічки)
-        if (!isHome) {
-            Row(
-                modifier = Modifier.align(Alignment.CenterStart),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LikhtarDimens.TopMenuGap),
-            ) {
-                BrandMark()
-            }
+        Box {
+            if (!isHome) BrandMark()
         }
 
         // Строго по центру — так само, як і в решті розділів. Прив'язка до лівого поля
         // над віджетом Головної читалась як асиметрія, а не навмисний акцент.
         Row(
             modifier = Modifier
-                .align(Alignment.Center)
                 .clip(RoundedCornerShape(LikhtarDimens.CornerPill))
                 .background(LikhtarColors.PanelFloor.copy(alpha = 0.6f))
                 .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(LikhtarDimens.CornerPill))
@@ -149,8 +144,23 @@ fun LikhtarTopMenu(
             menuFocusRequester = menuFocusRequester,
             contentFocusRequester = contentFocusRequester,
             showClock = !isHome,
-            modifier = Modifier.align(Alignment.CenterEnd),
         )
+        },
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val (brand, menu, status) = measurables.map { it.measure(loose) }
+        val width = constraints.maxWidth
+        val height = constraints.maxHeight
+        val gap = LikhtarDimens.TopMenuGap.roundToPx()
+        val centered = (width - menu.width) / 2
+        val rightmost = width - status.width - gap - menu.width
+        val leftmost = if (brand.width > 0) brand.width + gap else 0
+        val x = minOf(centered, rightmost).coerceAtLeast(leftmost)
+        layout(width, height) {
+            brand.place(0, (height - brand.height) / 2)
+            menu.place(x, (height - menu.height) / 2)
+            status.place(width - status.width, (height - status.height) / 2)
+        }
     }
 }
 

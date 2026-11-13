@@ -229,7 +229,8 @@ class ChannelsPhoneLink @Inject constructor(
             pageOrder == rows.map { it.key } -> old.order
             else -> pageOrder + old.order.filter { it !in onPage }
         }
-        groups.setChannelEdits(ChannelEdits(order, hidden, source, names, joins, regroup))
+        // Правки груп (порядок, сховані, назви) живуть на ТБ — сторінка їх не знає, тож лишаються.
+        groups.setChannelEdits(old.copy(order = order, hidden = hidden, source = source, names = names, joins = joins, groups = regroup))
         // Канали, сховані колись довгим OK (за адресою), тепер живуть у правках — за ключем.
         val urls = rows.flatMap { r -> r.sources.map { it.url } }.toSet()
         groups.setHiddenChannels(groups.hiddenChannels.first() - urls)
