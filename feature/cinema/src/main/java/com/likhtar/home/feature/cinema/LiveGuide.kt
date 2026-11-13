@@ -206,6 +206,16 @@ private fun ProgressLine(card: LiveCard, now: Long, modifier: Modifier, focused:
 /** Група «усі канали» сцени 2 — не назва з сервера, тож своїм ключем. */
 internal const val GuideAll = ""
 
+/** Не група, а результати пошуку каналу за назвою. */
+internal const val GuideSearch = "\u0000search"
+
+/** Канали, у назві яких є [query]; регістр і зайві пробіли не важать. */
+internal fun searchChannels(channels: List<LiveCard>, query: String): List<LiveCard> {
+    val q = query.trim().lowercase()
+    if (q.isEmpty()) return emptyList()
+    return channels.filter { it.link.name.lowercase().contains(q) }
+}
+
 /**
  * Сцена 2: групи (112 px згорнуті / 400 px розкриті), список 640 px, прев'ю — решта ширини.
  *
@@ -230,26 +240,61 @@ internal fun LiveGuide(
 ) {
     val res = LocalContext.current.resources
     var groupsOpen by remember { mutableStateOf(false) }
-    val list = remember(channels, group) { if (group == GuideAll) channels else channels.filter { liveGroup(it) == group } }
+    // Пошук каналу: назва вводиться системною клавіатурою, результати — як ще одна «група».
+    var query by remember { mutableStateOf("") }
+    var searchOpen by remember { mutableStateOf(false) }
+    var searchMiss by remember { mutableStateOf(false) }
+    val list = remember(channels, group, query) {
+        when (group) {
+            GuideAll -> channels
+            GuideSearch -> searchChannels(channels, query)
+            else -> channels.filter { liveGroup(it) == group }
+        }
+    }
     // Читають лише рядок-якір і прев'ю — не тіло сцени: інакше кожен рух фокуса перебудовував
     // усю сцену й усі видимі рядки(половина кадрів довша за 16,7 мс).
-    val focusedIndex = remember(group) { mutableIntStateOf(0) }
+    val focusedIndex = remember(group, query) { mutableIntStateOf(0) }
     val listFocus = remember { FocusRequester() }
     val groupFocus = remember { FocusRequester() }
     val listState = rememberLazyListState()
-    LaunchedEffect(group) { listState.scrollToItem(0) }
+    LaunchedEffect(group, query) { listState.scrollToItem(0) }
 
     var listHasFocus by remember { mutableStateOf(false) }
     var groupsHaveFocus by remember { mutableStateOf(false) }
     BackHandler { if (groupsOpen) groupsOpen = false else onClose() }
+    if (searchOpen) {
+        com.likhtar.home.core.designsystem.TextInputDialog(
+            title = res.getString(R.string.cinema_live_search_title),
+            initialValue = query,
+            // Нічого не знайшлось — вікно лишається відкритим із підказкою: порожній список не має куди взяти фокус.
+            description = if (searchMiss) res.getString(R.string.cinema_live_search_none) else null,
+            onSubmit = { text ->
+                if (searchChannels(channels, text).isEmpty()) {
+                    searchMiss = true
+                } else {
+                    query = text
+                    searchOpen = false
+                    groupsOpen = false
+                    onGroup(GuideSearch)
+                }
+            },
+            onDismiss = { searchOpen = false },
+        )
+    }
     // Фокус — туди, де людина: у групи, коли вони відкриті, інакше в список. Перевіряємо, чи
     // фокус справді там: requestFocus мовчить, коли вузол ще не фокусабельний (групи стають
     // фокусабельними лише після перекомпонування), і перша «вдала» спроба нічого не значила.
     LaunchedEffect(groupsOpen, list, refocus) {
-        repeat(30) { attempt ->
+        // За часом, а не за 30 кадрами: з двома тисячами каналів (портал) головний потік зайнятий
+        // перебудовою списку, кадри йдуть повільно, і 30 спроб скінчувались раніше, ніж рядок
+        // ставав фокусабельним, — фокус лишався на сцені 1 під списком, пульт «нічого не робив».
+        val until = android.os.SystemClock.uptimeMillis() + FOCUS_WAIT_MS
+        var attempt = 0
+        while (android.os.SystemClock.uptimeMillis() < until) {
             withFrameNanos { }
             if ((refocus == 0 || attempt >= 3) && (if (groupsOpen) groupsHaveFocus else listHasFocus)) return@LaunchedEffect
             runCatching { (if (groupsOpen) groupFocus else listFocus).requestFocus() }
+            attempt++
         }
     }
 
@@ -265,7 +310,11 @@ internal fun LiveGuide(
         // Список і заголовок.
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.offset(x = 89.dp + shift, y = 44.dp)) {
             Text(
-                if (group == GuideAll) res.getString(R.string.cinema_live_all_channels) else liveGroupTitle(res, group),
+                when (group) {
+                    GuideAll -> res.getString(R.string.cinema_live_all_channels)
+                    GuideSearch -> res.getString(R.string.cinema_live_search_results, query.trim())
+                    else -> liveGroupTitle(res, group)
+                },
                 style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 15.sp),
                 color = Color.White,
                 modifier = Modifier.alignByBaseline(),
@@ -330,6 +379,18 @@ internal fun LiveGuide(
                 Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
+            // Пошук — першим пунктом: OK відкриває клавіатуру, фокус самий групи не міняє.
+            GroupItem(
+                title = res.getString(R.string.cinema_live_search),
+                icon = DsR.drawable.ic_solar_magnifer,
+                count = if (group == GuideSearch) list.size else null,
+                open = groupsOpen,
+                selected = group == GuideSearch,
+                focusable = groupsOpen,
+                onFocused = {},
+                onClick = { searchMiss = false; searchOpen = true },
+                modifier = if (group == GuideSearch) Modifier.focusRequester(groupFocus) else Modifier,
+            )
             (listOf(GuideAll) + groups).forEach { g ->
                 val count = if (g == GuideAll) channels.size else groupCounts[g] ?: 0
                 GroupItem(
@@ -375,7 +436,9 @@ private fun GuidePreview(list: List<LiveCard>, focused: androidx.compose.runtime
             Box(Modifier.matchParentSize().background(Brush.verticalGradient(0.45f to Color.Black.copy(alpha = 0f), 1f to com.likhtar.home.core.designsystem.ChannelCardScrim)))
             Column(Modifier.align(Alignment.BottomStart).padding(start = 16.dp, end = 16.dp, bottom = 14.dp)) {
                 Text(
-                    res.getString(R.string.cinema_live_now_on, channelLabel(c.link.name)) + if (c.bare) "" else " · " + shortLeft(res, c.endMillis, now),
+                    // Передача ще не почалась (пауза в ефірі каналу) — «на X · о 03:40», а не «зараз на X».
+                    if (c.startMillis > now) res.getString(R.string.cinema_live_on, channelLabel(c.link.name)) + " · " + res.getString(R.string.cinema_live_at, clockTime(c.startMillis))
+                    else res.getString(R.string.cinema_live_now_on, channelLabel(c.link.name)) + if (c.bare) "" else " · " + shortLeft(res, c.endMillis, now),
                     style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.sp),
                     color = LikhtarColors.Glow,
                     maxLines = 1,
@@ -446,7 +509,8 @@ private fun GuideRow(card: LiveCard, now: Long, onFocused: () -> Unit, onClick: 
 private fun GroupItem(
     title: String,
     icon: Int,
-    count: Int,
+    /** `null` — без числа (пункт пошуку, доки нічого не шукали). */
+    count: Int?,
     open: Boolean,
     selected: Boolean,
     focusable: Boolean,
@@ -482,7 +546,7 @@ private fun GroupItem(
             )
             if (open) {
                 Text(title, style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.sp), color = if (focused) LikhtarColors.Background else if (selected) Color.White else LikhtarColors.TextDim, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                Text("$count", style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 9.sp), color = if (focused) LikhtarColors.Background else LikhtarColors.TextDim)
+                if (count != null) Text("$count", style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 9.sp), color = if (focused) LikhtarColors.Background else LikhtarColors.TextDim)
             }
         }
     }
@@ -513,7 +577,18 @@ internal fun liveGroupTitle(res: android.content.res.Resources, group: String): 
  * утриманням — перше OK лише «відпустили кнопку» (armed = false).
  */
 @Composable
-internal fun LiveChannelMenu(card: LiveCard, pinned: Boolean, onFavourite: () -> Unit, onHide: () -> Unit, onEdit: () -> Unit, onDismiss: () -> Unit) {
+internal fun LiveChannelMenu(
+    card: LiveCard,
+    pinned: Boolean,
+    onFavourite: () -> Unit,
+    onHide: () -> Unit,
+    onEdit: () -> Unit,
+    onDismiss: () -> Unit,
+    /** Найближча передача, що ще не почалась; `null` — нагадувати нема про що. */
+    next: com.likhtar.home.core.tv.EpgProgramme? = null,
+    reminded: Boolean = false,
+    onRemind: () -> Unit = {},
+) {
     val res = LocalContext.current.resources
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) {
@@ -533,6 +608,17 @@ internal fun LiveChannelMenu(card: LiveCard, pinned: Boolean, onFavourite: () ->
                 },
                 Modifier.focusRequester(first),
             )
+            next?.let { p ->
+                val at = clockTime(p.startMillis)
+                MarkOption(
+                    if (reminded) {
+                        MarkOptionSpec(MarkIcon.CLEAR, res.getString(R.string.cinema_live_menu_unremind, p.title), res.getString(R.string.cinema_live_menu_unremind_hint, at)) { onRemind(); onDismiss() }
+                    } else {
+                        MarkOptionSpec(MarkIcon.BELL, res.getString(R.string.cinema_live_menu_remind, p.title), res.getString(R.string.cinema_live_menu_remind_hint, at)) { onRemind(); onDismiss() }
+                    },
+                    Modifier,
+                )
+            }
             MarkOption(MarkOptionSpec(MarkIcon.HIDE, res.getString(R.string.cinema_live_menu_hide), res.getString(R.string.cinema_live_menu_hide_hint)) { onHide(); onDismiss() }, Modifier)
             MarkOption(MarkOptionSpec(MarkIcon.PHONE, res.getString(R.string.cinema_live_menu_edit), res.getString(R.string.cinema_live_menu_edit_hint)) { onDismiss(); onEdit() }, Modifier)
         }
@@ -600,3 +686,4 @@ internal fun NeedPlayerDialog(onInstallTv: () -> Unit, onInstall: () -> Unit, on
     }
 }
 
+private const val FOCUS_WAIT_MS = 4_000L

@@ -407,4 +407,13 @@
     <string name="settings_phone_clip_hint">Paste it on the TV wherever a text field offers Paste.</string>
     <string name="settings_phone_clip_saved">Clipboard</string>
     <string name="settings_phone_channels">Edit channels: order, names, duplicates</string>
+    <string name="settings_tv_xtream">Xtream server</string>
+    <string name="settings_tv_xtream_user">Xtream login</string>
+    <string name="settings_tv_xtream_pass">Xtream password</string>
+    <string name="settings_tv_portal">Stalker portal</string>
+    <string name="settings_tv_portal_login">Portal login</string>
+    <string name="settings_tv_portal_key">Portal key</string>
+    <string name="settings_tv_portal_need_login">New portal address: enter its login and key too</string>
+    <string name="settings_tv_portal_desc">Address from your provider’s cabinet. The login and key are entered from your phone (Settings → From your phone). Empty — remove the portal.</string>
+    <string name="settings_tv_portal_subtitle">Channels, guide and archive from your provider’s portal</string>
 </resources>

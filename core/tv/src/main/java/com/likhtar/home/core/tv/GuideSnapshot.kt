@@ -10,7 +10,8 @@ import org.json.JSONObject
  */
 fun ChannelSchedule.rolledTo(now: Long): ChannelSchedule? {
     val all = listOfNotNull(live?.let { EpgProgramme(it.title, it.startMillis, it.endMillis, it.description, it.image) }) + upcoming
-    val on = all.firstOrNull { it.startMillis <= now && it.endMillis > now }
+    // Кінець 0 — провайдер не знає, коли скінчиться (TVP, YouTube): іде, доки не почнеться наступна.
+    val on = all.lastOrNull { it.startMillis <= now && (it.endMillis > now || (it.endMillis == 0L && next(all, it, now))) }
     val next = all.filter { it.startMillis > now }
     if (on == null && next.isEmpty()) return null
     return copy(
@@ -18,6 +19,8 @@ fun ChannelSchedule.rolledTo(now: Long): ChannelSchedule? {
         upcoming = next,
     )
 }
+
+private fun next(all: List<EpgProgramme>, p: EpgProgramme, now: Long) = all.none { it.startMillis > p.startMillis && it.startMillis <= now }
 
 /**
  * Остання розібрана програма плейлиста — на диск: розбір XMLTV на приставці триває хвилину, і

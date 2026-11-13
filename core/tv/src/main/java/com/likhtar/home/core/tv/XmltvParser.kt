@@ -1,9 +1,6 @@
 package com.likhtar.home.core.tv
 
 import java.io.InputStream
-import java.util.Calendar
-import java.util.GregorianCalendar
-import java.util.TimeZone
 import java.util.zip.GZIPInputStream
 import javax.xml.parsers.SAXParserFactory
 import org.xml.sax.Attributes
@@ -169,32 +166,67 @@ class XmltvParser(
         fun parseXmltvTime(value: String?): Long? {
             val raw = value?.trim() ?: return null
             if (raw.length < 14) return null
-            val digits = raw.take(14)
-            if (!digits.all { it.isDigit() }) return null
+            for (i in 0 until 14) if (raw[i] !in '0'..'9') return null
+            val n = { from: Int, to: Int -> var v = 0; for (i in from until to) v = v * 10 + (raw[i] - '0'); v }
+            // Зона «+0300» / «-0530»; без неї (чи кривої) — UTC.
+            val zone = raw.substring(14).trim()
+            val offsetMin = if (zone.length >= 5 && (zone[0] == '+' || zone[0] == '-') && (1..4).all { zone[it] in '0'..'9' }) {
+                val z = (zone[1] - '0') * 600 + (zone[2] - '0') * 60 + (zone[3] - '0') * 10 + (zone[4] - '0')
+                if (zone[0] == '-') -z else z
+            } else 0
+            // ponytail: календар і пошук зони на кожну передачу коштували на ТВ-приставці понад хвилину на файл
+            // (100 тис. дат); дні від епохи рахуємо самі (алгоритм days_from_civil).
+            val days = daysFromCivil(n(0, 4), n(4, 6), n(6, 8))
+            val seconds = days * 86_400L + n(8, 10) * 3600L + n(10, 12) * 60L + n(12, 14) - offsetMin * 60L
+            return seconds * 1000
+        }
 
-            val zonePart = raw.drop(14).trim()
-            val zone = when {
-                zonePart.length >= 5 && (zonePart[0] == '+' || zonePart[0] == '-') ->
-                    TimeZone.getTimeZone("GMT$zonePart")
-
-                else -> TimeZone.getTimeZone("UTC")
-            }
-
-            return GregorianCalendar(zone).apply {
-                clear()
-                set(
-                    digits.substring(0, 4).toInt(),
-                    digits.substring(4, 6).toInt() - 1,
-                    digits.substring(6, 8).toInt(),
-                    digits.substring(8, 10).toInt(),
-                    digits.substring(10, 12).toInt(),
-                    digits.substring(12, 14).toInt(),
-                )
-                set(Calendar.MILLISECOND, 0)
-            }.timeInMillis
+        /** Днів від 1970-01-01 до дати григоріанського календаря (H. Hinnant, days_from_civil). */
+        private fun daysFromCivil(year: Int, month: Int, day: Int): Long {
+            val y = (if (month <= 2) year - 1 else year).toLong()
+            val era = (if (y >= 0) y else y - 399) / 400
+            val yoe = y - era * 400
+            val doy = (153 * (if (month > 2) month - 3 else month + 9) + 2) / 5 + day - 1
+            val doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
+            return era * 146_097 + doe - 719_468
         }
     }
 }
+
+/** Розібране — на диск (лише наші канали): після перезапуску процесу не розбирати файл провайдера знову. */
+fun XmltvGuide.writeTo(out: java.io.DataOutputStream) {
+    out.writeInt(channelNames.size)
+    channelNames.forEach { (id, names) ->
+        out.writeUTF(id)
+        out.writeInt(names.size)
+        names.forEach { out.writeUTF(it.take(UTF_MAX)) }
+    }
+    out.writeInt(programmes.size)
+    programmes.forEach { p ->
+        out.writeUTF(p.channelId)
+        out.writeUTF(p.title.take(UTF_MAX))
+        out.writeLong(p.startMillis)
+        out.writeLong(p.endMillis)
+        out.writeBoolean(p.description != null)
+        p.description?.let { out.writeUTF(it.take(UTF_MAX)) }
+    }
+}
+
+fun readXmltvGuide(input: java.io.DataInputStream): XmltvGuide {
+    val names = HashMap<String, List<String>>()
+    repeat(input.readInt()) { names[input.readUTF()] = List(input.readInt()) { input.readUTF() } }
+    val programmes = List(input.readInt()) {
+        val channel = input.readUTF()
+        val title = input.readUTF()
+        val start = input.readLong()
+        val end = input.readLong()
+        TvProgramme(channel, title, start, end, if (input.readBoolean()) input.readUTF() else null)
+    }
+    return XmltvGuide(names, programmes)
+}
+
+/** writeUTF бере до 64 КБ у байтах; 8 тис. символів — з запасом і для кирилиці. */
+private const val UTF_MAX = 8000
 
 /**
  * Зіставлення телепрограми з каналами: спершу за id, і лише для тих, що не збіглися, — за

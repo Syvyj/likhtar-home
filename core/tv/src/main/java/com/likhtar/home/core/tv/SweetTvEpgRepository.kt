@@ -81,67 +81,26 @@ class SweetTvEpgRepository @Inject constructor() {
 
     private fun channelProgramme(slug: String): ChannelSchedule? {
         val json = JSONObject(get("$BASE/tv-program/channel/$slug"))
-        val current = json.optJSONObject("currentEpg") ?: return null
-        val nowSeconds = System.currentTimeMillis() / 1000
-
-        // Розклад по днях зливаємо в один список: панелі потрібні лише наступні передачі.
-        val upcoming = buildList {
+        // Розклад по днях зливаємо в один список.
+        val items = buildList {
             val days = json.optJSONObject("epgItems") ?: return@buildList
             days.keys().forEach { day ->
-                val items = days.getJSONArray(day)
-                for (i in 0 until items.length()) {
-                    val item = items.getJSONObject(i)
-                    // Поріг — «зараз», а не кінець поточної передачі: коли `currentEpg`
-                    // з майбутнього (заміряно), її `time_stop` теж із майбутнього,
-                    // і фільтр по ньому викидав увесь справжній розпис.
-                    if (item.optLong("time_start") >= nowSeconds) {
-                        add(
-                            EpgProgramme(
-                                title = item.optString("name"),
-                                startMillis = item.optLong("time_start") * 1000,
-                                endMillis = item.optLong("time_stop") * 1000,
-                                description = item.optString("text"),
-                                // static.sweet.tv віддає http, а cleartext заборонений.
-                                image = item.optString("epg_preview_url")
-                                    .takeIf { it.isNotBlank() }
-                                    ?.replace("http://", "https://"),
-                            ),
-                        )
-                    }
-                }
+                val list = days.getJSONArray(day)
+                for (i in 0 until list.length()) add(list.getJSONObject(i).toProgramme())
             }
-        }.sortedBy { it.startMillis }.take(12)
-
-        // Розпис віддаємо в будь-якому разі — він приходить окремо від `currentEpg` і
-        // не залежить від того, чи провайдер угадав поточну передачу.
-        val schedule = ChannelSchedule(live = null, upcoming = upcoming)
-
-        // Інколи currentEpg застаріла (кеш на їхньому боці) — тоді картка збила б прогрес.
-        if (current.optLong("time_stop") < nowSeconds - STALE_TOLERANCE_S) return schedule
-        // …а інколи вона з майбутнього, і це не теоретично: заміряно о 00:14 —
-        // для «Кус-кус HD» Sweet віддав `currentEpg` «Котлетка Серія 6» із
-        // `time_start` за 106 хвилин уперед. Годинники приставки й Мака при цьому
-        // збігались, тобто таймзона тут ні до чого: провайдер сам назвав «зараз» те,
-        // що буде о 02:00. Захист був лише від минулого, і несиметричність вилізла в
-        // сітці: блок ставав на своє правильне місце за часом, але превʼю писало
-        // «ЗАРАЗ В ЕФІРІ» й «лишилось 1 год 56 хв» про передачу, яка не йде.
-        if (current.optLong("time_start") > nowSeconds + STALE_TOLERANCE_S) return schedule
-
-        return schedule.copy(
-            live = NowOnAir(
-                title = current.optString("name"),
-                image = current.optString("epg_preview_url")
-                    .takeIf { it.isNotBlank() }
-                    // static.sweet.tv віддає http, а cleartext на приставці заборонений.
-                    ?.replace("http://", "https://"),
-                startMillis = current.optLong("time_start") * 1000,
-                endMillis = current.optLong("time_stop") * 1000,
-                nextTitle = upcoming.firstOrNull()?.title.orEmpty(),
-                nextStartMillis = upcoming.firstOrNull()?.startMillis ?: 0L,
-                upcoming = upcoming,
-            ),
-        )
+        }
+        val current = json.optJSONObject("currentEpg")?.toProgramme()
+        return sweetSchedule(items, current, System.currentTimeMillis())
     }
+
+    private fun JSONObject.toProgramme() = EpgProgramme(
+        title = optString("name"),
+        startMillis = optLong("time_start") * 1000,
+        endMillis = optLong("time_stop") * 1000,
+        description = optString("text"),
+        // static.sweet.tv віддає http, а cleartext на приставці заборонений.
+        image = optString("epg_preview_url").takeIf { it.isNotBlank() }?.replace("http://", "https://"),
+    )
 
     private fun get(url: String): String =
         http(url, TIMEOUT_MS, headers = mapOf("User-Agent" to USER_AGENT, "Accept" to "application/json")) { it.text() }
@@ -155,3 +114,38 @@ class SweetTvEpgRepository @Inject constructor() {
         const val PARALLEL_REQUESTS = 4
     }
 }
+
+/**
+ * Що на каналі Sweet.TV о [now]: з його ж розкладу, а не з `currentEpg`.
+ *
+ * `currentEpg` у них кешується: то відстає (передача скінчилась 5–20 хв тому), то забігає
+ * наперед (називає «поточною» ту, що почнеться за годину). Обидва випадки ховали канал із ТБ
+ * Ефіру — уночі так зникала чверть каналів. Тому: спершу передача розкладу, що накриває «зараз»;
+ * далі `currentEpg`, якщо вона справді йде; а в паузі між передачами — найближча наступна (картка
+ * показує «о 03:40»), щоб канал лишався на місці. `null` — провайдер не дав нічого.
+ */
+internal fun sweetSchedule(items: List<EpgProgramme>, current: EpgProgramme?, now: Long): ChannelSchedule? {
+    val sorted = items.sortedBy { it.startMillis }
+    val upcoming = sorted.filter { it.startMillis > now }.take(SWEET_UPCOMING)
+    val on = sorted.firstOrNull { it.startMillis <= now && it.endMillis > now }
+        ?: current?.takeIf { it.startMillis <= now && it.endMillis > now }
+        ?: upcoming.firstOrNull()
+        ?: current?.takeIf { it.startMillis > now }
+        ?: return null
+    val after = upcoming.filter { it.startMillis >= on.endMillis || it.startMillis > on.startMillis }
+    return ChannelSchedule(
+        live = NowOnAir(
+            title = on.title,
+            description = on.description,
+            image = on.image,
+            startMillis = on.startMillis,
+            endMillis = on.endMillis,
+            nextTitle = after.firstOrNull()?.title.orEmpty(),
+            nextStartMillis = after.firstOrNull()?.startMillis ?: 0L,
+            upcoming = after,
+        ),
+        upcoming = after,
+    )
+}
+
+private const val SWEET_UPCOMING = 12

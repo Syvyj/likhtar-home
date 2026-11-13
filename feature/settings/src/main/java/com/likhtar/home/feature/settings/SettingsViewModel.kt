@@ -87,7 +87,7 @@ data class SettingsUiState(
 )
 
 /** Що саме зараз редагується в діалозі введення. */
-enum class TextField { HA_URL, HA_TOKEN, TV_EPG_URL, TV_PLAYLIST_URL, TV_COUNTRY_FILTER, WEATHER_CITY, TMDB_KEY, LIKHTAR_URL, PROFILE_NAME, FLAVOR }
+enum class TextField { HA_URL, HA_TOKEN, TV_EPG_URL, TV_PLAYLIST_URL, TV_PORTAL, TV_COUNTRY_FILTER, WEATHER_CITY, TMDB_KEY, LIKHTAR_URL, PROFILE_NAME, FLAVOR }
 
 data class TextPrompt(
     val field: TextField,
@@ -573,6 +573,8 @@ class SettingsViewModel @Inject constructor(
                     tvCountryFilter.value = value
                 }
 
+                // Адреса порталу з пульта; логін і ключ — з телефона. Порожньо — портал прибрати.
+                TextField.TV_PORTAL -> settingsRepository.setTvPortal(value)
                 TextField.TV_PLAYLIST_URL -> {
                     settingsRepository.setTvPlaylistUrl(value)
                     message.value = str(if (value.isBlank()) R.string.settings_msg_playlist_cleared else R.string.settings_msg_playlist_saved)
@@ -796,6 +798,19 @@ class SettingsViewModel @Inject constructor(
             placeholder = "https://provider.example/playlist.m3u",
             initialValue = uiState.value.settings.tvPlaylistUrl,
             allowClear = uiState.value.settings.tvPlaylistUrl.isNotBlank(),
+        )
+    }
+
+    fun editTvPortal() {
+        lastEditedField.value = TextField.TV_PORTAL
+        val current = com.likhtar.home.core.data.TvPortal.decode(uiState.value.settings.tvPortal)
+        textPrompt.value = TextPrompt(
+            field = TextField.TV_PORTAL,
+            title = str(R.string.settings_tv_portal),
+            description = str(R.string.settings_tv_portal_desc),
+            placeholder = "http://portal.example/stalker_portal/c/",
+            initialValue = current?.url.orEmpty(),
+            allowClear = current != null,
         )
     }
 

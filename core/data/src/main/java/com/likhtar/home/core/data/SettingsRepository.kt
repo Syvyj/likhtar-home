@@ -145,6 +145,8 @@ data class LikhtarSettings(
      * нічого немає, ТВ Ефір працює так, як працював.
      */
     val tvPlaylistUrl: String = "",
+    /** Портал Stalker ([TvPortal.encode]); порожній — порталу немає. */
+    val tvPortal: String = "",
 
     /** Через скільки секунд бездіяльності Головна ховає плитки; 0 — ніколи. */
     val ambientTimeoutSeconds: Int = 60,
@@ -276,6 +278,7 @@ class SettingsRepository @Inject constructor(
             tvCountries = prefs[KEY_TV_COUNTRIES].orEmpty(),
             tvEpgUrl = Secrets.open(prefs[KEY_TV_EPG_URL]),
             tvPlaylistUrl = Secrets.open(prefs[KEY_TV_PLAYLIST_URL]),
+            tvPortal = Secrets.open(prefs[KEY_TV_PORTAL]),
             tmdbApiKey = Secrets.open(prefs[KEY_TMDB_KEY]),
             likhtarBaseUrl = prefs[KEY_LIKHTAR_URL] ?: "",
             aiProvider = prefs[KEY_AI_PROVIDER] ?: "",
@@ -376,6 +379,19 @@ class SettingsRepository @Inject constructor(
 
     suspend fun setTvEpgUrl(url: String) {
         context.settingsDataStore.edit { it[KEY_TV_EPG_URL] = Secrets.seal(url.trim()) }
+    }
+
+    /** Портал: порожня адреса — прибрати; порожні логін чи ключ — лишити збережені. MAC не міняється. */
+    suspend fun setTvPortal(url: String, login: String = "", key: String = "") {
+        context.settingsDataStore.edit { prefs ->
+            if (url.isBlank()) {
+                prefs.remove(KEY_TV_PORTAL)
+                return@edit
+            }
+            val old = TvPortal.decode(Secrets.open(prefs[KEY_TV_PORTAL]))
+            val portal = TvPortal(url.trim(), login.trim().ifBlank { old?.login.orEmpty() }, key.trim().ifBlank { old?.key.orEmpty() }, old?.mac ?: TvPortal.newMac())
+            prefs[KEY_TV_PORTAL] = Secrets.seal(portal.encode())
+        }
     }
 
     suspend fun setTvPlaylistUrl(url: String) {
@@ -555,6 +571,7 @@ class SettingsRepository @Inject constructor(
         val KEY_TV_COUNTRIES = stringSetPreferencesKey("tv_countries")
         val KEY_TV_EPG_URL = stringPreferencesKey("tv_epg_url")
         val KEY_TV_PLAYLIST_URL = stringPreferencesKey("tv_playlist_url")
+        val KEY_TV_PORTAL = stringPreferencesKey("tv_portal")
         val KEY_TMDB_KEY = stringPreferencesKey("tmdb_api_key")
         val KEY_LIKHTAR_URL = stringPreferencesKey("likhtar_base_url")
         val KEY_AI_PROVIDER = stringPreferencesKey("ai_provider")
@@ -563,7 +580,7 @@ class SettingsRepository @Inject constructor(
         val KEY_AI_KEY = stringPreferencesKey("ai_key")
 
         /** Що лежить на диску лише шифрованим ([Secrets]). */
-        private val SECRET_KEYS = listOf(KEY_SMART_HOME_TOKEN, KEY_TV_PLAYLIST_URL, KEY_TV_EPG_URL, KEY_TMDB_KEY, KEY_AI_KEY)
+        private val SECRET_KEYS = listOf(KEY_SMART_HOME_TOKEN, KEY_TV_PLAYLIST_URL, KEY_TV_PORTAL, KEY_TV_EPG_URL, KEY_TMDB_KEY, KEY_AI_KEY)
         val KEY_VIDEO_PLAYER = stringPreferencesKey("video_player_package")
         val KEY_AVAILABILITY_COUNTRIES = stringSetPreferencesKey("availability_countries")
         val KEY_TITLE_ACTIONS = stringPreferencesKey("title_actions_order")

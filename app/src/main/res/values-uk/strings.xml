@@ -35,4 +35,5 @@
     <string name="assistant_bookmarked">«%1$s» — у закладках.</string>
     <string name="assistant_no_time">Не зрозумів, о котрій нагадати.</string>
     <string name="assistant_service_off">Увімкни службу кнопок пульта в Налаштуваннях — без неї я цього не вмію.</string>
+    <string name="live_reminder_text">%1$s о %2$s — «%3$s»</string>
 </resources>

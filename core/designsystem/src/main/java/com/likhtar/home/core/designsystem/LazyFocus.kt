@@ -21,11 +21,16 @@ const val PIN_TOLERANCE_PX = 2
  */
 suspend fun LazyListState.centerItem(index: Int, topUntil: Int = 1) {
     if (index <= topUntil) {
-        if (firstVisibleItemIndex != 0 || firstVisibleItemScrollOffset > PIN_TOLERANCE_PX) scrollToItem(0)
+        if (firstVisibleItemIndex == 0) {
+            if (firstVisibleItemScrollOffset > PIN_TOLERANCE_PX) glideBy(-firstVisibleItemScrollOffset.toFloat())
+        } else {
+            scrollToItem(0)
+        }
         return
     }
     var info = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
     if (info == null) {
+        // Ряд за краєм (стрілку тримали): стрибок до нього, далі — уже плавно.
         scrollToItem(index)
         info = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return
     }
@@ -39,7 +44,7 @@ suspend fun LazyListState.centerItem(index: Int, topUntil: Int = 1) {
         val edge = last.offset + last.size - (layoutInfo.viewportEndOffset - layoutInfo.afterContentPadding / 3)
         delta = minOf(delta, maxOf(edge, 0))
     }
-    if (abs(delta) > PIN_TOLERANCE_PX) scrollBy(delta.toFloat())
+    if (abs(delta) > PIN_TOLERANCE_PX) glideBy(delta.toFloat())
 }
 
 /**
@@ -48,6 +53,8 @@ suspend fun LazyListState.centerItem(index: Int, topUntil: Int = 1) {
  */
 @OptIn(ExperimentalFoundationApi::class)
 val MinimalBringIntoView = object : BringIntoViewSpec {
+    @Suppress("DEPRECATION")
+    override val scrollAnimationSpec get() = LikhtarGlide
     override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float = when {
         offset < 0f -> offset
         offset + size > containerSize -> offset + size - containerSize

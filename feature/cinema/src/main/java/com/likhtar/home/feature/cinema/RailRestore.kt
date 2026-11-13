@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
 import com.likhtar.home.core.designsystem.centerItem
+import com.likhtar.home.core.designsystem.glideBy
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -193,10 +194,14 @@ internal fun SectionBackHandler(
     }
 }
 
-/** Поставити ряд [index] угорі колонки (анімацією .35s, як у прототипі), якщо він ще не там. */
+/**
+ * Поставити ряд [index] угорі колонки, якщо він ще не там. Видимий — спільним рухом
+ * [com.likhtar.home.core.designsystem.glideBy] (перебиває попередній і переймає швидкість); за
+ * краєм — animateScrollToItem.
+ */
 internal suspend fun androidx.compose.foundation.lazy.LazyListState.pinTop(index: Int) {
     val info = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
     if (info != null && kotlin.math.abs(info.offset) <= com.likhtar.home.core.designsystem.PIN_TOLERANCE_PX) return
     if (index == 0 && firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset <= com.likhtar.home.core.designsystem.PIN_TOLERANCE_PX) return
-    animateScrollToItem(index)
+    if (info != null) glideBy(info.offset.toFloat()) else animateScrollToItem(index)
 }

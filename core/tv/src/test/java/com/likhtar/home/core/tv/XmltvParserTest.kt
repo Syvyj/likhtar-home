@@ -116,4 +116,32 @@ class XmltvParserTest {
             </tv>
         """.trimIndent()
     }
+
+    @Test
+    fun `time matches the calendar across years and zones`() {
+        val rnd = java.util.Random(7)
+        repeat(5000) {
+            val t = java.time.LocalDateTime.of(1990 + rnd.nextInt(80), 1 + rnd.nextInt(12), 1, rnd.nextInt(24), rnd.nextInt(60), rnd.nextInt(60))
+                .plusDays(rnd.nextInt(31).toLong())
+            val offset = (rnd.nextInt(28 * 4) - 12 * 4) * 15
+            val zone = java.time.ZoneOffset.ofTotalSeconds(offset * 60)
+            val text = t.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + " " +
+                (if (offset < 0) "-" else "+") + "%02d%02d".format(kotlin.math.abs(offset) / 60, kotlin.math.abs(offset) % 60)
+            assertEquals(text, t.toInstant(zone).toEpochMilli(), XmltvParser.parseXmltvTime(text))
+        }
+        assertEquals(java.time.Instant.parse("2024-02-29T12:00:00Z").toEpochMilli(), XmltvParser.parseXmltvTime("20240229120000"))
+    }
+
+    @Test
+    fun `parsed guide survives the disk`() {
+        val guide = XmltvGuide(
+            channelNames = mapOf("pl.rodzina" to listOf("Polsat Rodzina", "Rodzina")),
+            programmes = listOf(
+                TvProgramme("pl.rodzina", "Tajemnice Bałtyku", 1_000L, 2_000L, "Опис"),
+                TvProgramme("pl.rodzina", "Pingwiny", 2_000L, 3_000L, null),
+            ),
+        )
+        val bytes = java.io.ByteArrayOutputStream().also { guide.writeTo(java.io.DataOutputStream(it)) }.toByteArray()
+        assertEquals(guide, readXmltvGuide(java.io.DataInputStream(bytes.inputStream())))
+    }
 }

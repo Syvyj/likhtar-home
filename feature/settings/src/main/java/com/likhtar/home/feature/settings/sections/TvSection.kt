@@ -36,6 +36,15 @@ internal fun TvSection(
             .takeIf { state.lastEditedField == TextField.TV_PLAYLIST_URL },
     )
     ValueRow(
+        text = stringResource(R.string.settings_tv_portal),
+        value = com.likhtar.home.core.data.TvPortal.decode(state.settings.tvPortal)
+            ?.let { java.net.URI(it.url).host ?: it.url } ?: stringResource(R.string.settings_not_set),
+        onClick = viewModel::editTvPortal,
+        subtitle = stringResource(R.string.settings_tv_portal_subtitle),
+        focusRequester = editedRowFocusRequester
+            .takeIf { state.lastEditedField == TextField.TV_PORTAL },
+    )
+    ValueRow(
         text = stringResource(R.string.settings_epg_title),
         value = state.settings.tvEpgUrl.ifBlank { stringResource(R.string.settings_not_set) },
         onClick = viewModel::editTvEpgUrl,

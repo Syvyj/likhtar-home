@@ -183,6 +183,36 @@ class SettingsPhoneLink @Inject constructor(
         f["epg"]?.takeIf { it.isNotEmpty() }?.let {
             settings.setTvEpgUrl(it); guide.refresh(); saved += str(R.string.settings_epg_title)
         }
+        // Xtream Codes: сервер, логін і пароль — це той самий плейлист (get.php) і програма (xmltv.php).
+        val xtream = listOf("xtream", "xtream_user", "xtream_pass").map { f[it].orEmpty().trim() }
+        if (xtream.any(String::isNotEmpty)) {
+            val urls = xtreamUrls(xtream[0], xtream[1], xtream[2])
+            if (urls == null) problems += str(R.string.settings_tv_xtream) else {
+                settings.setTvPlaylistUrl(urls.first)
+                if (f["epg"].isNullOrEmpty()) settings.setTvEpgUrl(urls.second)
+                guide.refresh()
+                saved += str(R.string.settings_tv_xtream)
+            }
+        }
+        // Портал: нова адреса не забирає з собою логін і ключ старого сервера (як токени HA й AI).
+        val portalUrl = f["portal"].orEmpty().trim()
+        val portalLogin = f["portal_login"].orEmpty().trim()
+        val portalKey = f["portal_key"].orEmpty().trim()
+        if (portalUrl.isNotEmpty() || portalLogin.isNotEmpty() || portalKey.isNotEmpty()) {
+            val old = com.likhtar.home.core.data.TvPortal.decode(current.tvPortal)
+            val url = portalUrl.ifEmpty { old?.url.orEmpty() }
+            val moved = old != null && portalUrl.isNotEmpty() && !sameServer(portalUrl, old.url)
+            when {
+                !url.startsWith("http") -> problems += str(R.string.settings_tv_portal)
+                moved && (portalLogin.isEmpty() || portalKey.isEmpty()) -> problems += str(R.string.settings_tv_portal_need_login)
+                old == null && (portalLogin.isEmpty() || portalKey.isEmpty()) -> problems += str(R.string.settings_tv_portal_need_login)
+                else -> {
+                    if (moved) settings.setTvPortal("")
+                    settings.setTvPortal(url, portalLogin, portalKey)
+                    saved += str(R.string.settings_tv_portal)
+                }
+            }
+        }
         f["smb"]?.takeIf { it.isNotEmpty() }?.let { raw ->
             val address = SmbAddress.parse(raw)
             if (address == null) {
@@ -355,6 +385,13 @@ class SettingsPhoneLink @Inject constructor(
                 (channels.link()?.let { "<a class=\"btn\" href=\"$it\">${str(R.string.settings_phone_channels)}</a>" } ?: "") +
                 field("playlist", str(R.string.settings_tv_playlist), extra = keep(s.tvPlaylistUrl.isNotBlank()) + " inputmode=\"url\"") +
                 field("epg", str(R.string.settings_epg_title), extra = keep(s.tvEpgUrl.isNotBlank()) + " inputmode=\"url\"") +
+                field("xtream", str(R.string.settings_tv_xtream), extra = " inputmode=\"url\" placeholder=\"http://…:8080\"") +
+                field("xtream_user", str(R.string.settings_tv_xtream_user)) +
+                field("xtream_pass", str(R.string.settings_tv_xtream_pass), type = "password") +
+                // Портал Stalker: адреса, логін і ключ з кабінету провайдера.
+                field("portal", str(R.string.settings_tv_portal), extra = keep(s.tvPortal.isNotBlank()) + " inputmode=\"url\" placeholder=\"http://…/stalker_portal/c/\"") +
+                field("portal_login", str(R.string.settings_tv_portal_login), extra = keep(s.tvPortal.isNotBlank())) +
+                field("portal_key", str(R.string.settings_tv_portal_key), extra = keep(s.tvPortal.isNotBlank()), type = "password") +
                 "<h2>${str(R.string.settings_media_group)}</h2>" +
                 field("smb", str(R.string.settings_media_smb_address), extra = " placeholder=\"${str(R.string.settings_media_smb_address_hint)}\"") +
                 field("smb_user", str(R.string.settings_media_smb_user)) +
@@ -409,3 +446,17 @@ internal fun sameServer(a: String, b: String): Boolean {
     return key(a) != null && key(a) == key(b)
 }
 
+
+/**
+ * Xtream Codes → адреси плейлиста й програми: `get.php` віддає M3U з групами й логотипами, `xmltv.php` —
+ * програму. Сервер можна вставити як завгодно — з `player_api.php`, `get.php` чи косою наприкінці.
+ * `null` — бракує сервера, логіна чи пароля.
+ */
+internal fun xtreamUrls(server: String, user: String, pass: String): Pair<String, String>? {
+    if (!server.startsWith("http") || user.isBlank() || pass.isBlank()) return null
+    val base = server.substringBefore('?').trimEnd('/').let { b ->
+        listOf("/player_api.php", "/get.php", "/xmltv.php").fold(b) { acc, tail -> acc.removeSuffix(tail) }
+    }.trimEnd('/')
+    val auth = "username=${java.net.URLEncoder.encode(user, "UTF-8")}&password=${java.net.URLEncoder.encode(pass, "UTF-8")}"
+    return "$base/get.php?$auth&type=m3u_plus&output=m3u8" to "$base/xmltv.php?$auth"
+}

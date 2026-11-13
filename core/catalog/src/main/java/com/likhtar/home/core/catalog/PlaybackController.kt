@@ -94,6 +94,8 @@ data class TvLineup(
     val guide: String = "",
     /** Скільки каналів списку до цього вікна: плеєр показує номер у всьому списку, а не у вікні. */
     val offset: Int = 0,
+    /** Портал Stalker (`TvPortal.encode`), якщо серед каналів є його; порожньо — немає. */
+    val portal: String = "",
     /** Ті самі канали записами «Мої канали» (у плеєр не їдуть): за індексом із результату. */
     val channels: List<com.likhtar.home.core.data.RecentChannel> = emptyList(),
 ) {
@@ -124,6 +126,7 @@ class PlaybackController @Inject constructor(
     private val settings: com.likhtar.home.core.data.SettingsRepository,
     private val history: com.likhtar.home.core.data.RecentHistoryRepository,
     private val media: com.likhtar.home.core.catalog.media.MediaLibrary,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
 ) {
     /**
      * Що плеєр має знати про нас для «Паузи, що знає»: адреса сервера й профіль. Just+ сам
@@ -180,8 +183,24 @@ class PlaybackController @Inject constructor(
     /** Список каналів сеансу ТБ: плеєр перемикає сам, результат каже, на якому вийшли. */
     private var playingTv: TvLineup? = null
 
+    /** Список ТБ Ефіру, з яким востаннє вмикали канал: Головна вмикає свої канали з ним же (CH+). */
+    /**
+     * Список ТБ Ефіру, з яким востаннє вмикали канал: Головна вмикає свої канали з ним же (CH+).
+     * Лежить і на диску — після перезапуску лаунчера CH+ з Головної працює, ще до ТБ Ефіру.
+     * Обліковку порталу не зберігаємо: її дає Головна з налаштувань.
+     */
+    var lastLineup: TvLineup?
+        get() = lineup ?: runCatching { decodeLineup(lineupFile.readText()) }.getOrNull()?.also { lineup = it }
+        private set(value) {
+            lineup = value
+            value?.let { l -> Thread { runCatching { lineupFile.writeText(encodeLineup(l)) } }.start() }
+        }
+    @Volatile private var lineup: TvLineup? = null
+    private val lineupFile get() = java.io.File(context.filesDir, "tv-lineup.json")
+
     fun play(request: PlayRequest): Boolean {
         playingTv = request.tv
+        request.tv?.takeIf { it.urls.size > 1 }?.let { lastLineup = it }
         playing = request.title
         playingEpisode = request.episode
         playingWith = request.packageName
@@ -364,4 +383,22 @@ fun reachedEpisode(
     val start = queue.indexOfFirst { it.episode == startEpisode }.takeIf { it >= 0 } ?: return null
     if (at <= start) return null
     return QueueReach(passed = (start until at).map { queue[it].episode }, current = queue[at].episode)
+}
+
+internal fun encodeLineup(l: TvLineup): String = org.json.JSONObject()
+    .put("u", org.json.JSONArray(l.urls)).put("n", org.json.JSONArray(l.names)).put("i", l.index)
+    .put("g", l.guide).put("o", l.offset)
+    .put("c", org.json.JSONArray(l.channels.map { c -> org.json.JSONArray().put(c.url).put(c.name).put(c.image).put(c.packageName) }))
+    .toString()
+
+internal fun decodeLineup(raw: String): TvLineup {
+    val o = org.json.JSONObject(raw)
+    val strings = { a: org.json.JSONArray -> List(a.length()) { a.getString(it) } }
+    val urls = strings(o.getJSONArray("u"))
+    val c = o.getJSONArray("c")
+    return TvLineup(
+        urls = urls, names = strings(o.getJSONArray("n")), now = urls.map { "" }, index = o.getInt("i"),
+        guide = o.optString("g"), offset = o.optInt("o"),
+        channels = List(c.length()) { i -> c.getJSONArray(i).let { e -> com.likhtar.home.core.data.RecentChannel(e.getString(0), e.getString(1), e.optString(2), e.optString(3)) } },
+    )
 }

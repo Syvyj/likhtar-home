@@ -347,4 +347,12 @@
     <string name="cinema_live_edit_saved">Saved. Updating the list</string>
     <string name="cinema_live_install_tv">Install Likhtar TV</string>
     <string name="cinema_live_install_tv_why">Our player for channels: switch with ↑↓, TV guide, archive</string>
+    <string name="cinema_live_search">Search</string>
+    <string name="cinema_live_search_title">Find a channel</string>
+    <string name="cinema_live_search_none">Nothing found — try another name</string>
+    <string name="cinema_live_search_results">Search: %1$s</string>
+    <string name="cinema_live_menu_remind">Remind me: %1$s</string>
+    <string name="cinema_live_menu_remind_hint">At %1$s, over anything on screen</string>
+    <string name="cinema_live_menu_unremind">Don’t remind me: %1$s</string>
+    <string name="cinema_live_menu_unremind_hint">Reminder at %1$s will be removed</string>
 </resources>

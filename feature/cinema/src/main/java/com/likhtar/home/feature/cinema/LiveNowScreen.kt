@@ -330,6 +330,7 @@ fun LiveNowScreen(
             )
         }
 
+        val reminderKeys by viewModel.reminderKeys.collectAsState()
         menuCard?.let { card ->
             LiveChannelMenu(
                 card = card,
@@ -345,6 +346,9 @@ fun LiveNowScreen(
                     menuCard = null
                     refocus++
                 },
+                next = nextProgramme(state.schedules[card.link.url], now),
+                reminded = nextProgramme(state.schedules[card.link.url], now)?.let { reminderKey(card, it) in reminderKeys } == true,
+                onRemind = { nextProgramme(state.schedules[card.link.url], now)?.let { viewModel.toggleReminder(card, it) } },
             )
         }
 
@@ -474,3 +478,13 @@ private const val FocusAttempts = 20
 
 
 /** Службові ряди — перекладом; тематичні (жанри каталогу) — як прийшли. */
+
+/** Найближча передача каналу, що ще не почалась (у паузі ефіру «поточна» теж буває майбутньою). */
+internal fun nextProgramme(schedule: com.likhtar.home.core.tv.ChannelSchedule?, now: Long): com.likhtar.home.core.tv.EpgProgramme? {
+    schedule ?: return null
+    schedule.live?.takeIf { it.startMillis > now }?.let { return com.likhtar.home.core.tv.EpgProgramme(it.title, it.startMillis, it.endMillis) }
+    return schedule.upcoming.firstOrNull { it.startMillis > now }
+}
+
+internal fun reminderKey(card: LiveCard, p: com.likhtar.home.core.tv.EpgProgramme) = "${card.link.url}@${p.startMillis}"
+

@@ -57,6 +57,8 @@ class TvGuideRepository @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val groupsRepository: TvGroupsRepository,
     private val playlist: PlaylistTvSource,
+    private val sweet: SweetTvEpgRepository,
+    private val portal: StalkerPortal,
 ) {
     private val reload = MutableStateFlow(0)
 
@@ -118,19 +120,30 @@ class TvGuideRepository @Inject constructor(
     suspend fun schedulesFor(links: List<ChannelLink>): Map<String, ChannelSchedule> = withContext(Dispatchers.IO) {
         // Своя адреса з налаштувань — першою; без неї — та, що провайдер поклав у плейлист.
         val url = settingsRepository.settings.first().tvEpgUrl.ifBlank { playlist.guideUrl() }
-        if (url.isBlank() || links.isEmpty()) return@withContext emptyMap()
+        if (links.isEmpty()) return@withContext emptyMap()
+        // Без XMLTV (лише портал) — програма з самого порталу.
+        if (url.isBlank()) return@withContext sweetFor(links) + portalFor(links)
         val key = { l: ChannelLink -> l.epgId.ifBlank { l.url } }
         // Розібране тримаємо, доки файл той самий (він оновлюється раз на 12 годин): XMLTV
         // провайдера розбирається на приставці хвилину, а ТВ Ефір оновлюється кожні 5 хв.
         // Ключ — які саме канали лишили, а не лише скільки: парсер бере тільки їхні id, і заміна
         // прихованого каналу іншим за тієї ж кількості лишала новий без програми на пів години.
+        val t0 = System.currentTimeMillis()
         val file = runCatching { cachedGuide(url) }.getOrElse {
             Log.w(TAG, "Телепрограма плейлиста не завантажилася", it)
             return@withContext emptyMap()
         }
         val memoKey = file.name + "|" + links.map { key(it) + "\u0000" + it.name }.sorted().hashCode()
         val memo = parsedGuide?.takeIf { it.first == memoKey }?.third
-        val guide = memo
+        // Після перезапуску процесу — розібране з диска, якщо файл і канали ті самі: розбір 140 МБ
+        // XMLTV на приставці — пів хвилини, і раніше він повторювався на кожен холодний старт.
+        val parsedFile = File(context.cacheDir, "guide-parsed.bin")
+        val fromDisk = if (memo != null) null else runCatching {
+            java.io.DataInputStream(parsedFile.inputStream().buffered(1 shl 16)).use { input ->
+                if (input.readUTF() == memoKey) readXmltvGuide(input) else null
+            }
+        }.getOrNull()?.also { parsedGuide = Triple(memoKey, System.currentTimeMillis(), it); Log.i(TAG, "XMLTV: розібране з диска, ${System.currentTimeMillis() - t0} мс") }
+        val guide = memo ?: fromDisk
             ?: runCatching {
                 val archived = links.filter { it.archive != null }
                 val parser = XmltvParser(
@@ -139,11 +152,22 @@ class TvGuideRepository @Inject constructor(
                     archiveIds = archived.map { it.epgId }.filter(String::isNotBlank).toSet(),
                     archiveMillis = (archived.maxOfOrNull { it.archive!!.days } ?: 0) * DAY_MS,
                 )
-                file.inputStream().use { parser.parse(it) }
+                val t1 = System.currentTimeMillis()
+                file.inputStream().use { parser.parse(it) }.also { g ->
+                    Log.i(TAG, "XMLTV: файл ${file.length() / 1024} КБ за ${t1 - t0} мс, розбір ${System.currentTimeMillis() - t1} мс, " +
+                        "передач ${g.programmes.size}, каналів ${g.channelNames.size}, наших ${links.size}")
+                }
             }.getOrElse {
                 Log.w(TAG, "Телепрограма плейлиста не завантажилася", it)
                 return@withContext emptyMap()
-            }.also { parsedGuide = Triple(memoKey, System.currentTimeMillis(), it) }
+            }.also {
+                parsedGuide = Triple(memoKey, System.currentTimeMillis(), it)
+                runCatching {
+                    val part = File(context.cacheDir, "guide-parsed.part")
+                    java.io.DataOutputStream(part.outputStream().buffered(1 shl 16)).use { out -> out.writeUTF(memoKey); it.writeTo(out) }
+                    part.renameTo(parsedFile)
+                }
+            }
         val now = System.currentTimeMillis()
         // Кілька каналів з одним tvg-id (HD, SD, резерв) — одна програма на всіх. associateBy
         // лишав її лише останньому, решта стояли «Прямим ефіром».
@@ -151,6 +175,19 @@ class TvGuideRepository @Inject constructor(
         val matched = guide.programmesFor(links.map { key(it) to it.name }.distinctBy { it.first })
         matched.flatMap { (k, list) -> byKey[k].orEmpty().map { it to list } }.also {
             Log.i(TAG, "Програма плейлиста: ${it.size} з ${links.size} каналів")
+            // Де саме програми немає — по групах, і кілька прикладів із tvg-id: без цього «у Болгарії
+            // порожньо» не розібрати (немає в XMLTV провайдера чи не зійшлись назви).
+            val got = it.mapTo(HashSet()) { (link, _) -> link.url }
+            val missing = links.filter { l -> l.url !in got }
+            if (missing.isNotEmpty()) {
+                val total = links.groupingBy { l -> l.category }.eachCount()
+                Log.i(TAG, "Без програми: " + missing.groupingBy { l -> l.category }.eachCount().entries
+                    .sortedByDescending { e -> e.value }.joinToString { e -> "${e.key.ifBlank { "—" }} ${e.value}/${total[e.key]}" })
+                // По три з кожної групи: перші дванадцять підряд усі були з однієї.
+                Log.i(TAG, "Приклади без програми: " + missing.groupBy { l -> l.category }.values.flatMap { g -> g.take(3) }.take(36)
+                    .joinToString { l -> "${l.category.ifBlank { "—" }}: ${l.name} [${l.epgId.ifBlank { "без tvg-id" }}]" })
+                Log.i(TAG, "Каналів у розібраному XMLTV (лише наші): ${guide.channelNames.size}")
+            }
         }.associate { (link, list) ->
             val live = list.firstOrNull { it.startMillis <= now && it.endMillis > now }
             link.url to ChannelSchedule(
@@ -162,10 +199,42 @@ class TvGuideRepository @Inject constructor(
                         .map { EpgProgramme(it.title, it.startMillis, it.endMillis, it.description.orEmpty()) }
                 }.orEmpty(),
             )
-        }.also { result ->
+        }.let { fromXmltv -> fromXmltv + sweetFor(links.filter { it.url !in fromXmltv }) }
+            .let { got -> got + portalFor(links.filter { it.url !in got }) }.also { result ->
             // Щойно розібране — на диск, для наступного холодного старту (див. [lastSchedules]).
             if (memo == null && result.isNotEmpty()) runCatching { snapshotFile.writeText(encodeGuideSnapshot(url, result)) }
         }
+    }
+
+    /**
+     * Канали плейлиста, яких немає в XMLTV провайдера, але `tvg-id` яких — ідентифікатор Sweet.TV
+     * («2924-istorchni-serial-hd»): провайдер бере потік у Sweet.TV, а програму не віддає. Беремо її
+     * з відкритого API Sweet.TV за числом на початку (назва після нього в провайдера буває з
+     * помилкою). Лише домашня збірка: публічна не звертається до сторонніх сервісів програм.
+     */
+    /** Програма порталу (запит на канал) для каналів порталу, яких немає в XMLTV; тримаємо пів години. */
+    private suspend fun portalFor(links: List<ChannelLink>): Map<String, ChannelSchedule> {
+        val byId = links.mapNotNull { l -> portalId(l.url)?.let { it to l } }.toMap()
+        if (byId.isEmpty()) return emptyMap()
+        val now = System.currentTimeMillis()
+        val stale = byId.keys.filter { id -> portalEpg[id]?.let { now - it.first > PORTAL_EPG_MS } ?: true }
+        if (stale.isNotEmpty()) runCatching { portal.shortEpg(stale) }.getOrDefault(emptyMap()).forEach { (id, list) -> portalEpg[id] = now to list }
+        return buildMap {
+            byId.forEach { (id, link) ->
+                portalEpg[id]?.second?.takeIf { it.isNotEmpty() }?.let { list -> ChannelSchedule(live = null, upcoming = list).rolledTo(now)?.let { put(link.url, it) } }
+            }
+        }.also { Log.i(TAG, "Програма порталу: ${it.size} з ${byId.size}") }
+    }
+
+    private val portalEpg = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, List<EpgProgramme>>>()
+
+    private suspend fun sweetFor(links: List<ChannelLink>): Map<String, ChannelSchedule> {
+        if (com.likhtar.home.core.model.Distribution.store) return emptyMap()
+        val byId = links.mapNotNull { l -> sweetId(l.epgId)?.let { it to l } }.groupBy({ it.first }, { it.second })
+        if (byId.isEmpty()) return emptyMap()
+        val got = runCatching { sweet.nowOnAir(byId.keys) }.getOrDefault(emptyMap())
+        return buildMap { got.forEach { (id, schedule) -> byId[id].orEmpty().forEach { put(it.url, schedule) } } }
+            .also { Log.i(TAG, "Програма Sweet.TV для каналів плейлиста: ${it.size} з ${links.count { l -> sweetId(l.epgId) != null }}") }
     }
 
     /**
@@ -272,6 +341,7 @@ class TvGuideRepository @Inject constructor(
 
     private companion object {
         const val GUIDE_REFRESH_MS = 12 * 60 * 60 * 1000L
+        const val PORTAL_EPG_MS = 30 * 60 * 1000L
         const val DAY_MS = 24 * 60 * 60 * 1000L
         const val TAG = "LikhtarTv"
         const val USER_AGENT = "LIKHTAR-TV-launcher/0.1 (Android TV)"
@@ -297,3 +367,8 @@ internal fun looksLikeXmltv(file: File): Boolean {
     val text = String(head, Charsets.UTF_8).trimStart('\uFEFF', ' ', '\n', '\r', '\t').lowercase()
     return text.startsWith("<?xml") && "<html" !in text || text.startsWith("<tv") || text.startsWith("<!doctype tv")
 }
+
+/** `tvg-id` у форматі Sweet.TV («2924-istorchni-serial-hd») → його номер каналу; інакше `null`. */
+internal fun sweetId(epgId: String): Long? =
+    Regex("""^(\d{1,6})-[a-z0-9-]+$""").matchEntire(epgId.trim())?.groupValues?.get(1)?.toLongOrNull()
+

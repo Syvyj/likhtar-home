@@ -359,4 +359,12 @@
     <string name="cinema_live_edit_saved">Zapisano, odświeżam listę</string>
     <string name="cinema_live_install_tv">Zainstaluj Likhtar TV</string>
     <string name="cinema_live_install_tv_why">Nasz odtwarzacz kanałów: przełączanie ↑↓, program TV, archiwum</string>
+    <string name="cinema_live_search">Szukaj</string>
+    <string name="cinema_live_search_title">Szukaj kanału</string>
+    <string name="cinema_live_search_none">Nic nie znaleziono — spróbuj innej nazwy</string>
+    <string name="cinema_live_search_results">Szukaj: %1$s</string>
+    <string name="cinema_live_menu_remind">Przypomnij: %1$s</string>
+    <string name="cinema_live_menu_remind_hint">O %1$s — nad wszystkim na ekranie</string>
+    <string name="cinema_live_menu_unremind">Nie przypominaj: %1$s</string>
+    <string name="cinema_live_menu_unremind_hint">Przypomnienie o %1$s zostanie usunięte</string>
 </resources>

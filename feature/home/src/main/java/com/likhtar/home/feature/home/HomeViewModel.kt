@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -90,7 +91,9 @@ class HomeViewModel @Inject constructor(
     private val resumeRows: ResumeRows,
     private val watchlist: com.likhtar.home.core.catalog.WatchlistRepository,
     private val appUpdate: com.likhtar.home.core.data.AppUpdate,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
+    private val playback: com.likhtar.home.core.catalog.PlaybackController,
+    private val portal: com.likhtar.home.core.tv.StalkerPortal,
 ) : ViewModel() {
 
     /** Новіша версія з GitHub — пігулкою над LIKHTAR HOME; `null` — оновлювати нічого. */
@@ -332,9 +335,46 @@ class HomeViewModel @Inject constructor(
         )
 
 
-    /** Канал із контекстного ряду вмикається тим самим шляхом, що й у ТВ Ефірі. */
+    /**
+     * Канал із контекстного ряду вмикається тим самим шляхом, що й у ТВ Ефірі: канал застосунку —
+     * посиланням у застосунок, свій (плейлист, портал) — у «Ліхтар ТБ» зі списком ТБ Ефіру для CH+.
+     * Системі без пакета свій потік не віддаємо: http-адресу плейлиста перехоплював перший-ліпший застосунок, що бере http (Sweet.TV).
+     */
     fun openChannel(channel: RecentChannel) {
-        appsRepository.openLink(channel.url, channel.packageName)
+        if (channel.packageName.isNotBlank()) {
+            appsRepository.openLink(channel.url, channel.packageName)
+            return
+        }
+        viewModelScope.launch {
+            val tvPlayer = com.likhtar.home.core.data.AppUpdate.TV_PLAYER.takeIf(appsRepository::isInstalled)
+            val settings = settingsRepository.settings.first()
+            val chosen = tvPlayer ?: settings.videoPlayerPackage.takeIf(appsRepository::isInstalled).orEmpty()
+            val portalUrl = com.likhtar.home.core.tv.portalLink(channel.url)
+            // Чужий плеєр порталу не знає — йому справжню адресу зараз.
+            val uri = if (portalUrl != null && tvPlayer == null) portal.link(portalUrl) ?: channel.url else channel.url
+            // Список — той, з яким востаннє вмикали канал у ТБ Ефірі (зберігається й на диску). Без списку
+            // зовсім «Ліхтар ТБ» бере ефір за запис і стоїть на повному буфері.
+            val lineup = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { playback.lastLineup }?.let { l -> l.urls.indexOf(channel.url).takeIf { it >= 0 }?.let { l.copy(
+                index = it, now = if (l.guide.isNotBlank()) l.now.map { "" } else l.now,
+                portal = if (l.urls.any { u -> com.likhtar.home.core.tv.portalId(u) != null }) settings.tvPortal else "",
+            ) } }
+                ?: com.likhtar.home.core.catalog.TvLineup(
+                    urls = listOf(channel.url), names = listOf(com.likhtar.home.core.tv.channelLabel(channel.name)), now = listOf(""), index = 0,
+                    portal = if (portalUrl != null) settings.tvPortal else "",
+                ).takeIf { tvPlayer != null }
+            playback.play(
+                com.likhtar.home.core.catalog.PlayRequest(
+                    uri = uri,
+                    mime = "video/*",
+                    packageName = chosen,
+                    resumeMs = 0,
+                    title = null,
+                    displayName = com.likhtar.home.core.tv.channelLabel(channel.name),
+                    tv = lineup,
+                ),
+            )
+            recentHistory.rememberChannel(channel)
+        }
     }
 
     fun launch(app: LauncherApp): Boolean {

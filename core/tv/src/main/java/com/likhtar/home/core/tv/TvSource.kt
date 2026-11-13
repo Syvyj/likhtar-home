@@ -160,12 +160,18 @@ class DefaultTvSource @Inject constructor(
     private val builtin: BuiltinTvSource,
     private val playlist: PlaylistTvSource,
     private val system: SystemTvSource,
+    private val portal: StalkerPortal,
 ) : TvSource {
     // Вбудований набір — українські канали під наші підписки: у публічній збірці лише плейлист людини.
     // У домашній — плейлист і вбудоване разом (ТБ Ефір міксує, а не перемикає).
     override suspend fun channels(): List<ChannelLink> {
         // Канали, що застосунки зареєстрували в Android TV, — в обох збірках: це не наші таблиці.
-        val own = playlist.channels() + system.channels()
+        // Портал віддає всі канали провайдера, а свій список людина править у кабінеті — і ця правка
+        // доходить лише до плейлиста. Є плейлист — з порталу лише канали, що є в ньому.
+        val listed = playlist.channels()
+        val names = listed.map { channelKey(it.name) }.toSet()
+        val fromPortal = portal.channels().let { all -> if (listed.isEmpty()) all else all.filter { channelKey(it.name) in names } }
+        val own = listed + fromPortal + system.channels()
         if (com.likhtar.home.core.model.Distribution.store) return own
         val urls = own.map { it.url }.toSet()
         return own + builtin.channels().filter { it.url !in urls }

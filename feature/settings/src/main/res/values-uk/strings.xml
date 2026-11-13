@@ -407,4 +407,13 @@
     <string name="settings_phone_clip_hint">Вставляйте на телевізорі там, де поле вводу пропонує «Вставити».</string>
     <string name="settings_phone_clip_saved">Буфер обміну</string>
     <string name="settings_phone_channels">Редагувати канали: порядок, назви, дублі</string>
+    <string name="settings_tv_xtream">Сервер Xtream</string>
+    <string name="settings_tv_xtream_user">Логін Xtream</string>
+    <string name="settings_tv_xtream_pass">Пароль Xtream</string>
+    <string name="settings_tv_portal">Портал Stalker</string>
+    <string name="settings_tv_portal_login">Логін порталу</string>
+    <string name="settings_tv_portal_key">Ключ порталу</string>
+    <string name="settings_tv_portal_need_login">Нова адреса порталу: впишіть і логін та ключ</string>
+    <string name="settings_tv_portal_desc">Адреса з кабінету провайдера. Логін і ключ вписуються з телефона (Налаштування → З телефона). Порожньо — прибрати портал.</string>
+    <string name="settings_tv_portal_subtitle">Канали, програма й архів з порталу провайдера</string>
 </resources>

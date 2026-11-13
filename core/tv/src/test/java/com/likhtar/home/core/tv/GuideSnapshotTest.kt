@@ -26,6 +26,13 @@ class GuideSnapshotTest {
     }
 
     @Test
+    fun `кінець невідомий — іде, доки не почнеться наступна`() {
+        val open = ChannelSchedule(live = NowOnAir(title = "Ефір", image = null, startMillis = 0, endMillis = 0), upcoming = listOf(EpgProgramme("Далі", 100, 0)))
+        assertEquals("Ефір", open.rolledTo(50)?.live?.title)
+        assertEquals("Далі", open.rolledTo(150)?.live?.title)
+    }
+
+    @Test
     fun `знімок — туди й назад, чужа адреса і сміття — порожньо`() {
         val text = encodeGuideSnapshot("http://epg/a.xml", mapOf("http://h/1" to schedule))
         val back = decodeGuideSnapshot(text, "http://epg/a.xml", now = 150)

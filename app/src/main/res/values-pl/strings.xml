@@ -35,4 +35,5 @@
     <string name="assistant_bookmarked">„%1$s” jest na liście do obejrzenia.</string>
     <string name="assistant_no_time">Nie zrozumiałem, o której przypomnieć.</string>
     <string name="assistant_service_off">Włącz usługę przycisków pilota w Ustawieniach — bez niej tego nie potrafię.</string>
+    <string name="live_reminder_text">%1$s o %2$s — „%3$s”</string>
 </resources>

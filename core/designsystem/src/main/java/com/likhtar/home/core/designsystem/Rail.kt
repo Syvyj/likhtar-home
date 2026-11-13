@@ -162,6 +162,8 @@ fun LikhtarRail(
  */
 @OptIn(ExperimentalFoundationApi::class)
 private val SafeZone = object : BringIntoViewSpec {
+    @Suppress("DEPRECATION")
+    override val scrollAnimationSpec get() = LikhtarGlide
     override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float {
         val margin = containerSize * SafeZoneFraction
         val leading = offset - margin

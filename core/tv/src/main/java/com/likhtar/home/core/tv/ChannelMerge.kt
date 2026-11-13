@@ -75,6 +75,16 @@ fun mergeChannels(own: List<ChannelLink>, tv: TvCatalog, edits: ChannelEdits = C
     return kept to tv.channels.filter { it.link.url in keptUrls }
 }
 
+/**
+ * Запасні адреси свого каналу: той самий канал (за ключем злиття) з інших своїх джерел — плейлиста,
+ * порталу, Xtream. Плеєр перемикається на них, коли основна адреса не відкривається.
+ */
+fun channelBackups(own: List<ChannelLink>, tv: TvCatalog, edits: ChannelEdits = ChannelEdits()): Map<String, List<String>> =
+    channelSources(own, tv, edits).values.flatMap { links ->
+        val streams = links.filter { it.packageName.isBlank() }.map { it.url }.distinct()
+        if (streams.size < 2) emptyList() else streams.map { u -> u to streams.filter { it != u } }
+    }.toMap()
+
 /** Джерело, яке бере автомат: перше HD, інакше перше (свої стоять перед каталогом). */
 internal fun autoPick(links: List<ChannelLink>): ChannelLink = links.firstOrNull { isHD(it.name) } ?: links.first()
 

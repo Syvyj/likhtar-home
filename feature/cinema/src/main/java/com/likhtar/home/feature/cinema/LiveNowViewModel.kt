@@ -14,6 +14,7 @@ import com.likhtar.home.core.tv.rolledTo
 import com.likhtar.home.core.tv.ChannelLink
 import com.likhtar.home.core.tv.ChannelSchedule
 import com.likhtar.home.core.tv.NowOnAirAggregator
+import com.likhtar.home.core.tv.NowOnAir
 import com.likhtar.home.core.tv.TvGroupsRepository
 import com.likhtar.home.core.tv.TvSource
 import com.likhtar.home.core.tv.TvCatalogRepository
@@ -33,6 +34,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -99,6 +101,8 @@ data class LiveNowState(
     val groups: List<String> = emptyList(),
     /** Розклад кожного каналу (зараз і далі) — смуга вечора під банером (прототип). */
     val schedules: Map<String, ChannelSchedule> = emptyMap(),
+    /** Запасні адреси свого каналу (той самий канал з іншого джерела — плейлист, портал): за адресою. */
+    val backups: Map<String, List<String>> = emptyMap(),
 )
 
 /**
@@ -125,7 +129,24 @@ class LiveNowViewModel @Inject constructor(
     private val editor: com.likhtar.home.core.tv.ChannelsPhoneLink,
     private val systemTv: com.likhtar.home.core.tv.SystemTvSource,
     private val appUpdate: com.likhtar.home.core.data.AppUpdate,
+    private val reminders: com.likhtar.home.core.data.ProgrammeReminders,
+    private val portal: com.likhtar.home.core.tv.StalkerPortal,
 ) : ViewModel() {
+    /** Обліковка порталу для плеєра — береться перед запуском каналу (див. [open]). */
+    @Volatile private var portalAccount: String = ""
+    @Volatile private var backups: Map<String, List<String>> = emptyMap()
+
+    /** Передачі з нагадуванням — ключі `адреса@початок`. */
+    val reminderKeys: kotlinx.coroutines.flow.StateFlow<Set<String>> = reminders.reminders
+        .map { list -> list.mapTo(HashSet()) { it.key } }
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    fun toggleReminder(card: LiveCard, programme: com.likhtar.home.core.tv.EpgProgramme) {
+        viewModelScope.launch {
+            reminders.toggle(com.likhtar.home.core.data.ProgrammeReminder(card.link.url, channelLabel(card.link.name), programme.title, programme.startMillis))
+        }
+    }
+
     /** Редактор каналів з телефона: адреса для QR (`null` — немає домашньої мережі). */
     fun startEditor(): String? = editor.start()
     val editorStatus = editor.status
@@ -230,11 +251,14 @@ class LiveNowViewModel @Inject constructor(
         val edits = runCatching { groups.channelEdits.first() }.getOrDefault(ChannelEdits())
         userOrder = edits.order
         val (links, extra) = mergeChannels(own, tv, edits)
+        backups = com.likhtar.home.core.tv.channelBackups(own, tv, edits)
+        android.util.Log.i("LikhtarLive", "свої ${ownAll.size} (доступні ${own.size}), каталог ${tvAll.channels.size} (доступні ${tv.channels.size}), сховані ${hidden.size}, правки: сховано ${edits.hidden.size}, склеєно ${edits.joins.size}")
         groupOrder = tv.groups
         lead = tv.lead
         val extraSchedules = extra.filter { it.link.url !in hidden }.mapNotNull { c -> c.schedule?.let { c.link.url to it } }.toMap()
         // Канали застосунків (MEGOGO / Sweet.TV) — швидко, тож одразу з програмою.
-        val (fromPlaylist, fromApps) = own.partition { it.url in playlistUrls }
+        // Канали порталу Stalker — з тією ж програмою, що й плейлист (XMLTV, далі — сам портал).
+        val (fromPlaylist, fromApps) = own.partition { it.url in playlistUrls || com.likhtar.home.core.tv.portalId(it.url) != null }
         // Канали, які застосунки зареєстрували в Android TV, — з їхньою ж програмою, в обох збірках.
         val fast = (if (store) emptyMap() else runCatching { nowOnAir.byUrl(fromApps) }.getOrDefault(emptyMap())) + extraSchedules +
             systemTv.schedules(fromApps)
@@ -278,6 +302,12 @@ class LiveNowViewModel @Inject constructor(
         val matches = runCatching { matcher.match(titles) }.getOrDefault(emptyMap())
         val now = System.currentTimeMillis()
         val live = liveCards(links, schedules, matches, now)
+        // Скільки каналів дійшло до екрана й скільки з них лишилось без програми — по застосунках.
+        android.util.Log.i("LikhtarLive", "канали: ${links.size} → картки ${live.size}; " +
+            links.groupingBy { it.packageName.ifBlank { "плейлист" } }.eachCount().entries.joinToString { (p, n) ->
+                val shown = live.count { it.link.packageName.ifBlank { "плейлист" } == p }
+                "${p.substringAfterLast('.')} $n/$shown"
+            } + "; програм: ${schedules.size}")
         recentUrls = mine
         val pinned = runCatching { settings.settings.first().pinnedChannels }.getOrDefault(emptySet())
         val mineCards = mineCards(live, pinned, mine)
@@ -288,6 +318,7 @@ class LiveNowViewModel @Inject constructor(
             mine = mineCards,
             pinned = pinned,
             schedules = schedules,
+            backups = backups,
             message = when {
                 guide.isNotEmpty() -> null
                 // Каталог не приїхав, а своїх каналів немає — це збій мережі, не «нема джерел».
@@ -350,6 +381,7 @@ class LiveNowViewModel @Inject constructor(
             index = index,
             guide = runCatching { writeGuide(streams) }.getOrDefault(""),
             offset = from,
+            portal = portalAccount,
             channels = streams.map { RecentChannel(url = it.link.url, name = it.link.name, image = it.link.logo, packageName = it.link.packageName) },
         )
     }
@@ -385,6 +417,7 @@ class LiveNowViewModel @Inject constructor(
                     .put("l", c.link.logo)
                     .put("p", programmes)
                     .apply {
+                        _state.value.backups[c.link.url]?.let { put("b", org.json.JSONArray(it)) }
                         c.link.archive?.let { a -> put("a", org.json.JSONObject().put("t", a.type).put("d", a.days).put("s", a.source)) }
                     },
             )
@@ -410,9 +443,14 @@ class LiveNowViewModel @Inject constructor(
                 }
                 // Інакше вибраний у Налаштуваннях, якщо він є на пристрої; немає — вибір системи.
                 val chosen = tvPlayer ?: settings.settings.first().videoPlayerPackage.takeIf(apps::isInstalled).orEmpty()
+                // Канал порталу: «Ліхтар ТБ» бере адресу в порталі сам; іншому плеєру — справжню зараз.
+                val portalChannel = com.likhtar.home.core.tv.portalId(link.url)
+                val uri = if (portalChannel != null && tvPlayer == null) com.likhtar.home.core.tv.portalLink(link.url)?.let { portal.link(it) } ?: link.url else link.url
+                portalAccount = if (portalChannel != null || _state.value.channels.any { com.likhtar.home.core.tv.portalId(it.link.url) != null } ||
+                    _state.value.backups.values.any { b -> b.any { com.likhtar.home.core.tv.portalId(it) != null } }) settings.settings.first().tvPortal else ""
                 playback.play(
                     PlayRequest(
-                        uri = link.url,
+                        uri = uri,
                         mime = "video/*",
                         packageName = chosen,
                         resumeMs = 0,
@@ -480,8 +518,13 @@ internal fun liveCards(
     matches: Map<String, EpgMatch>,
     now: Long,
 ): List<LiveCard> = links.mapNotNull { link ->
-    // Потік свого плейлиста (без пакета) лишається й без програми — це канал людини.
-    val on = schedules[link.url]?.live
+    // Програму беремо на цю хвилину, а не на ту, коли її завантажили: розклад живе до 5 хв (а
+    // повернення в розділ — і довше), і канал, чия передача тим часом скінчилась, зникав зі
+    // списку, хоча наступна вже йшла. У паузі ефіру — найближча наступна («о 03:40»).
+    val rolled = schedules[link.url]?.rolledTo(now)
+    val on = rolled?.live
+        ?: rolled?.upcoming?.firstOrNull()?.let { NowOnAir(title = it.title, description = it.description, image = it.image, startMillis = it.startMillis, endMillis = it.endMillis) }
+        // Потік свого плейлиста (без пакета) лишається й без програми — це канал людини.
         ?: return@mapNotNull if (link.packageName.isBlank()) LiveCard(link, "", 0, 0, null, null) else null
     if (on.endMillis != 0L && on.endMillis <= now) return@mapNotNull null
     LiveCard(link, on.title, on.startMillis, on.endMillis, on.image, matches[on.title], on.description)

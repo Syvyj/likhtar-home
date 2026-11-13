@@ -23,10 +23,13 @@ class LikhtarApplication : Application(), SingletonImageLoader.Factory {
 
     @Inject lateinit var homeTakeover: HomeTakeover
 
+    @Inject lateinit var programmeReminders: ProgrammeReminderAlarms
+
     override fun onCreate() {
         super.onCreate()
         installCrashSafetyNet()
         homeTakeover.watch()
+        programmeReminders.watch()
         // HTTP-кеш на диску для всіх запитів лаунчера, за їхніми ж Cache-Control. Android вбиває
         // лаунчер, поки працює плеєр чи YouTube, і кеш у пам'яті гинув разом із ним: Кінозал
         // після повернення знову йшов по ~25 запитів і 2–3 с стояв порожній. Шлюз віддає TMDB

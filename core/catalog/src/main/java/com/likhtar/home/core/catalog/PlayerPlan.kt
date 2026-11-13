@@ -62,6 +62,8 @@ fun PlayRequest.playerPlan(takesM3u: Boolean, companion: Map<String, String>): P
         extras["likhtar.tv.index"] = lineup.index
         if (lineup.offset > 0) extras["likhtar.tv.offset"] = lineup.offset
         if (lineup.guide.isNotBlank()) extras["likhtar.tv.guide"] = lineup.guide
+        // Канали порталу (stalker://): обліковка, щоб «Ліхтар ТБ» сам брав адресу потоку в порталі.
+        if (lineup.portal.isNotBlank()) extras["likhtar.tv.portal"] = lineup.portal
     }
     val (data, mime) = when {
         asQueue -> single to "video/*"

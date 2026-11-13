@@ -35,6 +35,25 @@ class LiveRowsTest {
     }
 
     @Test
+    fun `передача скінчилась після завантаження — канал лишається з наступною`() {
+        val kino = link("Кіно 1", "Кіно")
+        val schedules = mapOf(
+            kino.url to ChannelSchedule(
+                live = NowOnAir("Стара", image = null, startMillis = now - 60 * min, endMillis = now - min),
+                upcoming = listOf(com.likhtar.home.core.tv.EpgProgramme("Нова", now - min, now + 30 * min)),
+            ),
+        )
+        assertEquals(listOf("Нова"), liveCards(listOf(kino), schedules, emptyMap(), now).map { it.raw })
+    }
+
+    @Test
+    fun `пауза ефіру — канал з найближчою передачею`() {
+        val kino = link("Кіно 1", "Кіно")
+        val schedules = mapOf(kino.url to ChannelSchedule(live = null, upcoming = listOf(com.likhtar.home.core.tv.EpgProgramme("Згодом", now + 10 * min, now + 70 * min))))
+        assertEquals(listOf(now + 10 * min), liveCards(listOf(kino), schedules, emptyMap(), now).map { it.startMillis })
+    }
+
+    @Test
     fun merge() {
         val own = listOf(ChannelLink(name = "Discovery Channel HD", packageName = "m", url = "megogo://1", category = "Пізнавальні та тревел"))
         val tv = com.likhtar.home.core.tv.TvCatalog(
@@ -97,5 +116,32 @@ class UaChannelOrderTest {
         val live = listOf(card("A"), card("B"), card("C"), card("D"))
         // Обраний D — першим, навіть якщо його не відкривали; нещодавні — далі, без повтору обраного.
         assertEquals(listOf("D", "B", "A"), mineCards(live, setOf("u:D"), listOf("u:B", "u:D", "u:A", "u:gone")).map { it.link.name })
+    }
+}
+
+class SearchChannelsTest {
+    private fun card(name: String) = LiveCard(com.likhtar.home.core.tv.ChannelLink(name = name, packageName = "", url = "http://h/$name"), "", 0, 0, null, null)
+
+    @org.junit.Test
+    fun `пошук за частиною назви без огляду на регістр, порожній запит — нічого`() {
+        val all = listOf(card("TVP 1 HD"), card("Polsat News"), card("Новий канал"))
+        org.junit.Assert.assertEquals(listOf("TVP 1 HD"), searchChannels(all, " tvp ").map { it.link.name })
+        org.junit.Assert.assertEquals(listOf("Новий канал"), searchChannels(all, "новий").map { it.link.name })
+        org.junit.Assert.assertTrue(searchChannels(all, "  ").isEmpty())
+    }
+
+    @Test
+    fun backups() {
+        val own = listOf(
+            ChannelLink(name = "Polsat Rodzina", packageName = "", url = "http://a/PolsatRodzina/video.m3u8"),
+            ChannelLink(name = "Polsat Rodzina HD", packageName = "", url = "stalker://p/1-2/video.m3u8"),
+            ChannelLink(name = "Polsat Rodzina", packageName = "s", url = "sweettv://channel/9"),
+            ChannelLink(name = "TVP 3", packageName = "", url = "http://a/TVP3/video.m3u8"),
+        )
+        val b = com.likhtar.home.core.tv.channelBackups(own, com.likhtar.home.core.tv.TvCatalog(emptyList(), emptyList()))
+        // Запасне — лише своє джерело (застосунок плеєр не відкриє); канал з одним джерелом без запасних.
+        assertEquals(listOf("stalker://p/1-2/video.m3u8"), b["http://a/PolsatRodzina/video.m3u8"])
+        assertEquals(listOf("http://a/PolsatRodzina/video.m3u8"), b["stalker://p/1-2/video.m3u8"])
+        assertEquals(null, b["http://a/TVP3/video.m3u8"])
     }
 }

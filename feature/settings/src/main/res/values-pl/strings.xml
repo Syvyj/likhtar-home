@@ -407,4 +407,13 @@
     <string name="settings_phone_clip_hint">Wklej go na telewizorze tam, gdzie pole tekstowe oferuje Wklej.</string>
     <string name="settings_phone_clip_saved">Schowek</string>
     <string name="settings_phone_channels">Edytuj kanały: kolejność, nazwy, duplikaty</string>
+    <string name="settings_tv_xtream">Serwer Xtream</string>
+    <string name="settings_tv_xtream_user">Login Xtream</string>
+    <string name="settings_tv_xtream_pass">Hasło Xtream</string>
+    <string name="settings_tv_portal">Portal Stalker</string>
+    <string name="settings_tv_portal_login">Login portalu</string>
+    <string name="settings_tv_portal_key">Klucz portalu</string>
+    <string name="settings_tv_portal_need_login">Nowy adres portalu: wpisz też login i klucz</string>
+    <string name="settings_tv_portal_desc">Adres z panelu dostawcy. Login i klucz wpisuje się z telefonu (Ustawienia → Z telefonu). Puste — usunąć portal.</string>
+    <string name="settings_tv_portal_subtitle">Kanały, program i archiwum z portalu dostawcy</string>
 </resources>
