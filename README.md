@@ -216,6 +216,16 @@ didn't start as a launcher. It grew one annoyance at a time, on a real TV in a r
 Where it began is still public: [the original plugin on GitHub](https://github.com/Syvyj/studios_4lampa).
 This repository starts fresh with the launcher's first public release.
 
+## More from the author
+
+[![Dropyk](https://raw.githubusercontent.com/Syvyj/Syvyj/main/assets/dropyk-card.png)](https://dropyk.syvyj.dev)
+
+**Dropyk.** Files and links from your phone to the TV in one scan. And [Quick Share on a Mac](https://github.com/Syvyj/dropyk-mac). [Website](https://dropyk.syvyj.dev) · [GitHub](https://github.com/Syvyj/dropyk-android)
+
+[![Shotleaf](https://raw.githubusercontent.com/Syvyj/Syvyj/main/assets/shotleaf-card.png)](https://shotleaf.syvyj.dev)
+
+**Shotleaf.** Screenshots, clipboard history and snippets in the Mac menu bar. [Website](https://shotleaf.syvyj.dev) · [GitHub](https://github.com/Syvyj/shotleaf)
+
 ## Support
 
 Likhtar is free and will stay free. If it made your evenings a bit easier, you can chip in:

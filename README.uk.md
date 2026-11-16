@@ -222,6 +222,16 @@ Likhtar виходить, коли всі говорять про те, як з�
 Звідки все почалося, досі відкрито: [перший плагін на GitHub](https://github.com/Syvyj/studios_4lampa).
 Цей репозиторій починається з першого публічного випуску лаунчера.
 
+## Від того ж автора
+
+[![Dropyk](https://raw.githubusercontent.com/Syvyj/Syvyj/main/assets/dropyk-card.png)](https://dropyk.syvyj.dev/uk/)
+
+**Dropyk.** Файли й посилання з телефона на телевізор одним скануванням. І [Quick Share на Mac](https://github.com/Syvyj/dropyk-mac). [Сайт](https://dropyk.syvyj.dev/uk/) · [GitHub](https://github.com/Syvyj/dropyk-android)
+
+[![Shotleaf](https://raw.githubusercontent.com/Syvyj/Syvyj/main/assets/shotleaf-card.png)](https://shotleaf.syvyj.dev/uk/)
+
+**Shotleaf.** Скріншоти, історія буфера й сніпети в рядку меню Mac. [Сайт](https://shotleaf.syvyj.dev/uk/) · [GitHub](https://github.com/Syvyj/shotleaf)
+
 ## Підтримка
 
 Likhtar безкоштовний і таким лишиться. Якщо він зробив ваші вечори трохи простішими, можна
