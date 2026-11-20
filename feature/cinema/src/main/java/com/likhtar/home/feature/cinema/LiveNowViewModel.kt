@@ -35,7 +35,9 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /** Одна передача на картці: канал, час і — якщо знаємо — твір TMDB. */
@@ -57,7 +59,7 @@ data class LiveCard(
 
     /** Що малює картка: твір, якщо знаємо, інакше кадр і чиста назва з телепрограми. */
     val item: CatalogItem
-        // Якість і HDR — про наші роздачі, а не про ефір: «4K · Dolby» на каналі, що йде
+        // Якість і HDR — про фільми, а не про ефір: «4K · Dolby» на каналі, що йде
         // в 720p, — неправда.
         get() = work?.let { it.copy(backdropPath = it.backdropPath ?: image, quality = 0, hdr = "") }
             ?: CatalogItem(
@@ -78,6 +80,8 @@ private object LiveNowMemory {
     @Volatile var playlist = ""
     /** Правки каналів, з якими зібрано [state]: змінились з телефона — збирати наново. */
     @Volatile var edits: ChannelEdits? = null
+    /** D2: знімок своїх каналів — лише для першого кадру процесу. */
+    @Volatile var snapshotTried = false
 }
 
 data class LiveNowState(
@@ -95,6 +99,8 @@ data class LiveNowState(
     val free: List<FreeSource> = emptyList(),
     /** Канал плейлиста, а відеоплеєра на пристрої немає — пропонуємо встановити. */
     val needPlayer: Boolean = false,
+    /** Канал, що чекає відповіді «оновити Ліхтар ТБ?» — стоїть стара збірка плеєра. */
+    val updateTvFor: LiveCard? = null,
     /** Сцена 2 (список і прев'ю): що йде зараз на кожному каналі — по одній картці на канал. */
     val channels: List<LiveCard> = emptyList(),
     /** Групи сцени 2 у порядку сервера; «Інші канали» — наприкінці. */
@@ -232,14 +238,27 @@ class LiveNowViewModel @Inject constructor(
         val took = { step: String -> val now = System.currentTimeMillis(); android.util.Log.i("LikhtarLive", "$step: ${now - mark} мс"); mark = now }
         val hidden = runCatching { groups.hiddenChannels.first() }.getOrDefault(emptySet())
         // Набори шоу (посилання на /video/) телепрограми не мають — їм тут нема що показати.
-        // Плейлист провайдера — НА ДОДАЧУ до каналів застосунків, а не замість (        // розділ показує, що де є). Публічна збірка — без нашого сервера: лише плейлист і XMLTV.
+        // Плейлист провайдера — НА ДОДАЧУ до каналів застосунків, а не замість (// розділ показує, що де є). Публічна збірка — без нашого сервера: лише плейлист і XMLTV.
         val store = com.likhtar.home.core.model.Distribution.store
-        val playlistUrls = runCatching { playlistSource.channels() }.getOrDefault(emptyList()).map { it.url }.toSet()
+        // D2: перший кадр процесу — свої канали зі знімка (розбір плейлиста й портал ~3 с),
+        // свіжі — другим проходом одразу після нього. Ключ — адреса плейлиста: змінили — знімок не той.
+        val snapshotKey = "tv-own:$playlistAt"
+        val saved = if (LiveNowMemory.snapshotTried) null else {
+            LiveNowMemory.snapshotTried = true
+            withContext(Dispatchers.IO) { snapshots.read(snapshotKey, SNAPSHOT_MAX_AGE_MS) }?.let { com.likhtar.home.core.tv.decodeOwnChannels(it) }?.takeIf { it.channels.isNotEmpty() }
+        }
+        // Каталог сервера від своїх каналів не залежить — паралельно з ними, а не після (до 2 с);
+        // на першому кадрі — теж зі знімка.
+        val fetchedTask = viewModelScope.async { if (store) null else runCatching { catalog.catalog(fromSnapshot = saved != null) }.getOrNull() }
+        val sources = saved ?: com.likhtar.home.core.tv.OwnChannels(
+            runCatching { tvSource.channels() }.getOrDefault(emptyList()),
+            runCatching { playlistSource.channels() }.getOrDefault(emptyList()).map { it.url }.toSet(),
+        ).also { if (it.channels.isNotEmpty()) withContext(Dispatchers.IO) { snapshots.write(snapshotKey, com.likhtar.home.core.tv.encodeOwnChannels(it)) } }
+        val playlistUrls = sources.playlistUrls
         val playlist = store || playlistUrls.isNotEmpty()
-        val ownAll = runCatching { tvSource.channels() }.getOrDefault(emptyList())
-            .filter { it.url !in hidden && !it.url.contains("/video/") }
-        took("свої канали")
-        val fetched = if (store) null else runCatching { catalog.catalog() }.getOrNull()
+        val ownAll = sources.channels.filter { it.url !in hidden && !it.url.contains("/video/") }
+        took(if (saved != null) "свої канали (знімок)" else "свої канали")
+        val fetched = fetchedTask.await()
         val tvAll = fetched ?: TvCatalog(emptyList(), emptyList())
         took("каталог каналів")
         // Канали лише тих застосунків, що стоять у людини (розділ будується з
@@ -263,9 +282,6 @@ class LiveNowViewModel @Inject constructor(
         // Канали порталу Stalker — з тією ж програмою, що й плейлист (XMLTV, далі — сам портал).
         val (fromPlaylist, fromApps) = own.partition { it.url in playlistUrls || com.likhtar.home.core.tv.portalId(it.url) != null }
         // Канали, які застосунки зареєстрували в Android TV, — з їхньою ж програмою, в обох збірках.
-        val fast = (if (store) emptyMap() else runCatching { nowOnAir.byUrl(fromApps) }.getOrDefault(emptyMap())) + extraSchedules +
-            systemTv.schedules(fromApps)
-        took("телепрограма застосунків (${fromApps.size} каналів)")
         // Доки XMLTV розбирається, у каналів плейлиста лишається попередня програма: без неї
         // кожне оновлення (і повернення з плеєра) на хвилину стирало розклад.
         val previous = _state.value.schedules
@@ -273,6 +289,16 @@ class LiveNowViewModel @Inject constructor(
         // Холодний старт (попередньої немає) — з останнього розбору на диску.
         val kept = System.currentTimeMillis().let { at -> fromPlaylist.mapNotNull { l -> previous[l.url]?.rolledTo(at)?.let { l.url to it } }.toMap() }
             .ifEmpty { runCatching { guide.lastSchedules(fromPlaylist) }.getOrDefault(emptyMap()) }
+        // D2: канали — одразу, з програмою, яка вже є; програма застосунків (до 7 с)
+        // дописується другим кроком. Доти екран стояв на ліхтарику, хоч канали вже були.
+        val appsBefore = System.currentTimeMillis().let { at -> fromApps.mapNotNull { l -> previous[l.url]?.rolledTo(at)?.let { l.url to it } }.toMap() }
+        publish(links, kept + appsBefore + extraSchedules, fetched, playlist, own.isEmpty(), tvAll, playlistAt)
+        took("канали на екрані")
+        // Перший кадр був зі знімка — тепер звичайне оновлення: свіжі канали, програма застосунків і плейлиста.
+        if (saved != null) return refresh()
+        val fast = (if (store) emptyMap() else runCatching { nowOnAir.byUrl(fromApps) }.getOrDefault(emptyMap())) + extraSchedules +
+            systemTv.schedules(fromApps)
+        took("телепрограма застосунків (${fromApps.size} каналів)")
         publish(links, kept + fast, fetched, playlist, own.isEmpty(), tvAll, playlistAt)
         LiveNowMemory.edits = edits
         if (fromPlaylist.isNotEmpty()) {
@@ -296,13 +322,25 @@ class LiveNowViewModel @Inject constructor(
         noOwn: Boolean,
         tvAll: TvCatalog,
         playlistAt: String,
+        /** Другий прохід із щойно зіставленими постерами — не запускає ще один. */
+        withMatches: Boolean = false,
     ) {
+        val generation = if (withMatches) publishGeneration else ++publishGeneration
         // На зіставлення — лише те, що йде зараз: уся програма трьохсот каналів — це три
         // тисячі назв на кожне оновлення.
         // Ефіри без кінця (YouTube) не зіставляємо: новина з назвою серіалу дістала б чужий постер.
         val titles = schedules.values.mapNotNull { s -> s.live?.takeIf { it.endMillis != 0L }?.title }.distinct() // «Новини» на сотні каналів — одна назва: було 962 на кожне оновлення
         val mine = runCatching { recent.channels.first() }.getOrDefault(emptyList()).map { it.url }
-        val matches = runCatching { matcher.match(titles) }.getOrDefault(emptyMap())
+        // Сотні назв сервер зіставляє 3–4 с — канали на екран не чекають: зараз лише
+        // відоме, решта — фоном, і тоді той самий екран ще раз, уже з постерами. Новіша публікація
+        // ([publishGeneration]) скасовує цей другий прохід — він не затре свіжіший стан старим.
+        val matches = matcher.cached(titles)
+        if (!withMatches && matcher.hasMissing(titles)) {
+            viewModelScope.launch {
+                runCatching { matcher.match(titles) }
+                if (generation == publishGeneration) publish(links, schedules, fetched, playlist, noOwn, tvAll, playlistAt, withMatches = true)
+            }
+        }
         val now = System.currentTimeMillis()
         val live = liveCards(links, schedules, matches, now)
         // Скільки каналів дійшло до екрана й скільки з них лишилось без програми — по застосунках.
@@ -341,6 +379,7 @@ class LiveNowViewModel @Inject constructor(
     }
 
     private var recentUrls: List<String> = emptyList()
+    private var publishGeneration = 0
 
     /** Довге OK → «В обрані» / «Прибрати з обраних»: ряд перебудовується одразу, без мережі. */
     fun toggleFavourite(card: LiveCard) {
@@ -501,6 +540,12 @@ class LiveNowViewModel @Inject constructor(
                     _state.value = _state.value.copy(needPlayer = true)
                     return@launch
                 }
+                // Стара збірка «Ліхтар ТБ» — раз за сеанс пропонуємо оновити; «Пізніше» — грає ця.
+                if (tvPlayer != null && !tvUpdateAsked && appUpdate.tvPlayerOutdated()) {
+                    tvUpdateAsked = true
+                    _state.value = _state.value.copy(updateTvFor = card)
+                    return@launch
+                }
                 // Інакше вибраний у Налаштуваннях, якщо він є на пристрої; немає — вибір системи.
                 val chosen = tvPlayer ?: settings.settings.first().videoPlayerPackage.takeIf(apps::isInstalled).orEmpty()
                 // Канал порталу: «Ліхтар ТБ» бере адресу в порталі сам; іншому плеєру — справжню зараз.
@@ -538,6 +583,21 @@ class LiveNowViewModel @Inject constructor(
         }
     }
 
+    /** «Оновити зараз»: та сама установка з нашого випуску, що й для нового плеєра. */
+    fun updateTvPlayer() {
+        _state.value = _state.value.copy(updateTvFor = null)
+        installTvPlayer()
+    }
+
+    /** «Пізніше»: канал грає в нинішній збірці; до кінця сеансу більше не питаємо. */
+    fun skipTvUpdate() {
+        val card = _state.value.updateTvFor ?: return
+        _state.value = _state.value.copy(updateTvFor = null)
+        open(card)
+    }
+
+    private var tvUpdateAsked = false
+
     fun dismissNeedPlayer() {
         _state.value = _state.value.copy(needPlayer = false)
     }
@@ -551,8 +611,12 @@ class LiveNowViewModel @Inject constructor(
         }
     }
 
+    private val snapshots = com.likhtar.home.core.data.DiskSnapshots(java.io.File(context.cacheDir, "tv-snapshots"))
+
     private companion object {
         const val REFRESH_MS = 5 * 60 * 1000L
+        /** Знімок своїх каналів старший за тиждень — не беремо. */
+        const val SNAPSHOT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000L
         /** Скільки каналів віддаємо плеєру для ↑↓ (межа Binder для extras). */
         const val LINEUP_MAX = 1000
     }

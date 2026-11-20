@@ -61,7 +61,7 @@ fun LikhtarVoice(
                     )
                     Text(
                         status,
-                        style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 10.5.sp),
+                        style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp),
                         color = LikhtarColors.TextDim,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

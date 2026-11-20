@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import com.likhtar.home.core.designsystem.touchFocusable
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -261,7 +262,7 @@ private fun UmbrellaLantern(day: DayForecast?, dayIndex: Int) {
                 contentDescription = null,
                 colorFilter = ColorFilter.tint(if (wet) Rain else WeatherColors.Ink.copy(alpha = 0.55f)),
                 modifier = Modifier
-                    .offset(x = 54.dp - 41.dp * open, y = 80.dp - 92.dp * open)
+                    .offset { androidx.compose.ui.unit.IntOffset((54.dp - 41.dp * open).roundToPx(), (80.dp - 92.dp * open).roundToPx()) }
                     .size(s)
                     .rotate(18f * (1f - open)),
             )
@@ -325,7 +326,7 @@ private fun Facts(weather: WeatherSnapshot) {
 private fun DayCurve(hours: List<HourForecast>, nowMark: Boolean, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
     val tempStyle = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color.White)
-    val hourStyle = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 10.sp, color = Muted)
+    val hourStyle = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 11.5.sp, color = Muted)
     val pctStyle = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 9.sp, color = Rain)
     Canvas(modifier) {
         val points = hours.take(24)
@@ -386,6 +387,7 @@ private fun Week(days: List<DayForecast>, selected: Int, onSelect: (Int) -> Unit
             val on = i == selected
             val grow by animateFloatAsState(if (on) 1.03f else 1f, tween(160), label = "day")
             val ink = if (on) LikhtarColors.OnWarmWhite else Color.White
+            val tapFocus = remember { androidx.compose.ui.focus.FocusRequester() }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -397,7 +399,8 @@ private fun Week(days: List<DayForecast>, selected: Int, onSelect: (Int) -> Unit
                     .background(if (on) LikhtarColors.Paper else Color.Transparent)
                     .then(if (i == 0) Modifier.focusRequester(first) else Modifier)
                     .onFocusChanged { if (it.isFocused) onSelect(i) }
-                    .focusable()
+                    // Дотик: тап ставить фокус — і день вибирається, як із пульта.
+                    .touchFocusable(tapFocus)
                     .padding(horizontal = 14.dp),
             ) {
                 Text(
@@ -424,7 +427,7 @@ private fun Week(days: List<DayForecast>, selected: Int, onSelect: (Int) -> Unit
                 )
                 Text(
                     if (day.precipitationPercent >= 10) "${day.precipitationPercent}%" else "",
-                    style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 10.sp),
+                    style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 11.5.sp),
                     color = if (on) WeatherColors.RainOnPaper else Rain,
                     modifier = Modifier.width(32.dp),
                 )

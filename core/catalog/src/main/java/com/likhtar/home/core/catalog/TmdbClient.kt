@@ -16,6 +16,8 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
@@ -308,29 +310,41 @@ class TmdbClient @Inject constructor(
 
     /** Остання серія серіалу, що вже вийшла (`last_episode_to_air`); `null` — немає чи збій. */
     suspend fun lastAired(tmdbId: Int): AiredEpisode? {
+        val s = showSchedule(tmdbId) ?: return null
+        val last = s.last ?: return null
+        return AiredEpisode(s.item, last.season, last.episode, last.name, last.airDate)
+    }
+
+    /** Розклад серіалу одним запитом: остання й наступна серія, розміри сезонів, статус. */
+    suspend fun showSchedule(tmdbId: Int): ShowSchedule? {
         val key = config.tmdbKey() ?: return null
         val body = get("${config.tmdbApi()}/tv/$tmdbId?api_key=$key&language=${config.locale().tmdbLanguage}") ?: return null
-        return runCatching {
-            val json = JSONObject(body)
-            val last = json.optJSONObject("last_episode_to_air") ?: return@runCatching null
-            val date = last.optString("air_date").takeIf { it.length >= 10 } ?: return@runCatching null
-            fun path(k: String) = json.optString(k).takeIf { it.isNotBlank() && it != "null" }
-            AiredEpisode(
-                item = CatalogItem(
-                    tmdbId = tmdbId,
-                    kind = TitleKind.TV,
-                    title = json.optString("name"),
-                    originalTitle = json.optString("original_name"),
-                    year = json.optString("first_air_date").take(4),
-                    posterPath = path("poster_path"),
-                    backdropPath = path("backdrop_path"),
-                ),
-                season = last.optInt("season_number"),
-                episode = last.optInt("episode_number"),
-                name = last.optString("name"),
-                airDate = date,
-            )
-        }.getOrNull()
+        return parseShowSchedule(tmdbId, body)
+    }
+
+    /** Дати виходу фільму в [region]: 3 — у кіно, 4 — онлайн. */
+    suspend fun releaseDates(tmdbId: Int, region: String): List<Pair<Int, String>> {
+        val key = config.tmdbKey() ?: return emptyList()
+        val body = get("${config.tmdbApi()}/movie/$tmdbId/release_dates?api_key=$key") ?: return emptyList()
+        return parseReleaseDates(body, region)
+    }
+
+    /**
+     * «Усі прем'єри» за [from]…[to]: нові серіали (дата першої серії) і фільми, що виходять онлайн у
+     * [region] (тип 4 — дата з `release_dates`, бо discover віддає лише першу дату у світі).
+     */
+    suspend fun premieres(from: String, to: String, region: String): List<Pair<String, CatalogItem>> = coroutineScope {
+        val shows = async {
+            discover("discover/tv", mapOf("first_air_date.gte" to from, "first_air_date.lte" to to, "sort_by" to "popularity.desc"), PREMIERES)
+                .filter { it.releaseDate in from..to }.map { it.releaseDate to it }
+        }
+        val movies = discover(
+            "discover/movie",
+            mapOf("region" to region, "with_release_type" to "4", "release_date.gte" to from, "release_date.lte" to to, "sort_by" to "popularity.desc"),
+            PREMIERES,
+        ).map { item -> async { releaseDates(item.tmdbId, region).firstOrNull { it.first == 4 && it.second in from..to }?.let { it.second to item } } }
+            .mapNotNull { it.await() }
+        shows.await() + movies
     }
 
     /** Назва й лого студії чи каналу за ключем [StudioRef.key] — голова її сторінки. */
@@ -742,6 +756,35 @@ class TmdbClient @Inject constructor(
     /** Порядок роликів на сцені: трейлер важливіший за тизер, тизер — за уривок. */
     private val VIDEO_ORDER = listOf("Trailer", "Teaser", "Clip", "Featurette", "Behind the Scenes")
 
+    /** Рейтинги вже питаних тайтлів: дитячий режим перевіряє ті самі ряди знову й знову. */
+    private val certifications = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val certRequests = kotlinx.coroutines.sync.Semaphore(16)
+
+    /**
+     * Віковий рейтинг тайтлу (UA → US → GB → будь-який, [pickCertification]) — для дитячого режиму.
+     * `null` — немає ні в кого чи TMDB не відповів. Порожній рядок у кеші — «питали, немає».
+     */
+    suspend fun certification(item: CatalogItem): String? {
+        val cacheKey = "${item.kind.tmdbPath}:${item.tmdbId}"
+        certifications[cacheKey]?.let { return it.ifEmpty { null } }
+        val key = config.tmdbKey() ?: return null
+        val path = if (item.kind == TitleKind.MOVIE) "release_dates" else "content_ratings"
+        // Свій ліміт: сторінка «Відкрити всі» в дитячому режимі — сотні таких запитів, і в спільних
+        // шести вони чекали 20–55 с. Крихітні відповіді, проксі сервера їх кешує.
+        val body = certRequests.withPermit { getNow("${config.tmdbApi()}/${item.kind.tmdbPath}/${item.tmdbId}/$path?api_key=$key") } ?: return null
+        val results = runCatching { JSONObject(body).optJSONArray("results") }.getOrNull() ?: return null
+        val byCountry = (0 until results.length()).mapNotNull { results.optJSONObject(it) }.associate { r ->
+            r.optString("iso_3166_1") to if (item.kind == TitleKind.MOVIE) {
+                r.optJSONArray("release_dates")?.let { d -> (0 until d.length()).firstNotNullOfOrNull { d.optJSONObject(it)?.optString("certification")?.takeIf(String::isNotBlank) } }.orEmpty()
+            } else {
+                r.optString("rating")
+            }
+        }
+        val cert = pickCertification(byCountry)
+        certifications[cacheKey] = cert.orEmpty()
+        return cert
+    }
+
     private fun ageRating(json: JSONObject, kind: TitleKind, region: String): String {
         if (kind == TitleKind.TV) {
             val ratings = json.optJSONObject("content_ratings")?.optJSONArray("results")
@@ -789,6 +832,7 @@ class TmdbClient @Inject constructor(
 
     private companion object {
         private const val PAGE_SIZE = 20
+        private const val PREMIERES = 20
         /** До стількох — одна сторінка: ряди Кінозалу (30) не множать запити. */
         private const val ONE_PAGE_UP_TO = 40
         /** 10 сторінок — 200 позицій, стеля «Відкрити всі». */

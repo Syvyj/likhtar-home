@@ -6,7 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.likhtar.home.core.catalog.PlaybackController
 import com.likhtar.home.core.data.HomeLauncherRepository
 import com.likhtar.home.core.data.SettingsRepository
+import com.likhtar.home.core.data.WeatherRepository
 import com.likhtar.home.core.model.LikhtarSection
+import com.likhtar.home.core.model.WeatherSnapshot
+import com.likhtar.home.core.smarthome.SmartDevice
+import com.likhtar.home.core.smarthome.SmartHomeRepository
 import com.likhtar.home.core.wallpaper.WallpaperRepository
 import com.likhtar.home.core.wallpaper.WallpaperState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +18,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -29,10 +34,32 @@ import kotlinx.coroutines.launch
 class LikhtarAppViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     wallpaperRepository: WallpaperRepository,
+    weatherRepository: WeatherRepository,
+    private val smartHomeRepository: SmartHomeRepository,
     val homeLauncherRepository: HomeLauncherRepository,
     /** Прохання відтворити приходять сюди — запустити їх може лише Activity. */
     val playback: PlaybackController,
 ) : ViewModel() {
+
+    /** Погода для пігулки в шапці розділів (`null`, якщо вимкнено в налаштуваннях чи ще не приїхала). */
+    val headerWeather: StateFlow<WeatherSnapshot?> = combine(
+        settingsRepository.settings.map { it.showWeather },
+        weatherRepository.weather(),
+    ) { show, snap -> if (show) snap else null }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Пристрої «Мого дому» для бічної панелі поверх будь-якого розділу. */
+    val smartDevices: StateFlow<List<SmartDevice>> = smartHomeRepository.state
+        .map { it.devices }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val smartHomeEnabled: StateFlow<Boolean> = settingsRepository.settings
+        .map { it.smartHomeEnabled }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun toggleSmartDevice(device: SmartDevice) {
+        viewModelScope.launch { smartHomeRepository.toggle(device) }
+    }
 
     /** Плеєр закрився: віддаємо таймкод тому, хто вміє його записати. */
     fun onPlayerClosed(positionMs: Long, durationMs: Long, endedUri: String? = null, tvIndex: Int = -1) {
@@ -57,7 +84,7 @@ class LikhtarAppViewModel @Inject constructor(
             initialValue = false,
         )
 
-    /** Майстер першого запуску — перед пропозицією забрати HOME. */
+    /** Майстер першого запуску — перед пропозицією забрати HOME (крок 3б). */
     val firstRun: StateFlow<Boolean> = settingsRepository.settings
         .map { !it.firstRunDone }
         .stateIn(viewModelScope, SharingStarted.Eagerly, initialValue = false)

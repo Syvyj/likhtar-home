@@ -166,7 +166,9 @@ internal fun QueryField(
             } else {
                 FocusableSurface(
                     onClick = { editing = true },
-                    shape = shape,
+                    // Прямокутна: пігулку вже малює й обрізає зовнішня плашка; своя пігулка тут
+                    // зрізала першу літеру підказки й давала другу «рамку» тінню.
+                    shape = androidx.compose.ui.graphics.RectangleShape,
                     background = Color.Transparent,
                     focusedBackground = Color.Transparent,
                     borderColor = Color.Transparent,

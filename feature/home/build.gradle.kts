@@ -4,6 +4,7 @@ plugins {
 
 android {
     namespace = "com.likhtar.home.feature.home"
+    defaultConfig.testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
     // Порожні flavor-и лише для узгодження варіантів: цей модуль тягне :core:catalog,
     // у якого BuildConfig різний для personal і play.
@@ -27,4 +28,8 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
 
     testImplementation(libs.junit)
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

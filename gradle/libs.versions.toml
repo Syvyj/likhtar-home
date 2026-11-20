@@ -1,6 +1,7 @@
 [versions]
-agp = "9.4.1"
-kotlin = "2.4.20"
+media3 = "1.11.1"
+agp = "9.5.1"
+kotlin = "2.4.21"
 ksp = "2.3.12"
 hilt = "2.60.1"
 coreKtx = "1.19.1"
@@ -9,15 +10,17 @@ lifecycle = "2.11.0"
 composeBom = "2026.09.00"
 tvMaterial = "1.1.0"
 navigation = "2.10.2"
-hiltNavigation = "1.2.0"
+hiltNavigation = "1.4.0"
 coil = "3.6.3"
-datastore = "1.2.1"
+datastore = "1.3.0"
 coroutines = "1.11.0"
 junit = "4.13.2"
 desugarJdkLibs = "2.1.5"
-androidxJunit = "1.2.1"
+androidxJunit = "1.3.0"
 
 [libraries]
+media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 # java.time на minSdk 24 (Android 7): без нього lint NewApi і падіння на старих приставках.
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -52,15 +55,15 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 # Реальна реалізація org.json для JVM-тестів: в android.jar лежить лише заглушка.
-org-json = { group = "org.json", name = "json", version = "20240303" }
+org-json = { group = "org.json", name = "json", version = "20260814" }
 # HTTP-сервер для тестів клієнта Home Assistant (com.sun.net.httpserver в android.jar відсутній).
-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version = "4.12.0" }
+mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version = "5.5.1" }
 # Тільки генерація матриці QR — камери й сканера не тягне.
-zxing-core = { group = "com.google.zxing", name = "core", version = "3.5.3" }
+zxing-core = { group = "com.google.zxing", name = "core", version = "3.5.4" }
 # SMB2/3 для медіатеки: jcifs-ng не оновлюється з 2023-го, smbj живий.
 smbj = { group = "com.hierynomus", name = "smbj", version = "0.15.0" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
-androidx-test-runner = { group = "androidx.test", name = "runner", version = "1.6.2" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version = "1.7.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

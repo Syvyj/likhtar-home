@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Лише фільтр клавіш: без типів подій і без canRetrieveWindowContent — служба не читає
-    екран, і застосункам немає причини тримати для неї дерево доступності.
+    Фільтр клавіш і одна подія: зміна вікна ЛИШЕ в лаунчері Google TV (packageNames) — щоб,
+    коли система сама виводить його головну (пробудження, системний HOME), відкривати Ліхтар.
+    Без canRetrieveWindowContent і без подій інших застосунків: Ліхтарю та решті немає причини
+    тримати для служби дерево доступності.
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeAnnouncement"
+    android:accessibilityEventTypes="typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagRequestFilterKeyEvents"
     android:canRequestFilterKeyEvents="true"
     android:canRetrieveWindowContent="false"
     android:description="@string/home_key_service_description"
-    android:notificationTimeout="0" />
+    android:notificationTimeout="0"
+    android:packageNames="com.google.android.apps.tv.launcherx" />

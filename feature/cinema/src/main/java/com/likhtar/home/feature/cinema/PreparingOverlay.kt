@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.tv.material3.Text
 import com.likhtar.home.core.catalog.cleanStreamLabel
 import com.likhtar.home.core.designsystem.LikhtarColors
@@ -35,32 +37,45 @@ import androidx.compose.runtime.remember
 import kotlinx.coroutines.delay
 
 /**
- * Що відбувається з роздачею, поки плеєр чекає: піри, сіди, швидкість і смуга
- * підвантаження початку. Без цього ліхтар «про конект» виглядав як зависання.
+ * Що відбувається з джерелом, поки плеєр чекає (макет «Екрани очікування», B): одна шкала швидкості —
+ * бурштином скільки качає, біла позначка — скільки треба цій якості; під нею словами, що зараз і
+ * скільки з'єднань. Без цього ліхтар «про конект» виглядав як зависання.
  */
 @Composable
-internal fun PreparingStat(stat: com.likhtar.home.core.catalog.TorrentStat, need: Double) {
+internal fun PreparingStat(stat: com.likhtar.home.core.catalog.SourceStat, need: Double) {
+    val mbps = stat.speedBytes / 1_048_576
+    val fmt = { v: Double -> String.format(Locale.getDefault(), "%.1f", v) }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.padding(top = 10.dp),
     ) {
-        // Три числа крупно — піри, сіди, швидкість; швидкість фарбуємо відносно того,
-        // скільки треба цій якості: видно одразу, чи 4K зараз потягне.
-        val mbps = stat.speedBytes / 1_048_576
-        val speedColor = when {
-            mbps <= 0.0 -> LikhtarColors.TextMuted
-            mbps >= need -> LikhtarColors.TileGreen
-            mbps >= need / 2 -> LikhtarColors.TileYellow
-            else -> LikhtarColors.TileRed
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatTile(stat.peers.toString(), pluralStringResource(R.plurals.cinema_peers, stat.peers), LikhtarColors.TextPrimary)
-            StatTile(stat.seeders.toString(), pluralStringResource(R.plurals.cinema_seeders, stat.seeders), LikhtarColors.TextPrimary)
-            StatTile(
-                if (mbps > 0) String.format(java.util.Locale.ROOT, "%.1f", mbps) else "—",
-                stringResource(R.string.cinema_prep_mbps_need, String.format(java.util.Locale.ROOT, "%.1f", need)),
-                speedColor,
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text(
+                text = stringResource(R.string.cinema_prep_rate, if (mbps > 0) fmt(mbps) else "—"),
+                style = LikhtarType.MonoSmall.copy(fontSize = 12.sp),
+                color = LikhtarColors.TextPrimary,
+                maxLines = 1,
+            )
+            // Шкала до подвійної потреби: позначка «треба» — посередині, заповнення — бурштином.
+            Box(
+                modifier = Modifier
+                    .width(220.dp)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color.White.copy(alpha = 0.16f)),
+            ) {
+                Box(
+                    Modifier.fillMaxHeight()
+                        .fillMaxWidth((mbps / (need * 2)).toFloat().coerceIn(0f, 1f))
+                        .background(LikhtarColors.LanternAmber),
+                )
+            }
+            Text(
+                text = stringResource(R.string.cinema_prep_need, fmt(need)),
+                style = LikhtarType.MonoSmall.copy(fontSize = 12.sp),
+                color = LikhtarColors.TextPrimary,
+                maxLines = 1,
             )
         }
         val share = stat.bufferShare
@@ -68,61 +83,38 @@ internal fun PreparingStat(stat: com.likhtar.home.core.catalog.TorrentStat, need
             text = when {
                 share != null && share >= 1f -> stringResource(R.string.cinema_prep_buffered)
                 share != null -> stringResource(R.string.cinema_prep_buffering_percent, (share * 100).toInt())
-                stat.peers == 0 -> stringResource(R.string.cinema_prep_looking_for_peers)
+                stat.connections == 0 -> stringResource(R.string.cinema_prep_looking)
                 mbps in 0.0001..<need -> stringResource(R.string.cinema_prep_slow)
                 else -> stringResource(R.string.cinema_prep_measuring)
-            },
+            } + "  ·  ${stat.connections} " + pluralStringResource(R.plurals.cinema_stat_links, stat.connections) +
+                " · ${stat.sources} " + pluralStringResource(R.plurals.cinema_stat_sources, stat.sources),
             style = LikhtarType.Body2,
-            color = Color.White,
+            color = LikhtarColors.TextPrimary,
         )
-        Box(
-            modifier = Modifier
-                .width(420.dp)
-                .height(8.dp)
-                .clip(RoundedCornerShape(LikhtarDimens.CornerTiny))
-                .background(Color.White.copy(alpha = 0.15f)),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(share ?: 0f)
-                    .background(LikhtarColors.Accent),
-            )
-        }
     }
 }
 
-@Composable
-private fun StatTile(value: String, caption: String, color: Color) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .width(128.dp)
-            .clip(RoundedCornerShape(LikhtarDimens.CornerMedium))
-            .background(LikhtarColors.Glass)
-            .padding(vertical = 10.dp),
-    ) {
-        Text(text = value, style = LikhtarType.SectionTitle, color = color, maxLines = 1)
-        Text(text = caption, style = LikhtarType.MonoTiny, color = LikhtarColors.TextMuted, maxLines = 1)
-    }
-}
-
-/** «🇺🇦 2160p · Dolby Vision · WEB-DL · HEVC · Дубляж · 92 ГБ · Торент · сезон» → плашки. */
+/** «🇺🇦 2160p · Dolby Vision · WEB-DL · …» → значки в стилі плеєра («UA»), між ними бурштинові риски. */
 @Composable
 internal fun ReleaseChips(label: String) {
     val chips = releaseChips(label)
     if (chips.isEmpty()) return
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(top = 8.dp),
+    ) {
         chips.forEachIndexed { i, chip ->
+            if (i > 0) Box(Modifier.width(1.5.dp).height(15.dp).background(LikhtarColors.LanternAmber))
             Text(
                 text = chip,
-                style = LikhtarType.Label,
-                color = if (i == 0) LikhtarColors.OnGlassActive else LikhtarColors.TextPrimary,
+                style = LikhtarType.Label.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                color = Color.White,
                 maxLines = 1,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(LikhtarDimens.CornerMedium))
-                    .background(if (i == 0) LikhtarColors.GlassActive else LikhtarColors.Glass)
-                    .padding(horizontal = 12.dp, vertical = 5.dp),
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(LikhtarColors.BadgeFloor.copy(alpha = 0.60f))
+                    .padding(horizontal = 9.dp, vertical = 5.dp),
             )
         }
     }

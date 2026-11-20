@@ -109,4 +109,16 @@
     <string name="catalog_media_status_tmdb">Шукаю назви в TMDB… (файлів: %1$d)</string>
     <string name="catalog_media_summary">Файлів: %1$d, назв: %2$d</string>
     <string name="catalog_media_summary_other">, не впізнано: %1$d</string>
+    <string name="catalog_because_liked">Бо сподобалось «%1$s»</string>
+    <string name="catalog_mood_gems">Приховані перлини</string>
+    <string name="catalog_mood_short">До 100 хвилин</string>
+    <string name="catalog_mood_true">За реальними подіями</string>
+    <string name="catalog_row_of_day">Ряд дня · %1$s</string>
+    <string name="catalog_day_heist">Пограбування</string>
+    <string name="catalog_day_time_travel">Подорожі в часі</string>
+    <string name="catalog_day_space">Космос</string>
+    <string name="catalog_day_survival">Виживання</string>
+    <string name="catalog_day_small_town">Маленькі містечка</string>
+    <string name="catalog_day_dystopia">Антиутопії</string>
+    <string name="catalog_day_ai">Штучний інтелект</string>
 </resources>

@@ -31,6 +31,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import com.likhtar.home.core.designsystem.tryFocus
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -126,8 +129,25 @@ internal fun LikhtarikPage(
     playCard: (ResumeCard) -> Unit,
     onForget: (ResumeCard) -> Unit,
     onBookmark: (CatalogItem) -> Unit,
+    shows: List<com.likhtar.home.core.catalog.TrackedShow> = emptyList(),
+    week: List<com.likhtar.home.core.catalog.CalendarEvent> = emptyList(),
+    today: String = "",
+    hero: HeroPick? = null,
+    onHeroPlay: (HeroPick) -> Unit = {},
+    onShow: (com.likhtar.home.core.catalog.TrackedShow) -> Unit = {},
+    onShowLong: (com.likhtar.home.core.catalog.TrackedShow) -> Unit = {},
+    onEvent: (com.likhtar.home.core.catalog.CalendarEvent) -> Unit = {},
+    onCalendar: () -> Unit = {},
+    /** Знак назви для героя, якого немає в самому тайтлі (розклад TMDB, порада). */
+    logoOf: suspend (CatalogItem) -> String? = { null },
+    game: com.likhtar.home.feature.cinema.TriviaUi = com.likhtar.home.feature.cinema.TriviaUi(),
+    onGameAnswer: (Boolean) -> Unit = {},
+    onGameNext: () -> Unit = {},
 ) {
     val searching = state.query.isNotBlank()
+    // Радник — бічною панеллю (макет «Новий Ліхтарик», екран 4), а не пігулками на пів сторінки.
+    var advisorOpen by remember { mutableStateOf(false) }
+    if (advisorOpen) AdvisorPanel(advisor, onFormat = onFormat, onMood = onMood, onDismiss = { advisorOpen = false })
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -138,10 +158,23 @@ internal fun LikhtarikPage(
     val picks = advisor.picks
     // Банер — перша порада, ряд — решта: та сама картка двічі поруч не стоїть.
     val spotCandidate = if (!searching) picks.firstOrNull() else null
+    // Без запиту й без поради радника — герой «нове для вас» (екран 1); інакше — банер і ряд, як були.
+    val heroMode = !searching && picks.isEmpty() && !advisor.loading
+    val heroPick = hero.takeIf { heroMode }
+    // Герой доїжджає пізніше за кнопки (трекер і полиці вантажаться) — курсор уже стояв на
+    // «Що подивитись». Поки людина нічого не натиснула, переводимо його на головну дію героя.
+    var touched by remember { mutableStateOf(false) }
+    LaunchedEffect(heroPick != null) {
+        if (heroPick == null || touched) return@LaunchedEffect
+        repeat(com.likhtar.home.core.designsystem.FOCUS_FRAMES) {
+            androidx.compose.runtime.withFrameNanos { }
+            if (!touched && startFocus.tryFocus()) return@LaunchedEffect
+        }
+    }
     val thinking = if (searching) state.aiPending || state.status == SearchStatus.LOADING else advisor.loading
     // Ряд порад у фокусі стає під верхнє меню, як ряди під згином: постери з низом видно цілком
-    // 398 — верх ряду, 75 — край меню (anchor).
-    val railLift = with(density) { (398 - 75).dp.toPx() }.toInt()
+    //. 398 — верх ряду, 75 — край меню (anchor).
+    val railLift = with(density) { (420 - 75).dp.toPx() }.toInt()
     val railFocus: Modifier = Modifier.onFocusChanged {
         if (it.hasFocus && scroll.value != railLift) {
             // Тінь під меню — як для рядів під згином: банер не визирає з-під меню.
@@ -157,16 +190,73 @@ internal fun LikhtarikPage(
     }
 
     // Шпалери під Ліхтариком немає (LikhtarApp) — тло своє, графіт, як у Кінозалі.
-    Box(Modifier.fillMaxSize().background(LikhtarColors.Background)) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(LikhtarColors.Background)
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(LikhtarColors.HeroGlowWarm, Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(1280f, 430f),
+                    radius = 740f,
+                ),
+            )
+            .onPreviewKeyEvent { touched = true; false },
+    ) {
         CompositionLocalProvider(LocalBringIntoViewSpec provides NoBringIntoView) {
             Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
-                Box(Modifier.fillMaxWidth().height(678.dp)) {
-                    // .ask: з 148 px, поле й три кнопки по 84 px, gap 16 px.
+                Box(Modifier.fillMaxWidth().height(if (heroMode) 405.dp else 700.dp)) {
+                    // Кадр героя — від верху екрана, під меню й пошуком.
+                    if (heroPick != null) {
+                        LikhtarikHero(
+                            pick = heroPick,
+                            onPlay = { onHeroPlay(heroPick) },
+                            onOpen = {
+                                open(
+                                    when (heroPick) {
+                                        is HeroPick.NewEpisode -> heroPick.show.item
+                                        is HeroPick.Continue -> heroPick.item.asCatalogItem()
+                                        is HeroPick.Advice -> heroPick.item
+                                    },
+                                )
+                            },
+                            playFocus = startFocus,
+                            logoOf = logoOf,
+                            contentTop = 118.dp,
+                            modifier = Modifier.fillMaxWidth().height(405.dp).then(topFocus),
+                        )
+                    }
+                    // Найкращий збіг пошуку й порада радника — тією самою сценою на весь верх, а не
+                    // банером у рамці поруч із порожньою колонкою.
+                    val spotItem = if (searching) state.best else spotCandidate?.item
+                    if (!heroMode && spotItem != null) {
+                        val dim by animateFloatAsState(if (thinking) 0.45f else 1f, tween(500), label = "spotDim")
+                        HeroScene(
+                            item = spotItem,
+                            kicker = when {
+                                !searching -> stringResource(R.string.search_likhtarik_pick)
+                                spotItem in state.ai && state.descriptive -> stringResource(R.string.search_likhtarik_pick)
+                                else -> stringResource(R.string.search_section_best)
+                            },
+                            meta = spotMeta(spotItem, spotCandidate),
+                            overview = if (searching) spotItem.overview else spotCandidate?.worth?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.search_worth, it) }.orEmpty(),
+                            // Рядок Ліхтарика — поки він думає; коли збіг знайдено, кікер уже каже те саме.
+                            line = if (searching) (if (thinking) state.aiRefined.ifBlank { searchStatus(state) } else "") else spotCandidate?.why.orEmpty(),
+                            playLabel = stringResource(R.string.search_open),
+                            onPlay = { open(spotItem) },
+                            onLongPlay = { onBookmark(spotItem) },
+                            playFocus = startFocus,
+                            logoOf = logoOf,
+                            contentTop = 160.dp,
+                            modifier = Modifier.fillMaxWidth().height(405.dp).graphicsLayer { alpha = dim }.then(topFocus),
+                        )
+                    }
+                    // .ask: з 140 px (під новою шапкою 56 dp), поле й три кнопки.
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
-                            .offset(y = 74.dp)
+                            .offset(y = 70.dp)
                             .padding(horizontal = LikhtarDimens.ScreenPadding)
                             .fillMaxWidth()
                             // Ряд порад піднімає сторінку — поле зникає, а не лізе під верхнє меню.
@@ -207,17 +297,21 @@ internal fun LikhtarikPage(
                         ) {
                             ProtoButton(
                                 label = stringResource(R.string.search_what_to_watch),
-                                onClick = onAdvisor,
+                                onClick = {
+                                    onAdvisor()
+                                    advisorOpen = true
+                                },
                                 icon = DsR.drawable.ic_solar_magic,
                                 height = 42.dp,
-                                modifier = up,
+                                // Ні героя, ні поради — вхід сюди: це єдине, що на сторінці робить щось.
+                                modifier = if (heroMode && heroPick == null) up.focusRequester(startFocus) else up,
                             )
                         }
                     }
 
                     // .line2: з 256 px, 64 px заввишки.
                     val line2 = Modifier
-                        .offset(y = 128.dp)
+                        .offset(y = 122.dp)
                         .padding(horizontal = LikhtarDimens.ScreenPadding)
                         .height(32.dp)
                         // Ряд у фокусі піднімає сторінку — пігулки гаснуть разом із полем, а банер
@@ -240,68 +334,20 @@ internal fun LikhtarikPage(
                                 Label(stringResource(if (canAsk) R.string.search_hint else R.string.search_hint_plain))
                             }
                         }
-                    } else {
-                        // Сім настроїв у ширину екрана не влазять — ряд прокручується за фокусом.
-                        val moodFocus = advisor.mood ?: WatchMood.entries.first()
-                        LikhtarRail(gap = 6.dp, modifier = line2) {
-                            itemsIndexed(WatchFormat.entries) { i, t ->
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    if (i == 0) Label(stringResource(R.string.search_format_question))
-                                    PillChip(formatLabel(t), on = t == advisor.format, onClick = { onFormat(t) })
-                                }
-                            }
-                            itemsIndexed(WatchMood.entries) { i, m ->
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    if (i == 0) {
-                                        Spacer(Modifier.width(6.dp))
-                                        Label(stringResource(R.string.search_mood_question))
-                                    }
-                                    PillChip(
-                                        moodLabel(m),
-                                        on = m == advisor.mood,
-                                        onClick = { onMood(m) },
-                                        modifier = if (m == moodFocus) Modifier.focusRequester(startFocus) else Modifier,
-                                    )
-                                }
-                            }
-                        }
                     }
 
                     // .voice: з 352 px, 500×340 px.
-                    LikhtarVoice(
+                    if (heroPick == null && (heroMode || spotItem == null)) LikhtarVoice(
                         name = stringResource(R.string.search_likhtarik),
                         status = if (searching) searchStatus(state) else advisorStatus(advisor),
-                        text = if (searching) state.aiRefined else advisorThought(advisor),
+                        text = when {
+                            searching -> state.aiRefined
+                            heroMode -> stringResource(R.string.search_hero_empty)
+                            else -> advisorThought(advisor)
+                        },
                         thinking = thinking,
-                        modifier = Modifier.offset(x = LikhtarDimens.ScreenPadding, y = 176.dp).width(232.dp),
+                        modifier = Modifier.offset(x = LikhtarDimens.ScreenPadding, y = if (heroMode) 122.dp else 162.dp).width(if (heroMode) 420.dp else 232.dp),
                     )
-
-                    // .spot: з 640 px до правого поля, 356 px заввишки.
-                    val spotItem = if (searching) state.best else spotCandidate?.item
-                    if (spotItem != null) {
-                        val dim by animateFloatAsState(if (thinking) 0.45f else 1f, tween(500), label = "spotDim")
-                        Spot(
-                            item = spotItem,
-                            kicker = when {
-                                !searching -> stringResource(R.string.search_likhtarik_pick)
-                                spotItem in state.ai && state.descriptive -> stringResource(R.string.search_likhtarik_pick)
-                                else -> stringResource(R.string.search_section_best)
-                            },
-                            meta = spotMeta(spotItem, spotCandidate),
-                            why = if (!searching) spotCandidate?.why.orEmpty() else "",
-                            overview = if (searching) spotItem.overview else spotCandidate?.worth?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.search_worth, it) }.orEmpty(),
-                            onOpen = { open(spotItem) },
-                            onLongClick = { onBookmark(spotItem) },
-                            openFocus = if (searching) startFocus else null,
-                            modifier = Modifier
-                                .offset(y = 176.dp)
-                                .padding(start = 296.dp, end = LikhtarDimens.ScreenPadding)
-                                .fillMaxWidth()
-                                .height(210.dp)
-                                .graphicsLayer { alpha = dim }
-                                .then(topFocus),
-                        )
-                    }
 
                     // .rows: з 734 px — ряд порад із поясненням під заголовком.
                     val groups: List<Pair<String?, List<CatalogItem>>> = if (searching) {
@@ -333,7 +379,7 @@ internal fun LikhtarikPage(
                             open = open,
                             onLongClick = onBookmark,
                             modifier = Modifier
-                                .offset(y = 398.dp)
+                                .offset(y = 420.dp)
                                 .padding(start = LikhtarDimens.ScreenPadding)
                                 .then(railFocus),
                         )
@@ -351,26 +397,71 @@ internal fun LikhtarikPage(
                         }
                     }
                 }
-                if (shelves.history.isNotEmpty()) {
+                if (!searching && shows.any { it.state != com.likhtar.home.core.catalog.ShowState.DROPPED }) {
+                    var top by remember { mutableFloatStateOf(0f) }
                     FoldSection(
-                        title = stringResource(R.string.search_history_title),
-                        hint = stringResource(R.string.search_history_hint),
-                        modifier = below(Modifier.onGloballyPositioned { historyTop = it.positionInParent().y }) { historyTop },
+                        title = stringResource(com.likhtar.home.feature.cinema.R.string.tracker_my_shows),
+                        hint = stringResource(com.likhtar.home.feature.cinema.R.string.tracker_my_shows_hint),
+                        modifier = below(Modifier.onGloballyPositioned { top = it.positionInParent().y }) { top },
                     ) {
-                        LikhtarRail {
-                            itemsIndexed(shelves.history, key = { _, card -> card.id }) { _, card ->
-                                ResumeTile(
-                                    title = card.title,
-                                    subtitle = cardNote(card, LocalContext.current.resources),
-                                    imageUrl = card.imageUrl,
-                                    logoUrl = card.logoUrl,
-                                    progress = card.continueItem?.takeIf { !it.finished }?.progress,
-                                    onClick = { playCard(card) },
-                                    onLongClick = card.continueItem?.let { { onForget(card) } },
-                                    modifier = Modifier.cardSlot().width(242.dp),
-                                )
-                            }
+                        com.likhtar.home.feature.cinema.MyShowsRail(shows, onOpen = onShow, onLongClick = onShowLong)
+                    }
+                }
+                // «Кинуті» — згорнуто: є куди подивитись і звідки повернути, але не заважає.
+                val dropped = shows.count { it.state == com.likhtar.home.core.catalog.ShowState.DROPPED }
+                // Повернули останнього кинутого — розділ зник разом із фокусом; не в меню, а на героя.
+                var hadDropped by remember { mutableStateOf(false) }
+                LaunchedEffect(dropped) {
+                    if (hadDropped && dropped == 0) {
+                        androidx.compose.runtime.withFrameNanos { }
+                        startFocus.tryFocus()
+                    }
+                    hadDropped = dropped > 0
+                }
+                if (!searching && dropped > 0) {
+                    var droppedOpen by remember { mutableStateOf(false) }
+                    var top by remember { mutableFloatStateOf(0f) }
+                    FoldSection(
+                        title = stringResource(com.likhtar.home.feature.cinema.R.string.tracker_dropped_section) + " · $dropped",
+                        hint = stringResource(com.likhtar.home.feature.cinema.R.string.tracker_dropped_hint),
+                        modifier = below(Modifier.onGloballyPositioned { top = it.positionInParent().y }) { top },
+                    ) {
+                        Column {
+                            ProtoButton(
+                                label = stringResource(if (droppedOpen) com.likhtar.home.feature.cinema.R.string.tracker_dropped_hide else com.likhtar.home.feature.cinema.R.string.tracker_dropped_show),
+                                onClick = { droppedOpen = !droppedOpen },
+                                icon = null,
+                                height = 32.dp,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                            if (droppedOpen) com.likhtar.home.feature.cinema.MyShowsRail(shows, onOpen = onShow, onLongClick = onShowLong, onlyDropped = true)
                         }
+                    }
+                }
+                if (!searching && (week.isNotEmpty() || shows.isNotEmpty())) {
+                    var top by remember { mutableFloatStateOf(0f) }
+                    FoldSection(
+                        title = stringResource(com.likhtar.home.feature.cinema.R.string.tracker_week),
+                        hint = stringResource(com.likhtar.home.feature.cinema.R.string.tracker_week_hint),
+                        modifier = below(Modifier.onGloballyPositioned { top = it.positionInParent().y }) { top },
+                    ) {
+                        com.likhtar.home.feature.cinema.WeekStrip(
+                            today = today,
+                            events = week,
+                            onOpen = onEvent,
+                            onCalendar = onCalendar,
+                            modifier = Modifier.padding(top = 8.dp, end = LikhtarDimens.ScreenPadding),
+                        )
+                    }
+                }
+                game.shown?.takeIf { !searching }?.let { statement ->
+                    var top by remember { mutableFloatStateOf(0f) }
+                    FoldSection(
+                        title = stringResource(com.likhtar.home.feature.cinema.R.string.trivia_kicker),
+                        hint = stringResource(com.likhtar.home.feature.cinema.R.string.trivia_hint),
+                        modifier = below(Modifier.onGloballyPositioned { top = it.positionInParent().y }) { top },
+                    ) {
+                        GameCard(game, statement, onAnswer = onGameAnswer, onNext = onGameNext, onOpen = { open(statement.item) })
                     }
                 }
                 if (shelves.bookmarks.isNotEmpty()) {
@@ -412,19 +503,42 @@ internal fun LikhtarikPage(
                         PosterRow(shelf.items, open = open, onLongClick = onBookmark)
                     }
                 }
+                if (shelves.history.isNotEmpty()) {
+                    FoldSection(
+                        title = stringResource(R.string.search_history_title),
+                        hint = stringResource(R.string.search_history_hint),
+                        modifier = below(Modifier.onGloballyPositioned { historyTop = it.positionInParent().y }) { historyTop },
+                    ) {
+                        LikhtarRail {
+                            itemsIndexed(shelves.history, key = { _, card -> card.id }) { _, card ->
+                                ResumeTile(
+                                    title = card.title,
+                                    subtitle = cardNote(card, androidx.compose.ui.platform.LocalResources.current),
+                                    imageUrl = card.imageUrl,
+                                    logoUrl = card.logoUrl,
+                                    progress = card.continueItem?.takeIf { !it.finished }?.progress,
+                                    onClick = { playCard(card) },
+                                    onLongClick = card.continueItem?.let { { onForget(card) } },
+                                    modifier = Modifier.cardSlot().width(242.dp),
+                                )
+                            }
+                        }
+                    }
+                }
                 // Лише поле внизу: останній ряд стає до низу екрана, а не під меню з порожнечею під ним
                 // (560 dp запасу були під постери 80×120).
                 Spacer(Modifier.height(24.dp))
             }
         }
         // .topshade: під меню — тло, щоб ряди під ним не читались крізь нього.
-        val shade by animateFloatAsState(if (down) 1f else 0f, tween(300), label = "shade")
+        // Щойно сторінка зрушила — тінь: інакше постери проїжджали під пігулками меню (меню тепер вище, 72 dp).
+        val shade by animateFloatAsState(if (down || scroll.value > 0) 1f else 0f, tween(300), label = "shade")
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(75.dp)
+                .height(84.dp)
                 .graphicsLayer { alpha = shade }
-                .background(Brush.verticalGradient(0.8f to LikhtarColors.Background, 1f to LikhtarColors.Background.copy(alpha = 0f))),
+                .background(Brush.verticalGradient(0.82f to LikhtarColors.Background, 1f to LikhtarColors.Background.copy(alpha = 0f))),
         )
     }
 }
@@ -433,7 +547,7 @@ internal fun LikhtarikPage(
 private fun Label(text: String) {
     Text(
         text,
-        style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.sp),
+        style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp),
         color = LikhtarColors.TextDim,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -443,7 +557,7 @@ private fun Label(text: String) {
 
 /** .chip прототипу: 58 px, поле 26 px, 23 px / 600; вибрана — світліша з бурштиновою цяткою. */
 @Composable
-private fun PillChip(
+internal fun PillChip(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -496,109 +610,6 @@ private fun PillChip(
 }
 
 /**
- * .spot: банер найкращого збігу чи поради — кадр праворуч (72 %, center 25 %), текст на
- * графіті: підпис, знак (чужомовний — з назвою Oswald), мета моно, «чому» з паличкою, опис;
- * «Відкрити» — у правому нижньому куті.
- */
-@Composable
-private fun Spot(
-    item: CatalogItem,
-    kicker: String,
-    meta: String,
-    why: String,
-    overview: String,
-    onOpen: () -> Unit,
-    onLongClick: () -> Unit,
-    openFocus: FocusRequester?,
-    modifier: Modifier = Modifier,
-) {
-    Box(modifier.clip(RoundedCornerShape(12.dp)).background(LikhtarColors.BackgroundDeep)) {
-        AnimatedContent(
-            targetState = item,
-            transitionSpec = { fadeIn(tween(300, delayMillis = 160)) togetherWith fadeOut(tween(160)) },
-            contentKey = { it.id },
-            label = "spot",
-            modifier = Modifier.fillMaxSize(),
-        ) { shown ->
-            Box(Modifier.fillMaxSize()) {
-                // Кадр — на весь банер, текст лягає на градієнт.
-                Box(Modifier.fillMaxSize()) {
-                    AsyncImage(
-                        model = TmdbImages.backdrop(shown.backdropPath) ?: TmdbImages.poster(shown.posterPath),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        alignment = BiasAlignment(0f, -0.5f),
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                    Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to LikhtarColors.BackgroundDeep.copy(alpha = 0.96f), 0.38f to LikhtarColors.BackgroundDeep.copy(alpha = 0.72f), 0.72f to LikhtarColors.BackgroundDeep.copy(alpha = 0f))))
-                }
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                    modifier = Modifier.padding(start = 24.dp, top = 18.dp, bottom = 16.dp).width(470.dp),
-                ) {
-                    Text(kicker, style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp), color = LikhtarColors.TextDim)
-                    val logo = shown.logoPath?.let { TmdbImages.logo(it) ?: it }
-                    if (logo != null) {
-                        AsyncImage(
-                            model = logo,
-                            contentDescription = shown.title,
-                            contentScale = ContentScale.Fit,
-                            alignment = Alignment.CenterStart,
-                            modifier = Modifier.widthIn(max = 280.dp).height(56.dp),
-                        )
-                    }
-                    if (logo == null || TmdbImages.needsLocalTitle(shown.logoPath, shown.title)) {
-                        Text(
-                            shown.title,
-                            style = TextStyle(fontFamily = LikhtarType.Poster, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, lineHeight = 24.sp, letterSpacing = 0.15.sp),
-                            color = Color.White,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    Text(meta, style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 11.sp), color = LikhtarColors.TextDim, maxLines = 1)
-                    if (why.isNotBlank()) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(painterResource(DsR.drawable.ic_solar_magic), null, tint = LikhtarColors.Glow, modifier = Modifier.size(14.dp))
-                            Text(
-                                why,
-                                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 17.sp),
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                    if (overview.isNotBlank()) {
-                        Text(
-                            overview,
-                            style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 12.5.sp, lineHeight = 17.5.sp),
-                            color = LikhtarColors.TextPrimary.copy(alpha = 0.86f),
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.width(440.dp),
-                        )
-                    }
-                }
-            }
-        }
-        ProtoButton(
-            label = stringResource(R.string.search_open),
-            onClick = onOpen,
-            onLongClick = onLongClick,
-            height = 33.dp,
-            padding = 15.dp,
-            fontSize = 12.sp,
-            iconSize = 14.dp,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 17.dp, bottom = 15.dp)
-                .then(if (openFocus != null) Modifier.focusRequester(openFocus) else Modifier),
-        )
-    }
-}
-
-/**
  * Ряд порад (.rows): заголовок 28 px, рядок «чому» з паличкою, постери 160 px з оцінкою;
  * групи («Серіали») — за тонкою рискою з підписом над першою карткою.
  */
@@ -626,7 +637,7 @@ private fun PicksRail(
             if ((line ?: hint).isNotBlank()) Icon(painterResource(DsR.drawable.ic_solar_magic), null, tint = LikhtarColors.Glow, modifier = Modifier.size(11.dp))
             Text(
                 line ?: hint,
-                style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.sp),
+                style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp),
                 color = if (line != null) LikhtarColors.TextPrimary else LikhtarColors.TextDim,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -643,7 +654,7 @@ private fun PicksRail(
                     Column {
                         // .sublabel: над першою карткою групи, 21 px приглушено.
                         Box(Modifier.height(if (groups.any { it.first != null }) 17.dp else 0.dp)) {
-                            if (i == 0 && label != null) Text(label, style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 10.5.sp), color = LikhtarColors.TextDim, maxLines = 1)
+                            if (i == 0 && label != null) Text(label, style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp), color = LikhtarColors.TextDim, maxLines = 1)
                         }
                         CatalogPosterCard(
                             title = item.title,
@@ -671,7 +682,7 @@ private fun FoldSection(title: String, hint: String, modifier: Modifier = Modifi
         if (hint.isNotBlank()) {
             Text(
                 hint,
-                style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 10.5.sp),
+                style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp),
                 color = LikhtarColors.TextDim,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -711,7 +722,7 @@ private fun PosterRow(
 }
 
 @Composable
-private fun formatLabel(f: WatchFormat): String = stringResource(
+internal fun formatLabel(f: WatchFormat): String = stringResource(
     when (f) {
         WatchFormat.MOVIE -> R.string.search_format_movie
         WatchFormat.TV -> R.string.search_format_tv
@@ -723,7 +734,7 @@ private fun formatLabel(f: WatchFormat): String = stringResource(
 )
 
 @Composable
-private fun moodLabel(m: WatchMood): String = stringResource(
+internal fun moodLabel(m: WatchMood): String = stringResource(
     when (m) {
         WatchMood.LIGHT -> R.string.search_mood_light
         WatchMood.TENSE -> R.string.search_mood_tense
@@ -802,3 +813,68 @@ private fun spotMeta(item: CatalogItem, candidate: Candidate?): String {
     return listOfNotNull(head, rating).joinToString(" · ")
 }
 
+
+
+/** Під назвою секції гри: де ти в раунді дня або чим він скінчився. */
+@Composable
+private fun gameHint(game: com.likhtar.home.feature.cinema.TriviaUi): String {
+    val d = game.day
+    return when {
+        game.inRound -> stringResource(com.likhtar.home.feature.cinema.R.string.trivia_round, (d.answers.size + if (game.answered != null) 0 else 1).coerceAtMost(d.round.size), d.round.size)
+        d.done -> listOf(
+            stringResource(com.likhtar.home.feature.cinema.R.string.trivia_done, d.score, d.round.size),
+            stringResource(com.likhtar.home.feature.cinema.R.string.trivia_streak, d.streak),
+            stringResource(com.likhtar.home.feature.cinema.R.string.trivia_done_line),
+        ).joinToString(" · ")
+        else -> ""
+    }
+}
+
+/** Гра дня: твердження зліва, кадр тайтла справа — як герой, але карткою в стрічці. */
+@Composable
+private fun GameCard(
+    game: com.likhtar.home.feature.cinema.TriviaUi,
+    statement: com.likhtar.home.core.catalog.TriviaStatement,
+    onAnswer: (Boolean) -> Unit,
+    onNext: () -> Unit,
+    onOpen: () -> Unit,
+) {
+    val focus = remember { FocusRequester() }
+    Box(
+        Modifier.padding(top = 10.dp, end = LikhtarDimens.ScreenPadding).fillMaxWidth().height(250.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(LikhtarColors.Surface)
+            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp)),
+    ) {
+        coil3.compose.AsyncImage(
+            model = com.likhtar.home.core.catalog.TmdbImages.hero(statement.item.backdropPath),
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(0.62f),
+        )
+        Box(
+            Modifier.matchParentSize().background(
+                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    // Кадр починається на 38 %: до нього тло суцільне, далі гасне — без шва на краю картинки.
+                    0.4f to LikhtarColors.BackgroundDeep,
+                    0.6f to LikhtarColors.BackgroundDeep.copy(alpha = 0.6f),
+                    0.85f to LikhtarColors.BackgroundDeep.copy(alpha = 0f),
+                ),
+            ),
+        )
+        com.likhtar.home.feature.cinema.TriviaPanel(
+            statement = statement,
+            answered = game.answered,
+            kicker = gameHint(game).ifBlank { stringResource(com.likhtar.home.feature.cinema.R.string.trivia_kicker) },
+            onAnswer = onAnswer,
+            nextLabel = stringResource(
+                if (game.inRound && game.day.answers.size < game.day.round.size) com.likhtar.home.feature.cinema.R.string.trivia_next
+                else com.likhtar.home.feature.cinema.R.string.trivia_more,
+            ),
+            onNext = onNext,
+            onOpen = onOpen,
+            firstFocus = focus,
+            modifier = Modifier.align(Alignment.CenterStart).padding(start = 26.dp),
+        )
+    }
+}

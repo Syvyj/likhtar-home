@@ -15,13 +15,17 @@ class LikhtarStreams @Inject constructor() {
 
     suspend fun streams(item: CatalogItem, season: Int? = null): List<StreamOption> = emptyList()
 
-    fun ownTorrentServer(): String? = null
+    fun hasOwnServer(): Boolean = false
 
-    suspend fun warmOnOwn(streamUrl: String): Boolean = false
+    fun warmableRef(streamUrl: String): String? = null
 
-    suspend fun coldTorrents(item: CatalogItem, known: Set<String>): List<StreamOption> = emptyList()
+    fun isWarmable(ref: String, name: String?, source: String?): Boolean = false
 
-    suspend fun torrentStat(ref: String): TorrentStat? = null
+    suspend fun warmOnOwn(streamUrl: String): OwnWarm = OwnWarm(ready = false)
+
+    suspend fun coldSources(item: CatalogItem, known: Set<String>): List<StreamOption> = emptyList()
+
+    suspend fun sourceStat(ref: String): SourceStat? = null
 
     suspend fun prepare(streamUrl: String, waitSeconds: Int = 0): Readiness = Readiness.UNKNOWN
 

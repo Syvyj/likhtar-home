@@ -25,11 +25,26 @@ class LikhtarApplication : Application(), SingletonImageLoader.Factory {
 
     @Inject lateinit var programmeReminders: ProgrammeReminderAlarms
 
+    @Inject lateinit var cloudCatalog: com.likhtar.home.core.data.cloud.CloudCatalogRepository
+    @Inject lateinit var keyService: com.likhtar.home.core.data.KeyServiceRestore
+    @Inject lateinit var nowPlaying: com.likhtar.home.nowplaying.NowPlayingSessions
+    @Inject lateinit var notificationFeed: com.likhtar.home.nowplaying.NotificationFeedStore
+
     override fun onCreate() {
         super.onCreate()
         installCrashSafetyNet()
         homeTakeover.watch()
         programmeReminders.watch()
+        // «Що грає»: доступ до сесій фоном, підписка — на головному потоці.
+        runCatching { nowPlaying.start() }
+        // Панель сповіщень: лише якщо ввімкнена в Налаштуваннях — тоді служба-слухач лишається прив'язаною.
+        runCatching { notificationFeed.start() }
+        // Служба кнопок: «Зупинити примусово» (чи запуск зі Studio) вимикає службу доступності
+        // пакета, а зупинений застосунок до наступного старту не чує нічого. Повертаємо тут.
+        // runCatching: будь-який збій тут не має валити домашній екран на старті.
+        Thread { runCatching { keyService.restoreIfDropped() }.onFailure { android.util.Log.w("LikhtarKeys", "відновлення служби", it) } }.start()
+        // Хмарні ігри: раз на добу у фоні, за хвилину після старту — не в перший кадр.
+        cloudCatalog.refreshInBackground(delayMs = 60_000)
         // HTTP-кеш на диску для всіх запитів лаунчера, за їхніми ж Cache-Control. Android вбиває
         // лаунчер, поки працює плеєр чи YouTube, і кеш у пам'яті гинув разом із ним: Кінозал
         // після повернення знову йшов по ~25 запитів і 2–3 с стояв порожній. Шлюз віддає TMDB

@@ -37,6 +37,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import com.likhtar.home.core.designsystem.touchFocusable
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
@@ -80,9 +83,17 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
+import androidx.compose.runtime.CompositionLocalProvider
 import com.likhtar.home.core.designsystem.FocusRing
+import com.likhtar.home.core.designsystem.LocalReduceMotion
+import com.likhtar.home.core.designsystem.NoBringIntoView
+import com.likhtar.home.core.designsystem.PIN_TOLERANCE_PX
 import com.likhtar.home.core.designsystem.ProtoCardCorner
 import com.likhtar.home.core.designsystem.focusGlow
+import com.likhtar.home.core.designsystem.glideBy
+import kotlin.math.abs
 
 /**
  * Друга сцена сторінки серіалу.
@@ -90,7 +101,7 @@ import com.likhtar.home.core.designsystem.focusGlow
  * Її не кладемо нижче hero у спільний список: на TV користувач сприймає ↓ як перехід
  * на інший екран. Тому тут немає ані назви, ані опису з першої сцени — лише сезон і серії.
  */
-@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 internal fun EpisodesScene(
     details: TitleDetails,
@@ -244,19 +255,27 @@ internal fun EpisodesScene(
                         .takeIf { it >= 0 && state.season == state.resumeSeason }?.plus(lead)
                         ?: if (state.episodes.isNotEmpty()) lead else 0
                     var cursor by remember(state.season, rows, resumeRow) { mutableStateOf(resumeRow) }
+                    val reduceMotion = LocalReduceMotion.current
                     val anchorPx = with(androidx.compose.ui.platform.LocalDensity.current) { 30.dp.roundToPx() }
                     LaunchedEffect(cursor, state.episodes.size, state.recap == null, refocus) {
                         if (state.recap != null) return@LaunchedEffect
                         // [data-scroll="60"]: рядок у фокусі — на 60 px від верху панелі, вище
                         // лишається попередня серія. Сезони — коли курсор на них — угорі.
-                        val offset = if (cursor == 0) 0 else -anchorPx
+                        val targetOffset = if (cursor == 0) 0 else anchorPx
                         val row = episodeRail.layoutInfo.visibleItemsInfo.firstOrNull { it.index == cursor }
                         if (row == null) {
-                            episodeRail.scrollToItem(cursor, offset)
+                            episodeRail.scrollToItem(cursor, -targetOffset)
                             cursorFocus.requestAfterFrame()
                         } else {
                             cursorFocus.requestAfterFrame()
-                            if (row.offset != -offset) episodeRail.animateScrollToItem(cursor, offset)
+                            val delta = row.offset - targetOffset
+                            if (abs(delta) > PIN_TOLERANCE_PX) {
+                                if (reduceMotion) {
+                                    episodeRail.scrollToItem(cursor, -targetOffset)
+                                } else {
+                                    episodeRail.glideBy(delta.toFloat())
+                                }
+                            }
                         }
                     }
                     val move: (Int) -> Boolean = { step ->
@@ -268,6 +287,9 @@ internal fun EpisodesScene(
                             false
                         }
                     }
+                    // Як в інших вертикальних колонках: вимикаємо системний BringIntoView,
+                    // щоб фокус не боровся з нашим плавним glideBy (LikhtarGlide).
+                    CompositionLocalProvider(LocalBringIntoViewSpec provides NoBringIntoView) {
                     LazyColumn(
                         state = episodeRail,
                         contentPadding = PaddingValues(start = LikhtarDimens.ScreenPadding, end = LikhtarDimens.ScreenPadding, bottom = 300.dp),
@@ -327,6 +349,7 @@ internal fun EpisodesScene(
                                 onMove = move,
                             )
                         }
+                    }
                     }
                 }
 
@@ -418,10 +441,13 @@ internal fun ProtoTabsRow(
     tabModifier: (TitleTab) -> Modifier = { Modifier },
     onClick: ((TitleTab) -> Unit)? = null,
     onExitUp: () -> Unit = {},
+    /** Лише дотик, без фокуса: ряд, що визирає з першої сцени, — тап відкриває вкладку. */
+    onTap: ((TitleTab) -> Unit)? = null,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = modifier) {
         tabs.forEach { entry ->
             var focused by remember { mutableStateOf(false) }
+            val tapFocus = remember { androidx.compose.ui.focus.FocusRequester() }
             val on = entry == active
             Box(
                 modifier = tabModifier(entry)
@@ -433,7 +459,8 @@ internal fun ProtoTabsRow(
                                 focused = it.isFocused
                                 if (it.isFocused && entry != active) onClick(entry)
                             }
-                            .focusable()
+                            // Дотик: тап ставить фокус, а фокус уже перемикає вкладку.
+                            .touchFocusable(tapFocus)
                             .onKeyEvent { event ->
                                 if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
                                 when (event.key) {
@@ -442,6 +469,11 @@ internal fun ProtoTabsRow(
                                     else -> false
                                 }
                             },
+                    )
+                    .then(
+                        if (onTap == null) Modifier else Modifier.pointerInput(entry) {
+                            detectTapGestures(onTap = { onTap(entry) })
+                        },
                     )
                     .clip(RoundedCornerShape(LikhtarDimens.CornerPill))
                     .background(if (focused) LikhtarColors.Paper else Color.Transparent)
@@ -538,7 +570,7 @@ private fun SeasonPill(
             if (count > 0) {
                 Text(
                     pluralStringResource(R.plurals.cinema_episodes_count, count, count),
-                    style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Mono, fontWeight = FontWeight.Medium, fontSize = 9.sp),
+                    style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Mono, fontWeight = FontWeight.Medium, fontSize = 11.5.sp),
                     color = if (focused) LikhtarColors.AmberMuted else LikhtarColors.TextDim,
                     maxLines = 1,
                 )
@@ -755,7 +787,7 @@ private fun RecapRow(
                 )
                 Text(
                     text = stringResource(if (video) R.string.cinema_recap_video else R.string.cinema_recap_text),
-                    style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.sp),
+                    style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp),
                     color = LikhtarColors.TextDim,
                 )
             }
@@ -913,7 +945,7 @@ private fun StudioCard(studio: com.likhtar.home.core.catalog.StudioRef, onClick:
 @Composable
 private fun DetailFact(label: String, value: String) {
     Column {
-        Text(label, style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontSize = 10.sp), color = LikhtarColors.TextDim, maxLines = 1)
+        Text(label, style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp), color = LikhtarColors.TextDim, maxLines = 1)
         Text(
             value,
             style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
@@ -950,7 +982,7 @@ private fun PersonCard(person: com.likhtar.home.core.catalog.CastMember) {
         Column(Modifier.align(Alignment.BottomStart).padding(start = 8.dp, end = 8.dp, bottom = 7.dp)) {
             Text(
                 person.name,
-                style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 10.5.sp, lineHeight = 11.5.sp),
+                style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, lineHeight = 12.5.sp),
                 color = Color.White,
                 maxLines = 2,
             )

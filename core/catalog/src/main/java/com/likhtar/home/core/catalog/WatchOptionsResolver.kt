@@ -36,6 +36,8 @@ class WatchOptionsResolver @Inject constructor(
     fun resolve(
         details: TitleDetails,
         resolved: List<ResolvedOption> = emptyList(),
+        /** Сторінки тайтлу з Wikidata ([WikidataLinks]) — для сервісів, яким сервер посилання не дав. */
+        direct: Map<com.likhtar.home.core.model.StreamingService, String> = emptyMap(),
     ): List<WatchOption> {
         val item = details.item
         val options = mutableListOf<WatchOption>()
@@ -101,7 +103,14 @@ class WatchOptionsResolver @Inject constructor(
                 return@forEach
             }
             if (!used.add(pkg)) return@forEach
-            options += searchOrOpen(target, item.searchQuery, pkg)
+            options += direct[service]?.let { url ->
+                WatchOption(
+                    label = context.getString(R.string.catalog_watch_in, service.title),
+                    service = service.title,
+                    kind = WatchOption.OptionKind.DIRECT,
+                    launch = LaunchAction(packageName = pkg, uri = url),
+                )
+            } ?: searchOrOpen(target, item.searchQuery, pkg)
         }
 
         // 4) Універсальні шукачі, які не залежать від providers: якщо стоять — завжди корисні.

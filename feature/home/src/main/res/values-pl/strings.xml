@@ -1,5 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_all_apps">Wszystkie aplikacje</string>
+    <string name="home_my_home">Mój dom</string>
+    <string name="home_likhtar_sections">Od Lichtara</string>
+    <string name="home_apps_and_sections">Moje aplikacje i sekcje</string>
+    <string name="home_all_devices">Wszystkie urządzenia</string>
+    <string name="home_close_panel">Zamknij</string>
+    <string name="home_smart_subtitle">Twój dom pod ręką</string>
+    <string name="home_smart_temp_title">TEMPERATURA W DOMU</string>
+    <string name="home_quick_settings">Szybkie ustawienia</string>
+    <string name="home_all_settings">Wszystkie ustawienia</string>
+    <string name="home_desktop_subtitle">Układ ekranu głównego</string>
+    <string name="home_rows_group">UKŁAD GŁÓWNEJ</string>
+    <string name="home_extra_rows_group">WIĘCEJ RZĘDÓW</string>
+    <string name="home_row_position_group">WYSOKOŚĆ RZĘDÓW</string>
+    <string name="home_row_position_top">U góry</string>
+    <string name="home_row_position_middle">Pośrodku</string>
+    <string name="home_row_position_bottom">Na dole</string>
+    <string name="home_row_position_minimal">Minimum</string>
+    <string name="home_row_position_hint">← → zmienia wysokość</string>
+    <string name="home_layout_mode">Układ</string>
+    <string name="home_layout_two_rows">Dwa rzędy</string>
+    <string name="home_layout_one_row">Jeden rząd</string>
+    <string name="home_row_move">Przenieś rząd</string>
+    <string name="home_row_move_up">Przenieś rząd wyżej ↑</string>
+    <string name="home_row_move_down">Przenieś rząd niżej ↓</string>
+    <string name="home_row_hide">Ukryj rząd</string>
+    <string name="home_row_show_apps">Pokaż rząd „Moje aplikacje”</string>
+    <string name="home_restore_hidden_apps">Przywróć ukryte aplikacje</string>
+    <string name="home_app_move">Przesuń</string>
+    <string name="home_app_open">Otwórz</string>
+    <string name="home_app_move_left">Przesuń w lewo ←</string>
+    <string name="home_app_move_right">Przesuń w prawo →</string>
+    <string name="home_app_hide">Ukryj</string>
+    <string name="home_likhtar_permanent_note">Rzędu „Od Lichtara” nie można ukryć</string>
     <string name="home_tile_live_tv">Na żywo</string>
     <string name="home_tile_search">Szukaj</string>
     <string name="home_ua_arrived_title">Już po ukraińsku: %1$s</string>
@@ -69,4 +103,5 @@
     </string-array>
     <string name="home_support">Wesprzyj autora</string>
     <string name="home_update">Aktualizacja %1$s</string>
+    <string name="home_devices">Urządzenia</string>
 </resources>

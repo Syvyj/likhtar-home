@@ -1,5 +1,10 @@
 package com.likhtar.home.feature.cinema
 
+import com.likhtar.home.core.designsystem.RailRestore
+import com.likhtar.home.core.designsystem.leave
+import com.likhtar.home.core.designsystem.returnPoint
+import com.likhtar.home.core.designsystem.ScrollRailTo
+
 import androidx.compose.ui.res.stringResource
 import com.likhtar.home.core.designsystem.CatalogPosterCard
 import com.likhtar.home.core.designsystem.cardSlot
@@ -68,6 +73,7 @@ internal fun CollectionRail(
     title: String,
     items: List<CatalogItem>,
     /** [CatalogItem.id] переглянутого — галочка в кутку картки. */
+    modifier: Modifier = Modifier,
     watched: Set<String> = emptySet(),
     /**
      * Позиції з підтвердженою українською доріжкою; `null` — цей ряд про озвучку не
@@ -119,7 +125,6 @@ internal fun CollectionRail(
     /** Ширина горизонтальної картки; `null` — типова [CatalogBannerWidth]. Сторінка всесвіту рахує її від ширини екрана. */
     cardWidth: Dp? = null,
     gap: Dp = LikhtarDimens.RailGap,
-    modifier: Modifier = Modifier,
 ) {
     // Без «Відкрити всі» за рядом нічого немає — показуємо все, що є (сторінки добірок).
     val shown = if (onOpenAll != null) items.take(RAIL_ITEMS) else items
@@ -338,8 +343,10 @@ internal fun TopTenRail(
                 var lit by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
                 val glow by androidx.compose.animation.animateColorAsState(if (lit) LikhtarColors.Glow else LikhtarColors.Background, androidx.compose.animation.core.tween(250), label = "num")
                 val stroke by androidx.compose.animation.animateColorAsState(if (lit) LikhtarColors.Glow else LikhtarColors.Paper.copy(alpha = 0.32f), androidx.compose.animation.core.tween(250), label = "stroke")
+                // Цифра прив'язана до постера, а не до всієї картки з підписом: низ цифри — урівень із
+                // низом постера, і підпис у фокусі її не зсуває й на неї не лягає.
                 androidx.compose.foundation.layout.Row(
-                    verticalAlignment = Alignment.Bottom,
+                    verticalAlignment = Alignment.Top,
                     modifier = Modifier.cardSlot(),
                 ) {
                     // .num: 700 300 px / .74, −.08em, margin-right −46 px; контур 3 px.
@@ -355,10 +362,12 @@ internal fun TopTenRail(
                     androidx.compose.foundation.layout.Box(
                         Modifier
                             .layout { measurable, constraints ->
-                                val p = measurable.measure(constraints)
-                                layout(p.width - 23.dp.roundToPx(), p.height) { p.place(0, 0) }
-                            }
-                            .offset(y = 41.dp),
+                                val p = measurable.measure(constraints.copy(minHeight = 0, maxHeight = androidx.compose.ui.unit.Constraints.Infinity))
+                                val posterH = com.likhtar.home.core.designsystem.PosterHeight.roundToPx()
+                                // Висота слота — висота постера; цифра стоїть низом на низ постера (з її нижнім вильотом).
+                                // Поруч із постером, без нахлесту: збільшена у фокусі картка закривала цифру («1» — шматком).
+                                layout(p.width + 6.dp.roundToPx(), posterH) { p.place(0, posterH - p.height + 30.dp.roundToPx()) }
+                            },
                     ) {
                         Text(
                             "${index + 1}",

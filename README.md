@@ -2,7 +2,7 @@
 
 # Likhtar Home
 
-A calm home screen for Android TV and Google TV. Your apps and films close at hand, without the noise.
+A calm home screen for Android TV and Google TV. Your films, games and apps close at hand, without the noise.
 
 [Explore features ↓](#make-yourself-at-home) · [How to install ↓](#install) · [Українська](README.uk.md) · [Website](https://likhtar.syvyj.dev/)
 
@@ -10,19 +10,19 @@ Android TV / Google TV · Android 7.0+ · GPL-3.0
 
 ## Make yourself at home
 
-<table><tr><td width="50%"><img src="docs/screenshots/1920x1080/06-likhtaryk.png" alt="Likhtaryk — what to watch tonight?"></td><td width="50%"><strong>Likhtaryk — what to watch tonight?</strong><br><br>Choose a format and mood to get film and series picks, skipping what you have watched. You can optionally connect your own AI.</td></tr></table>
+<table><tr><td width="50%"><img src="docs/screenshots/1920x1080/06-likhtaryk.png" alt="Likhtaryk — your shows and tonight's pick"></td><td width="50%"><strong>Likhtaryk — your shows and tonight's pick</strong><br><br>Follows the series you watch: new episodes, what airs this week and a full calendar. Choose a format and mood to get picks for tonight; you can connect your own AI.</td></tr></table>
 
-<table><tr><td width="50%"><strong>Cinema and your streaming services</strong><br><br>Explore new releases, genres and streaming catalogues; open the title in its own app.</td><td width="50%"><img src="docs/screenshots/1920x1080/02-cinema-hero.png" alt="Cinema and your streaming services"></td></tr></table>
+<table><tr><td width="50%"><strong>Cinema and your streaming services</strong><br><br>Explore new releases, mood rows and streaming catalogues; one press opens the title itself in its own app.</td><td width="50%"><img src="docs/screenshots/1920x1080/02-cinema-hero.png" alt="Cinema and your streaming services"></td></tr></table>
 
-<table><tr><td width="50%"><img src="docs/screenshots/1920x1080/08-title.png" alt="Films and your libraries"></td><td width="50%"><strong>Films and your libraries</strong><br><br>Bring your Jellyfin and Plex libraries and synced Continue watching; DLNA and SMB are supported too.</td></tr></table>
+<table><tr><td width="50%"><img src="docs/screenshots/1920x1080/18-games.png" alt="Where to play, not only what to watch"></td><td width="50%"><strong>Where to play, not only what to watch</strong><br><br>2,900+ Boosteroid, GeForce NOW and Xbox Cloud games with a page for each: where it streams, from which store, co-op and gamepad support. Your ROMs sit in the same rows through RetroArch.</td></tr></table>
 
-<table><tr><td width="50%"><strong>Live TV from your playlist</strong><br><br>Add M3U and XMLTV to see channels, groups and the programme guide on your TV.</td><td width="50%"><img src="docs/screenshots/1920x1080/09-live-tv.png" alt="Live TV from your playlist"></td></tr></table>
+<table><tr><td width="50%"><strong>Films and your libraries</strong><br><br>Bring your Jellyfin and Plex libraries and synced Continue watching; DLNA and SMB are supported too.</td><td width="50%"><img src="docs/screenshots/1920x1080/08-title.png" alt="Films and your libraries"></td></tr></table>
 
-<table><tr><td width="50%"><img src="docs/screenshots/1920x1080/16-smart-home.png" alt="Smart home from the sofa"></td><td width="50%"><strong>Smart home from the sofa</strong><br><br>Control your Home Assistant rooms and devices with the remote or your own voice assistant.</td></tr></table>
+<table><tr><td width="50%"><img src="docs/screenshots/1920x1080/09-live-tv.png" alt="Live TV from your playlist"></td><td width="50%"><strong>Live TV from your playlist</strong><br><br>Add M3U and XMLTV to see channels, groups and the programme guide on your TV.</td></tr></table>
 
-<table><tr><td width="50%"><strong>Your phone does the typing</strong><br><br>Scan a QR code to arrange sections, enter passwords and addresses, or send files and links.</td><td width="50%"><img src="docs/screenshots/1920x1080/15-from-phone-qr.png" alt="Your phone does the typing"></td></tr></table>
+<table><tr><td width="50%"><strong>Smart home from the sofa</strong><br><br>Control your Home Assistant rooms and devices with the remote or your own voice assistant.</td><td width="50%"><img src="docs/screenshots/1920x1080/16-smart-home.png" alt="Smart home from the sofa"></td></tr></table>
 
-<table><tr><td width="50%"><img src="docs/screenshots/1920x1080/18-games.png" alt="Games and apps"></td><td width="50%"><strong>Games and apps</strong><br><br>Cloud gaming services and your own ROMs through RetroArch; group, hide, pin or lock apps. Games are off by default.</td></tr></table>
+<table><tr><td width="50%"><img src="docs/screenshots/1920x1080/15-from-phone-qr.png" alt="Your phone does the typing"></td><td width="50%"><strong>Your phone does the typing</strong><br><br>Scan a QR code to arrange sections, enter passwords and addresses, or send files and links.</td></tr></table>
 
 [All features and screenshots →](docs/features.md)
 
@@ -51,7 +51,7 @@ classic way.
 |---|---|
 | Just try it | Install it and open it like any app. Nothing on the TV changes. |
 | Make it your home screen | Press *Make Likhtar your home screen* inside the app. One confirmation on the TV, no computer. |
-| Go back to stock | *Settings → Remote and startup → Bring back the stock home screen.* One button. |
+| Go back to stock | *Settings → Home → HOME button → Bring back the stock home screen.* One button. |
 
 Requires Android TV or Google TV 7.0 or newer; the UI is laid out for 1080p and scales to 720p and
 4K. The devices we have tested are [listed below](#tested-on). How a TV lets another app become the
@@ -67,7 +67,7 @@ Becoming the home screen on Google TV is the scary part, so here is exactly what
   (`127.0.0.1`), so no computer and no cable are needed. You approve it once on screen.
 - **Your Wi-Fi is checked first.** If a saved network belongs to an app that would be disabled, Likhtar
   refuses to continue — disabling it could forget your Wi-Fi.
-- **One button back.** *Settings → Remote and startup → Bring back the stock home screen* re-enables
+- **One button back.** *Settings → Home → HOME button → Bring back the stock home screen* re-enables
   everything in the reverse order.
 - **A crash safety net.** If Likhtar crashes three times within five minutes, it tries to give the
   home screen back to the stock launcher by itself. It covers the usual crash loop, not every
@@ -153,7 +153,7 @@ settings are never touched.
 
 **Do I have to leave USB debugging on?** Only if you want that automatic fix after updates. Turn it
 off and Likhtar stays your home screen; after an update you would press *Make it the home screen*
-again (Settings → Remote and startup).
+again (Settings → Home → HOME button).
 
 **How do I play my own games?** See [docs/games.md](docs/games.md). Likhtar does not include or download any games.
 

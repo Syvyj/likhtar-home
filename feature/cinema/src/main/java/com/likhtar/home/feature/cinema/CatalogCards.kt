@@ -99,7 +99,10 @@ fun CatalogTileCard(
     modifier: Modifier = Modifier,
     subtitle: String = "",
     brand: StreamingBrand? = null,
+    /** Пакет застосунку сервісу: встановлений — плитка показує його оригінальний TV-банер. */
+    packageName: String? = null,
 ) {
+    val artwork = packageName?.let { com.likhtar.home.core.designsystem.rememberAppArtwork(it, "") }?.takeIf { it.banner }
     FocusableSurface(
         onClick = onClick,
         // Один розмір для всіх плиток: плитка з wordmark і текстова («Всі стрімінги»,
@@ -107,8 +110,9 @@ fun CatalogTileCard(
         // .svc прототипу: 228×102 px, тло #171513 з тонкою рамкою; фокус — тепла біла
         // заливка, 1.07 і тепла тінь.
         modifier = modifier
-            .width(114.dp)
-            .height(51.dp)
+            // Більші плитки 16:9 — під оригінальні банери сервісів.
+            .width(160.dp)
+            .height(90.dp)
             .focusGlow(ProtoCardCorner),
         shape = RoundedCornerShape(ProtoCardCorner),
         background = LikhtarColors.TileFloor,
@@ -117,7 +121,14 @@ fun CatalogTileCard(
         focusedScale = LikhtarDimens.CardFocusScale,
         instantFill = true,
     ) { focused ->
-        if (brand != null) {
+        if (artwork != null) {
+            androidx.compose.foundation.Image(
+                bitmap = artwork.image,
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else if (brand != null) {
             StreamingBrandMark(
                 brand = brand,
                 subtitle = subtitle,
@@ -133,7 +144,7 @@ fun CatalogTileCard(
             ) {
                 Text(
                     text = title,
-                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 11.sp, lineHeight = 11.sp, letterSpacing = (-0.22).sp),
+                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, lineHeight = 12.5.sp, letterSpacing = (-0.22).sp),
                     color = if (focused) LikhtarColors.Background else Color.White,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -142,7 +153,7 @@ fun CatalogTileCard(
                 if (subtitle.isNotBlank()) {
                     Text(
                         text = subtitle,
-                        style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Medium, fontSize = 8.5.sp),
+                        style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Medium, fontSize = 11.5.sp),
                         color = if (focused) LikhtarColors.InkOnPaper else LikhtarColors.TextDim,
                         maxLines = 1,
                         modifier = Modifier.padding(top = 3.dp),
@@ -398,17 +409,13 @@ fun CatalogBannerCard(
                 NoteBadge(text = note, modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp))
             }
             if (watched) {
-                Text(
+                com.likhtar.home.core.designsystem.OutlineBadge(
                     text = "✓",
-                    style = LikhtarType.MonoSmall,
-                    color = LikhtarColors.OnAccent,
+                    filled = true,
                     modifier = Modifier
                         // Верхній правий кут зайнятий підписом — галочка тоді внизу.
                         .align(if (order != null || !note.isNullOrBlank()) Alignment.BottomEnd else Alignment.TopEnd)
-                        .padding(6.dp)
-                        .clip(RoundedCornerShape(LikhtarDimens.CornerPill))
-                        .background(LikhtarColors.Accent)
-                        .padding(horizontal = 5.dp, vertical = 1.dp),
+                        .padding(6.dp),
                 )
             }
             FocusRing(focused, ProtoCardCorner)

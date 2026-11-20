@@ -101,11 +101,11 @@ main > section.name { padding-top: clamp(56px, 9vh, 96px); padding-bottom: 0; }
 
 /* The real thing: three screens right after the hero */
 .product { padding-top: clamp(56px, 8vh, 96px); }
-.product-row { max-width: var(--max); margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.product-row { max-width: var(--max); margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .frame { margin: 0; }
 .frame img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 14px; box-shadow: 0 0 0 1px var(--line), 0 30px 70px -30px rgba(0, 0, 0, .85); transition: transform .4s var(--ease), box-shadow .4s var(--ease); }
 .frame:hover img { transform: translateY(-4px); box-shadow: 0 0 0 1px rgba(232, 194, 122, .5), 0 30px 70px -25px rgba(255, 210, 122, .35); }
-.frame:nth-child(2) { transform: translateY(28px); }
+.frame:nth-child(even) { transform: translateY(28px); }
 .frame figcaption { margin-top: 14px; font-size: 15px; color: var(--muted); }
 .frame figcaption b { display: block; color: var(--paper); font-size: 17px; margin-bottom: 2px; }
 
@@ -176,7 +176,7 @@ main > section.name { padding-top: clamp(56px, 9vh, 96px); padding-bottom: 0; }
 .privacy-grid p { color: var(--muted); }
 
 /* How it grew */
-.timeline { list-style: none; margin: 0 auto; padding: 0; max-width: var(--max); display: grid; grid-template-columns: repeat(6, 1fr); position: relative; }
+.timeline { list-style: none; margin: 0 auto; padding: 0; max-width: var(--max); display: grid; grid-template-columns: repeat(7, 1fr); position: relative; }
 .timeline::before { content: ""; position: absolute; left: 0; right: 0; top: 9px; height: 2px; background: var(--line); }
 .timeline::after { content: ""; position: absolute; left: 0; top: 9px; height: 2px; width: var(--grow, 100%); background: linear-gradient(90deg, var(--amber), var(--glow)); box-shadow: 0 0 16px rgba(255, 210, 122, .6); }
 .timeline li { position: relative; padding: 36px 16px 0 0; }
@@ -218,11 +218,13 @@ main > section.name { padding-top: clamp(56px, 9vh, 96px); padding-bottom: 0; }
 .split .w > span { display: inline-block; }
 
 /* Small screens */
+@media (max-width: 1200px) and (min-width: 961px) { .product-row { grid-template-columns: repeat(2, 1fr); row-gap: 48px; } }
+
 @media (max-width: 960px) {
   .nav nav { display: none; }
   .ai, .support { grid-template-columns: 1fr; }
   .product-row { grid-template-columns: 1fr; gap: 28px; }
-  .frame:nth-child(2) { transform: none; }
+  .frame:nth-child(even) { transform: none; }
   .steps, .privacy-grid { grid-template-columns: 1fr; }
   .timeline { grid-template-columns: 1fr; gap: 26px; padding-left: 30px; }
   .timeline::before, .timeline::after { left: 7px; right: auto; top: 0; bottom: 0; width: 2px; height: auto; }

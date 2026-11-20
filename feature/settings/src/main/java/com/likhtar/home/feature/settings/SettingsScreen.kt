@@ -1,6 +1,19 @@
 package com.likhtar.home.feature.settings
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.BringIntoViewSpec
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import com.likhtar.home.core.designsystem.PhoneQrDialog
+import com.likhtar.home.core.designsystem.LikhtarIcons
+import com.likhtar.home.core.designsystem.clockTime
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -67,7 +80,8 @@ import com.likhtar.home.core.designsystem.TextInputDialog
 import com.likhtar.home.core.designsystem.rememberInitialFocusRequester
 import com.likhtar.home.core.model.LikhtarSection
 import com.likhtar.home.feature.settings.sections.HomeSection
-import com.likhtar.home.feature.settings.sections.WallpaperSection
+import com.likhtar.home.feature.settings.sections.BackdropSection
+import com.likhtar.home.feature.settings.sections.MediaLibraryGroup
 import com.likhtar.home.feature.settings.sections.WatchSection
 import com.likhtar.home.feature.settings.sections.TvSection
 import com.likhtar.home.feature.settings.sections.ProfilesSection
@@ -103,6 +117,7 @@ fun SettingsScreen(
     val detailFocusRequester = remember { FocusRequester() }
     // Куди повертає ← з правої панелі: на рядок відкритого розділу, а не на перший у списку.
     val activeSectionFocusRequester = remember { FocusRequester() }
+    val focusScope = androidx.compose.runtime.rememberCoroutineScope()
     val hadTextPrompt = remember { mutableStateOf(false) }
     LaunchedEffect(state.textPrompt) {
         if (state.textPrompt != null) {
@@ -113,61 +128,114 @@ fun SettingsScreen(
         }
     }
 
-    // Єдиний екран лаунчера з власним суцільним фоном. Решта розділів навмисно
-    // прозорі — під ними спільні шпалери. Але тут читають URL-и, токени й назви
-    // країн, і читабельність не має залежати від того, яке фото випало в ротації:
-    // сіре скло на 54% альфи над світлим кадром з'їдає другорядний текст цілком.
+    var clock by remember { mutableStateOf(clockTime()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(15_000L)
+            clock = clockTime()
+        }
+    }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    val nearestBringIntoView = remember { object : BringIntoViewSpec {} }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    CompositionLocalProvider(LocalBringIntoViewSpec provides nearestBringIntoView) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            // Прототип: рівний графіт сторінки.
             .background(LikhtarColors.Background),
     ) {
-        LikhtarScreenScaffold(
-            section = LikhtarSection.SETTINGS,
-            onSelectSection = onSelectSection,
-            menuFocusRequester = menuFocusRequester,
-            contentFocusRequester = firstSectionFocusRequester,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 50.dp, vertical = 24.dp),
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(start = LikhtarDimens.ScreenPadding, end = LikhtarDimens.ScreenPadding, top = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(32.dp),
+                    .fillMaxWidth()
+                    .padding(bottom = 22.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Обидві колонки прокручуються: розділів десять, а в панелі «Шпалери»
-                // або «Телебачення» рядків буває більше двадцяти — без прокрутки все,
-                // що не влізло, було просто недосяжне з пульта.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    LikhtarIcons.Lantern(size = 24.dp)
+                    Text(
+                        text = "LIKHTAR HOME",
+                        style = TextStyle(
+                            fontFamily = LikhtarType.Body,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            letterSpacing = 0.6.sp,
+                        ),
+                        color = LikhtarColors.GlassActive,
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Text(
+                        text = clock,
+                        style = TextStyle(
+                            fontFamily = LikhtarType.Body,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 15.sp,
+                        ),
+                        color = LikhtarColors.WarmStone,
+                    )
+                    HomeBackButton(
+                        text = "← " + stringResource(LikhtarSection.HOME.titleRes),
+                        onClick = { onSelectSection(LikhtarSection.HOME) },
+                        modifier = Modifier
+                            .focusRequester(menuFocusRequester)
+                            .focusDirections { down = firstSectionFocusRequester },
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(38.dp),
+            ) {
                 Column(
                     modifier = Modifier
-                        .width(200.dp)
+                        .width(264.dp)
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    // .nav h1: 40 px / 600, −.02em.
                     Text(
                         text = stringResource(LikhtarSection.SETTINGS.titleRes),
-                        style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, letterSpacing = (-0.4).sp),
-                        color = Color.White,
-                        modifier = Modifier.padding(start = 11.dp, bottom = 11.dp),
+                        style = TextStyle(
+                            fontFamily = LikhtarType.Body,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 28.sp,
+                            letterSpacing = (-0.8).sp,
+                        ),
+                        color = LikhtarColors.GlassActive,
+                        modifier = Modifier.padding(start = 10.dp, bottom = 14.dp),
                     )
-                    // Системні налаштування — не розділ LIKHTAR, а вихід із нього; стоять
-                    // першими на вимогу замовника.
                     SystemSettingsRow(
+                        glyph = "⚙",
+                        trailing = "↗",
                         onClick = { openSystemSettings(context, viewModel) },
-                        // ↑ з першого рядка списку веде в меню — тепер це саме цей рядок.
                         modifier = Modifier
-                            .padding(bottom = 2.dp)
-                            .focusDirections { up = menuFocusRequester },
+                            .padding(bottom = 4.dp)
+                            .focusDirections { up = menuFocusRequester; right = detailFocusRequester },
                     )
-                    // «З телефона» — поруч із системним виходом: довге набирати не пультом.
                     val phoneUrl by viewModel.phoneUrl.collectAsStateWithLifecycle()
                     val phoneOpen by viewModel.phoneOpen.collectAsStateWithLifecycle()
                     SystemSettingsRow(
                         title = stringResource(R.string.settings_phone),
                         subtitle = stringResource(R.string.settings_phone_subtitle),
-                        icon = com.likhtar.home.core.designsystem.R.drawable.ic_solar_phone,
+                        glyph = "▣",
+                        trailing = "›",
                         onClick = viewModel::openPhone,
-                        modifier = Modifier.padding(bottom = 9.dp),
+                        modifier = Modifier
+                            .padding(bottom = 4.dp)
+                            .focusDirections { right = detailFocusRequester },
                     )
                     if (phoneOpen) {
                         val status by viewModel.phoneSetup.status.collectAsStateWithLifecycle()
@@ -185,22 +253,23 @@ fun SettingsScreen(
                         )
                     }
 
-                    // «Зʼєднання» — для всіх: там медіатека (DLNA/SMB), а її ховало від не-українців.
-                    // Початковий фокус — на розділі, з яким відкрили (ТВ Ефір → «ТВ»), інакше на першому.
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp, vertical = 9.dp)
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(LikhtarColors.GlassDivider),
+                    )
+
                     val initialSection = remember { state.section }
                     SettingsSection.entries.forEach { section ->
                         SectionRow(
                             section = section,
                             active = section == state.section,
-                            // Розділ перемикається на фокус, а не на OK: інакше ліворуч
-                            // підсвічено одне, а праворуч показано інше, і зрозуміти, що
-                            // саме зараз редагуєш, неможливо.
                             onFocus = { viewModel.selectSection(section) },
-                            onClick = { runCatching { detailFocusRequester.requestFocus() } },
+                            onClick = { focusScope.launch { androidx.compose.runtime.withFrameNanos { }; runCatching { detailFocusRequester.requestFocus() } } },
                             modifier = Modifier
-                                .padding(bottom = 2.dp)
-                                // → веде на ПЕРШИЙ рядок панелі. Без цього платформа шукає
-                                // геометрично найближчий вузол і кидала на третій.
+                                .padding(bottom = 3.dp)
                                 .focusDirections { right = detailFocusRequester }
                                 .then(
                                     if (section == state.section) {
@@ -211,9 +280,6 @@ fun SettingsScreen(
                                 )
                                 .then(
                                     if (section == initialSection) {
-                                        // Початковий фокус — саме тут, а не на системному
-                                        // рядку: перше, на що стає курсор, не має бути
-                                        // виходом із лаунчера.
                                         Modifier.focusRequester(firstSectionFocusRequester)
                                     } else {
                                         Modifier
@@ -262,6 +328,7 @@ fun SettingsScreen(
             )
         }
     }
+    }
 }
 
 private fun openSystemSettings(context: Context, viewModel: SettingsViewModel) {
@@ -273,13 +340,119 @@ private fun openSystemSettings(context: Context, viewModel: SettingsViewModel) {
     }
 }
 
+@Composable
+private fun HomeBackButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val corner = 99.dp
+    FocusableSurface(
+        onClick = onClick,
+        modifier = modifier
+            .onFocusChanged { focused = it.isFocused }
+            .drawWithContent {
+                drawContent()
+                if (focused) {
+                    val strokeWidth = 1.5.dp.toPx()
+                    val gap = 1.5.dp.toPx()
+                    val outset = gap + strokeWidth / 2f
+                    drawRoundRect(
+                        color = LikhtarColors.GlassActive,
+                        topLeft = Offset(-outset, -outset),
+                        size = Size(size.width + 2 * outset, size.height + 2 * outset),
+                        cornerRadius = CornerRadius(corner.toPx() + outset),
+                        style = Stroke(width = strokeWidth),
+                    )
+                }
+            },
+        shape = RoundedCornerShape(corner),
+        background = LikhtarColors.SurfaceAlt,
+        focusedBackground = LikhtarColors.Border,
+        borderColor = Color.White.copy(alpha = 0.11f),
+        focusRingColor = Color.Transparent,
+        focusedScale = 1f,
+        instantFill = true,
+    ) {
+        Text(
+            text = text,
+            style = TextStyle(
+                fontFamily = LikhtarType.Body,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+            ),
+            color = LikhtarColors.GlassActive,
+            modifier = Modifier.padding(horizontal = 15.dp, vertical = 8.dp),
+        )
+    }
+}
+
+private fun SettingsSection.glyph(): String = when (this) {
+    SettingsSection.HOME -> "⌂"
+    SettingsSection.BACKDROP -> "◩"
+    SettingsSection.WATCH -> "▶"
+    SettingsSection.TV -> "▣"
+    SettingsSection.MEDIA -> "▤"
+    SettingsSection.SMART_HOME -> "◉"
+    SettingsSection.PROFILES -> "♙"
+    SettingsSection.STARTUP -> "◎"
+    SettingsSection.CONNECTIONS -> "⌁"
+    SettingsSection.ABOUT -> "ⓘ"
+}
+
 /**
- * Розділ ліворуч (.sec прототипу): назва 27 px / 600 і підпис 19 px; фокус — тепла біла
- * пігулка; розділ, у якому працюєш, — тихе тло .08 (вогник зліва прибрано: зайвий).
+ * Розділ ліворуч (.side у likhtar-settings-modern.html): іконка 34×34 у квадраті #49433a,
+ * назва й підпис, стрілка › праворуч. Активний — #49433a, у фокусі — #fffaf2 з темним текстом.
  */
 @Composable
 private fun SectionRow(
     section: SettingsSection,
+    active: Boolean,
+    onFocus: () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SidebarRow(
+        title = stringResource(section.title),
+        subtitle = section.summary?.let { stringResource(it) } ?: "Home Assistant",
+        glyph = section.glyph(),
+        trailing = "›",
+        active = active,
+        onFocus = onFocus,
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+/** Спеціальні рядки вгорі сайдбару: «Android TV ↗» та «З телефона ›». */
+@Composable
+private fun SystemSettingsRow(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    title: String = stringResource(R.string.settings_system_title),
+    subtitle: String = stringResource(R.string.settings_system_summary),
+    glyph: String = "⚙",
+    trailing: String = "↗",
+) {
+    SidebarRow(
+        title = title,
+        subtitle = subtitle,
+        glyph = glyph,
+        trailing = trailing,
+        active = false,
+        onFocus = {},
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun SidebarRow(
+    title: String,
+    subtitle: String,
+    glyph: String,
+    trailing: String,
     active: Boolean,
     onFocus: () -> Unit,
     onClick: () -> Unit,
@@ -291,75 +464,74 @@ private fun SectionRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .onFocusChanged { if (it.isFocused) onFocus() },
-            shape = RoundedCornerShape(11.dp),
-            background = if (active) LikhtarColors.Paper.copy(alpha = 0.08f) else Color.Transparent,
-            focusedBackground = LikhtarColors.Paper,
+            shape = RoundedCornerShape(12.dp),
+            background = if (active) LikhtarColors.BorderStrong else Color.Transparent,
+            focusedBackground = LikhtarColors.GlassActive,
             borderColor = Color.Transparent,
             focusRingColor = Color.Transparent,
             focusedScale = 1f,
             instantFill = true,
         ) { focused ->
-            Column(modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 13.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(13.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (focused) LikhtarColors.WarmInkBright else LikhtarColors.BorderStrong),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = glyph,
+                        style = TextStyle(
+                            fontFamily = LikhtarType.Body,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                        ),
+                        color = if (focused) LikhtarColors.AmberOnPaper else LikhtarColors.LanternAmber,
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = TextStyle(
+                            fontFamily = LikhtarType.Body,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            lineHeight = 17.sp,
+                        ),
+                        color = if (focused) LikhtarColors.OnGlassActive else LikhtarColors.GlassActive,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = subtitle,
+                        style = TextStyle(
+                            fontFamily = LikhtarType.Body,
+                            fontSize = 11.5.sp,
+                            lineHeight = 13.sp,
+                        ),
+                        color = if (focused) LikhtarColors.InkOnPaper else LikhtarColors.WarmMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
                 Text(
-                    text = stringResource(section.title),
-                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, lineHeight = 16.2.sp),
-                    color = if (focused) LikhtarColors.Background else Color.White,
-                )
-                Text(
-                    // Без перекладу лише назва продукту.
-                    text = section.summary?.let { stringResource(it) } ?: "Home Assistant",
-                    style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 9.5.sp, lineHeight = 12.8.sp),
-                    color = if (focused) LikhtarColors.InkOnPaper else LikhtarColors.TextDim,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    text = trailing,
+                    style = TextStyle(
+                        fontFamily = LikhtarType.Body,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 15.sp,
+                    ),
+                    color = if (focused) LikhtarColors.OnGlassActive else LikhtarColors.GlassActive,
                 )
             }
-        }
-    }
-}
-
-/** «Налаштування Android TV ↗» (.sec.sys): системний вихід — менше й зі значком нового вікна. */
-@Composable
-private fun SystemSettingsRow(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    title: String = stringResource(R.string.settings_system_title),
-    subtitle: String = stringResource(R.string.settings_system_summary),
-    icon: Int = com.likhtar.home.core.designsystem.R.drawable.ic_solar_square_top_up,
-) {
-    FocusableSurface(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(11.dp),
-        background = Color.Transparent,
-        focusedBackground = LikhtarColors.Paper,
-        borderColor = Color.Transparent,
-        focusRingColor = Color.Transparent,
-        focusedScale = 1f,
-        instantFill = true,
-    ) { focused ->
-        Column(modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = title,
-                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
-                    color = if (focused) LikhtarColors.Background else Color.White,
-                    maxLines = 1,
-                )
-                androidx.tv.material3.Icon(
-                    androidx.compose.ui.res.painterResource(icon),
-                    null,
-                    tint = if (focused) LikhtarColors.InkOnPaper else LikhtarColors.TextDim,
-                    modifier = Modifier.size(13.dp),
-                )
-            }
-            Text(
-                text = subtitle,
-                style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 9.5.sp),
-                color = if (focused) LikhtarColors.InkOnPaper else LikhtarColors.TextDim,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }
@@ -372,48 +544,43 @@ private fun SectionDetail(
     detailFocusRequester: FocusRequester,
     backFocusRequester: FocusRequester,
 ) {
-    // focusGroup + requester на колонці: запит фокуса на групу веде на її ПЕРШИЙ рядок,
-    // хоч би скільки їх було в розділі. Тримати requester на самому рядку не вийшло б —
-    // склад панелі в кожного розділу свій.
-    // ← з панелі повертає в список. focusProperties на самій групі не працює — вихід
-    // ліворуч шукається від конкретного рядка, тому напрямок роздається рядкам через
-    // LocalDetailExit. Інакше фокус просто зникав: ліворуч від рядка стоїть заголовок
-    // розділу, а він не фокусований.
     CompositionLocalProvider(LocalDetailExit provides backFocusRequester) {
     Column(
         modifier = Modifier
             .focusRequester(detailFocusRequester)
             .focusGroup()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(androidx.compose.runtime.key(state.section) { rememberScrollState() })
+            .padding(horizontal = 4.dp, vertical = 4.dp),
     ) {
-        // .pane .head: назва розділу 40 px / 600 і підпис 22 px; далі список.
         Text(
             text = stringResource(state.section.title),
-            style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, letterSpacing = (-0.4).sp),
-            color = Color.White,
+            style = TextStyle(
+                fontFamily = LikhtarType.Body,
+                fontWeight = FontWeight.Bold,
+                fontSize = 30.sp,
+                letterSpacing = (-1.0).sp,
+            ),
+            color = LikhtarColors.GlassActive,
         )
         Text(
-            text = state.section.summary?.let { stringResource(it) } ?: "Home Assistant",
-            style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.sp),
-            color = LikhtarColors.TextDim,
-            modifier = Modifier.padding(top = 3.dp, bottom = 12.dp),
+            text = state.section.summary?.let { stringResource(it) }.orEmpty(),
+            style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 13.5.sp),
+            color = LikhtarColors.WarmMuted,
+            modifier = Modifier.padding(top = 4.dp, bottom = 20.dp),
         )
 
         when (state.section) {
-            // Шість розділів замість дев'яти: шпалери — частина Головної,
-            // Home Assistant — одне з підключень.
-            SettingsSection.HOME -> {
-                HomeSection(state, viewModel, editedRowFocusRequester)
-                WallpaperSection(state, viewModel)
-            }
+            // Розкладка розділів — як була: шпалери, медіатека й пульт — окремими
+            // розділами, а не хвостами «Головної», «Перегляду» й «Профілів».
+            SettingsSection.HOME -> HomeSection(state, viewModel, editedRowFocusRequester)
+            SettingsSection.BACKDROP -> BackdropSection(state, viewModel)
             SettingsSection.WATCH -> WatchSection(state, viewModel)
+            SettingsSection.MEDIA -> MediaLibraryGroup(viewModel.media)
             SettingsSection.TV -> TvSection(state, viewModel, editedRowFocusRequester)
+            SettingsSection.SMART_HOME -> SmartHomeSection(state, viewModel, editedRowFocusRequester)
             SettingsSection.PROFILES -> ProfilesSection(state, viewModel)
             SettingsSection.STARTUP -> StartupSection(state, viewModel)
-            SettingsSection.CONNECTIONS -> {
-                ConnectionsSection(state, viewModel, editedRowFocusRequester)
-                SmartHomeSection(state, viewModel, editedRowFocusRequester)
-            }
+            SettingsSection.CONNECTIONS -> ConnectionsSection(state, viewModel, editedRowFocusRequester)
             SettingsSection.ABOUT -> com.likhtar.home.feature.settings.sections.AboutSection(viewModel.appUpdate)
         }
 
@@ -473,7 +640,7 @@ private fun SavedNotice(settings: LikhtarSettings, message: String?, modifier: M
             )
             Text(
                 text = shown.orEmpty(),
-                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Medium, fontSize = 11.sp),
+                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Medium, fontSize = 11.5.sp),
                 color = LikhtarColors.TextPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

@@ -48,7 +48,7 @@ data class RealitySection(
  * було нуль: TMDB не має відповіді на питання «що з цього можна ввімкнути тут», тож ми
  * платили запитами за вибірку, яку самі ж викидали.
  *
- * Сервер знає всі чотири джерела одразу — свої роздачі, портали мовників, ютуб і
+ * Сервер знає усі джерела одразу — портали мовників, ютуб і
  * сервіси, — і віддає ряд уже придатним. Клієнту лишається рівно те, чого сервер знати не
  * може: обкладинки й сторінки порталів (вони живуть у їхніх власних ручках) і те, що
  * встановлено на цій приставці.
@@ -59,6 +59,8 @@ class RealityRows @Inject constructor(
     private val catalog: CatalogRepository,
     private val teleportal: TeleportalClient,
     private val sectionRows: SectionRowsRepository,
+    private val resolver: com.likhtar.home.core.catalog.ResolverClient,
+    private val apps: com.likhtar.home.core.data.AppsRepository,
 ) {
 
     /** Велика обкладинка проєкту за id позиції. `null` — ще не питали або її немає. */
@@ -78,6 +80,14 @@ class RealityRows @Inject constructor(
 
     @Volatile
     private var cachedAt = 0L
+
+    /** D2: розділ, чиї свіжі ряди сервера щойно підмінили знімок з диска. */
+    val fresh: kotlinx.coroutines.flow.SharedFlow<String> get() = sectionRows.fresh
+
+    /** Свіжі ряди сервера (D2) — наступний [rows] збирає наново. */
+    fun invalidate() {
+        cachedAt = 0L
+    }
 
     /**
      * Розкладка розділу з терміном життя, а не на весь процес.
@@ -136,6 +146,15 @@ class RealityRows @Inject constructor(
             kind == "tmdb" -> onTitle(card)
             else -> external(card)
         }
+    }
+
+    /**
+     * Позиція без нашої сторінки (ютуб-плейлист, сервіс) — вмикаємо там, де вона лежить: сервер
+     * віддає діплінк (`/api/watch`), клієнт лише вибирає встановлений застосунок. `false` — нема чим.
+     */
+    suspend fun launchElsewhere(card: CatalogItem): Boolean {
+        val options = runCatching { resolver.watch(card) }.getOrDefault(emptyList())
+        return options.any { option -> option.packages.any { apps.launchIntentUri(option.deeplink, it) } }
     }
 
     /** Плитки внизу розділу: сервіси й мовники, чиє це насправді. */

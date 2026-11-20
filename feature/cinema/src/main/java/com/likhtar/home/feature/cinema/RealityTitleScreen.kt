@@ -2,6 +2,17 @@ package com.likhtar.home.feature.cinema
 
 import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +32,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -40,6 +53,8 @@ import com.likhtar.home.core.designsystem.LanternLoaderScreen
 import com.likhtar.home.core.designsystem.LikhtarColors
 import com.likhtar.home.core.designsystem.LikhtarDimens
 import com.likhtar.home.core.designsystem.LikhtarType
+import com.likhtar.home.core.designsystem.LocalFocusBlocked
+import com.likhtar.home.core.designsystem.LocalReduceMotion
 import com.likhtar.home.core.designsystem.rememberInitialFocusRequester
 import com.likhtar.home.core.designsystem.requestAfterFrame
 import kotlinx.coroutines.launch
@@ -49,7 +64,7 @@ import kotlinx.coroutines.launch
  *
  * Обидві сцени тут не свої: шапка — `PosterHead`, випуски — `EpisodesScene`, обидві з
  * `TitleScreen`. Різниця лише в даних і в трьох підписах («шоу» замість «серіал», назва
- * сезону замість номера, «Дивитись» без озвучок), бо озвучок і торентів у Телепорталу
+ * сезону замість номера, «Дивитись» без озвучок), бо озвучок і варіантів у Телепорталу
  * немає — він віддає готовий потік.
  */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -72,7 +87,7 @@ fun RealityTitleScreen(viewModel: RealityTitleViewModel = hiltViewModel()) {
             // На саму серію ставить курсор сцени серій (EpisodesScene, resumeRow).
             if (openedIndex == null) runCatching { seasonFocus.requestFocus() }
         } else {
-            runCatching { firstActionFocus.requestFocus() }
+            firstActionFocus.requestAfterFrame()
         }
     }
     // Повернення з YouTube — фокус на щойно відкриту серію, а не туди, куди його поставить
@@ -85,10 +100,21 @@ fun RealityTitleScreen(viewModel: RealityTitleViewModel = hiltViewModel()) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        val reduceMotion = LocalReduceMotion.current
         val backdrop = TmdbImages.backdrop(details?.item?.backdropPath)
         // Як на сторінці тайтла (прототип): той самий кадр, на сцені серій — графіт .9.
         HeroBackdrop(imageUri = backdrop, tone = HeroBackdropTone.Detail)
-        if (viewingEpisodes) Box(Modifier.fillMaxSize().background(com.likhtar.home.core.designsystem.LikhtarColors.BackgroundDeep.copy(alpha = 0.9f)))
+        val dim by animateFloatAsState(
+            if (viewingEpisodes) 1f else 0f,
+            tween(if (reduceMotion) 0 else 400),
+            label = "realityDim",
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = dim }
+                .background(com.likhtar.home.core.designsystem.LikhtarColors.BackgroundDeep.copy(alpha = 0.9f)),
+        )
 
         if (details == null) {
             if (state.loading) {
@@ -105,75 +131,97 @@ fun RealityTitleScreen(viewModel: RealityTitleViewModel = hiltViewModel()) {
             return@Box
         }
 
-        if (!viewingEpisodes) {
-            Box(modifier = Modifier.fillMaxSize().padding(horizontal = HeroPadding)) {
-                PosterHead(
-                    details = details,
-                    mainLabel = stringResource(R.string.cinema_watch_plain), // знак ліхтаря вже на кнопці
-                    // Лише головна дія: озвучок, сервісів і списку для шоу Телепорталу
-                    // немає — потік у нього один, і він свій.
-                    actionsOrder = listOf(TitleActions.PLAY, TitleActions.SERVICES),
-                    appOptions = state.services + listOfNotNull(state.youtube),
-                    inWatchlist = false,
-                    playFocus = firstActionFocus,
-                    onPlay = {
-                        if (state.seasons.isEmpty() && !state.youtubeEpisodes) viewModel.watchMain() else viewingEpisodes = true
-                    },
-                    // Позиції Реаліті озвучок не мають: у порталів і ютубу доріжка одна.
-                    onPick = {},
-                    onWatchlist = {},
-                    onOpenFranchise = {},
-                    onOpenElsewhere = viewModel::openYoutube,
-                    kindLabel = stringResource(if (state.serial) R.string.cinema_kind_series else R.string.cinema_kind_show),
-                    // Портали й YouTube мовників — українське за самим джерелом; доказом
-                    // стоїть мовник, як сервіс на сторінці тайтла: «UA · СТБ».
-                    uaAudio = true,
-                    uaProof = listOfNotNull(state.channel.takeIf { it.isNotBlank() }),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .onKeyEvent { event ->
-                            if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
-                                viewingEpisodes = true
-                                true
-                            } else {
-                                false
-                            }
-                        },
-                )
+        AnimatedContent(
+            targetState = viewingEpisodes,
+            transitionSpec = {
+                if (reduceMotion) {
+                    EnterTransition.None togetherWith ExitTransition.None
+                } else {
+                    val enter = fadeIn(tween(260)) + slideInVertically(tween(280, easing = FastOutSlowInEasing)) {
+                        if (targetState) it / 18 else -it / 18
+                    }
+                    val exit = fadeOut(tween(160)) + slideOutVertically(tween(180, easing = FastOutSlowInEasing)) {
+                        if (targetState) -it / 24 else it / 24
+                    }
+                    enter togetherWith exit
+                }
+            },
+            label = "realityTitleScene",
+        ) { isEpisodes ->
+            CompositionLocalProvider(LocalFocusBlocked provides (isEpisodes != viewingEpisodes)) {
+                if (!isEpisodes) {
+                    Box(modifier = Modifier.fillMaxSize().padding(horizontal = HeroPadding)) {
+                        PosterHead(
+                            // Дотик по вкладці, що визирає знизу, — та сама друга сцена, що й ↓.
+                            onPeekTab = { viewingEpisodes = true },
+                            details = details,
+                            mainLabel = stringResource(R.string.cinema_watch_plain), // знак ліхтаря вже на кнопці
+                            // Лише головна дія: озвучок, сервісів і списку для шоу Телепорталу
+                            // немає — потік у нього один, і він свій.
+                            actionsOrder = listOf(TitleActions.PLAY, TitleActions.SERVICES),
+                            appOptions = state.services + listOfNotNull(state.youtube),
+                            inWatchlist = false,
+                            playFocus = firstActionFocus,
+                            onPlay = {
+                                if (state.seasons.isEmpty() && !state.youtubeEpisodes) viewModel.watchMain() else viewingEpisodes = true
+                            },
+                            // Позиції Реаліті озвучок не мають: у порталів і ютубу доріжка одна.
+                            onPick = {},
+                            onWatchlist = {},
+                            onOpenFranchise = {},
+                            onOpenElsewhere = viewModel::openYoutube,
+                            kindLabel = stringResource(if (state.serial) R.string.cinema_kind_series else R.string.cinema_kind_show),
+                            // Портали й YouTube мовників — українське за самим джерелом; доказом
+                            // стоїть мовник, як сервіс на сторінці тайтла: «UA · СТБ».
+                            uaAudio = true,
+                            uaProof = listOfNotNull(state.channel.takeIf { it.isNotBlank() }),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .onKeyEvent { event ->
+                                    if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
+                                        viewingEpisodes = true
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                },
+                        )
+                    }
+                } else {
+                    EpisodesScene(
+                        details = details,
+                        // Друга сцена читає стан Кінозалу — віддаємо їй рівно ті два поля, які в
+                        // неї є сенс: обраний сезон і його випуски. Решта (озвучки, таймкоди,
+                        // франшиза) для шоу Телепорталу не існує, і порожні значення тут чесні.
+                        state = TitleUiState(
+                            loading = false, season = state.season, episodes = state.episodes,
+                            resumeSeason = state.resumeSeason, resumeEpisode = state.resumeEpisode,
+                        ),
+                        firstSeasonFocus = seasonFocus,
+                        resumeEpisodeFocus = episodeFocus,
+                        episodeRail = episodeRail,
+                        onExit = { viewingEpisodes = false },
+                        onSeason = viewModel::showSeason,
+                        onEpisode = viewModel::watch,
+                        onVideo = {},
+                        onOpenTitle = {},
+                        onFranchiseParts = {},
+                        seasonLabel = viewModel::seasonLabel,
+                        // Номер випуску вже стоїть у його назві, а дату має кожен випуск — саме
+                        // за нею шоу й дивляться.
+                        episodeNumbers = false,
+                        episodeDates = true,
+                        // Логотипів у шоу Телепорталу немає — вгорі завжди назва текстом, і їй
+                        // потрібна не третина екрана, а більшість рядка.
+                        titleWidth = 0.7f,
+                        // Опис Телепорталу — SEO-текст на кілька тисяч знаків: без стелі він
+                        // заливав увесь екран і все одно йшов за нижній край.
+                        overviewMaxLines = 14,
+                        castLabel = stringResource(R.string.cinema_hosts),
+                        channel = state.channel,
+                    )
+                }
             }
-        } else {
-            EpisodesScene(
-                details = details,
-                // Друга сцена читає стан Кінозалу — віддаємо їй рівно ті два поля, які в
-                // неї є сенс: обраний сезон і його випуски. Решта (озвучки, таймкоди,
-                // франшиза) для шоу Телепорталу не існує, і порожні значення тут чесні.
-                state = TitleUiState(
-                    loading = false, season = state.season, episodes = state.episodes,
-                    resumeSeason = state.resumeSeason, resumeEpisode = state.resumeEpisode,
-                ),
-                firstSeasonFocus = seasonFocus,
-                resumeEpisodeFocus = episodeFocus,
-                episodeRail = episodeRail,
-                onExit = { viewingEpisodes = false },
-                onSeason = viewModel::showSeason,
-                onEpisode = viewModel::watch,
-                onVideo = {},
-                onOpenTitle = {},
-                onFranchiseParts = {},
-                seasonLabel = viewModel::seasonLabel,
-                // Номер випуску вже стоїть у його назві, а дату має кожен випуск — саме
-                // за нею шоу й дивляться.
-                episodeNumbers = false,
-                episodeDates = true,
-                // Логотипів у шоу Телепорталу немає — вгорі завжди назва текстом, і їй
-                // потрібна не третина екрана, а більшість рядка.
-                titleWidth = 0.7f,
-                // Опис Телепорталу — SEO-текст на кілька тисяч знаків: без стелі він
-                // заливав увесь екран і все одно йшов за нижній край.
-                overviewMaxLines = 14,
-                castLabel = stringResource(R.string.cinema_hosts),
-                channel = state.channel,
-            )
         }
 
         state.nextUp?.let { next ->

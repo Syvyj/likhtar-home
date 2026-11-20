@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="cinema_prep_looking">Szukam źródła…</string>
+    <string name="cinema_prep_slow">Źródło jest za wolne dla tej jakości — szukam szybszego</string>
+    <string name="cinema_prep_measuring">Mierzę prędkość</string>
+    <string name="cinema_picker_more">Szukamy dalej…</string>
+    <string name="cinema_source_dead">To źródło nie odpowiada. Spróbuj innej pozycji z listy.</string>
+    <string name="cinema_prep_connecting">Łączę się ze źródłem</string>
+    <string name="cinema_prep_waiting">Czekam na pierwsze dane</string>
+    <plurals name="cinema_stat_links" tools:ignore="ImpliedQuantity">
+        <item quantity="one">połączenie</item>
+        <item quantity="few">połączenia</item>
+        <item quantity="many">połączeń</item>
+        <item quantity="other">połączenia</item>
+    </plurals>
+    <plurals name="cinema_stat_sources" tools:ignore="ImpliedQuantity">
+        <item quantity="one">źródło</item>
+        <item quantity="few">źródła</item>
+        <item quantity="many">źródeł</item>
+        <item quantity="other">źródła</item>
+    </plurals>
+    <plurals name="cinema_own_dead">
+        <item quantity="one">Źródło za wolne: %1$d połączenie, %2$s z %3$s Mbit/s. Wybierz inne</item>
+        <item quantity="few">Źródło za wolne: %1$d połączenia, %2$s z %3$s Mbit/s. Wybierz inne</item>
+        <item quantity="many">Źródło za wolne: %1$d połączeń, %2$s z %3$s Mbit/s. Wybierz inne</item>
+        <item quantity="other">Źródło za wolne: %1$d połączenia, %2$s z %3$s Mbit/s. Wybierz inne</item>
+    </plurals>
+</resources>

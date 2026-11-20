@@ -1,5 +1,6 @@
 package com.likhtar.home.feature.settings
 
+import com.likhtar.home.core.designsystem.tryFocus
 import androidx.compose.foundation.focusGroup
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
@@ -90,13 +91,14 @@ fun HomeLauncherOnboarding(
     }
 
     // Оверлей (є «Пізніше») — модальний, як майстер: головний екран під ним ставить свій
-    // фокус уже після нас, і кнопки лишались без фокуса.
-    var inside by remember { mutableStateOf(false) }
+    // фокус уже після нас, і кнопки лишались без фокуса (емулятор).
     if (onDismiss != null) {
+        // Чекаємо саме на свою кнопку, а не на будь-який фокус усередині: у бічній панелі
+        // налаштувань діалог сам ставив курсор на перший рядок — «Повернути стоковий екран»,
+        // і випадкове OK знімало Ліхтар із HOME.
         LaunchedEffect(Unit) {
             repeat(40) {
-                if (inside) return@repeat
-                runCatching { actionFocus.requestFocus() }
+                if (actionFocus.tryFocus()) return@LaunchedEffect
                 kotlinx.coroutines.delay(50)
             }
         }
@@ -107,7 +109,6 @@ fun HomeLauncherOnboarding(
             .then(
                 if (onDismiss != null) {
                     Modifier
-                        .onFocusChanged { inside = it.hasFocus }
                         .focusProperties { exit = { FocusRequester.Cancel } }
                         .focusGroup()
                 } else {

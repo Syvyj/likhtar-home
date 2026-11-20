@@ -19,10 +19,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.size
 import androidx.compose.animation.core.tween
+import com.likhtar.home.core.designsystem.LocalReduceMotion
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.runtime.rememberCoroutineScope
@@ -172,7 +182,7 @@ fun TitleScreen(
         runCatching { resumeEpisodeFocus.requestFocus() }
     }
     LaunchedEffect(viewingEpisodes) {
-        if (!viewingEpisodes) runCatching { firstActionFocus.requestFocus() }
+        if (!viewingEpisodes) firstActionFocus.requestAfterFrame()
     }
     // Поки йде підготовка, кнопки сторінки не фокусабельні (див. sceneBlocked), і фокус
     // з них падає. Після підготовки — чи то запуск плеєра, чи відмова — його треба
@@ -213,7 +223,12 @@ fun TitleScreen(
             stills = if (state.liveStills && !viewingEpisodes) details?.stills.orEmpty().mapNotNull(TmdbImages::backdrop) else emptyList(),
             parallax = { parallax },
         )
-        val dim by animateFloatAsState(if (viewingEpisodes) 1f else 0f, tween(400), label = "dim")
+        val reduceMotion = LocalReduceMotion.current
+        val dim by animateFloatAsState(
+            if (viewingEpisodes) 1f else 0f,
+            tween(if (reduceMotion) 0 else 400),
+            label = "dim",
+        )
         Box(Modifier.fillMaxSize().graphicsLayer { alpha = dim }.background(LikhtarColors.BackgroundDeep.copy(alpha = 0.9f)))
 
         if (details == null) {
@@ -232,30 +247,53 @@ fun TitleScreen(
             return@Box
         }
 
-        CompositionLocalProvider(LocalFocusBlocked provides sceneBlocked) {
-        if (!viewingEpisodes) {
-            // Перша сцена — тільки загальна інформація й дії. ↓ з будь-якої її дії
-            // відкриває самостійний екран серій, без частково видимого hero зверху.
-            // Поля ширші за загальні 32dp: текст і кнопки стоять просто на кадрі, і біля
-            // самого краю блок читався як приклеєний до рамки телевізора.
-            // Як в Apple TV: спершу фон, і лише потім плавно — усе інше.
-            // Тільки прозорість: зсув шару над вузлами фокуса ламає D-pad.
-            val reveal = remember(details.item.tmdbId) { Animatable(0f) }
-            LaunchedEffect(details.item.tmdbId) {
+        // Як в Apple TV: спершу фон, і лише потім плавно — усе інше.
+        // Тримаємо reveal поза AnimatedContent, щоб при поверненні з другої сцени не було подвійного fade.
+        val reveal = remember(details.item.tmdbId) { Animatable(if (reduceMotion) 1f else 0f) }
+        LaunchedEffect(details.item.tmdbId, reduceMotion) {
+            if (reduceMotion) {
+                reveal.snapTo(1f)
+            } else {
                 delay(RevealDelayMs)
                 reveal.animateTo(1f, tween(RevealMs))
             }
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { alpha = reveal.value }
-                    .onFocusedBoundsChanged { focused ->
-                        val root = focused?.findRootCoordinates() ?: return@onFocusedBoundsChanged
-                        val center = focused.boundsInRoot().center.x
-                        if (root.size.width > 0) focusX = center / root.size.width
+        }
+
+        AnimatedContent(
+            targetState = viewingEpisodes,
+            transitionSpec = {
+                if (reduceMotion) {
+                    EnterTransition.None togetherWith ExitTransition.None
+                } else {
+                    val enter = fadeIn(tween(260)) + slideInVertically(tween(280, easing = FastOutSlowInEasing)) {
+                        if (targetState) it / 18 else -it / 18
                     }
-                    .padding(horizontal = HeroPadding),
-            ) {
+                    val exit = fadeOut(tween(160)) + slideOutVertically(tween(180, easing = FastOutSlowInEasing)) {
+                        if (targetState) -it / 24 else it / 24
+                    }
+                    enter togetherWith exit
+                }
+            },
+            label = "titleScene",
+        ) { isEpisodes ->
+            CompositionLocalProvider(LocalFocusBlocked provides (sceneBlocked || isEpisodes != viewingEpisodes)) {
+                if (!isEpisodes) {
+                    // Перша сцена — тільки загальна інформація й дії. ↓ з будь-якої її дії
+                    // відкриває самостійний екран серій, без частково видимого hero зверху.
+                    // Поля ширші за загальні 32dp: текст і кнопки стоять просто на кадрі, і біля
+                    // самого краю блок читався як приклеєний до рамки телевізора.
+                    // Тільки прозорість: зсув шару над вузлами фокуса ламає D-pad.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { alpha = reveal.value }
+                            .onFocusedBoundsChanged { focused ->
+                                val root = focused?.findRootCoordinates() ?: return@onFocusedBoundsChanged
+                                val center = focused.boundsInRoot().center.x
+                                if (root.size.width > 0) focusX = center / root.size.width
+                            }
+                            .padding(horizontal = HeroPadding),
+                    ) {
                 PosterHead(
                     details = details,
                     mainLabel = mainActionLabel(details, state),
@@ -291,6 +329,7 @@ fun TitleScreen(
                         ?.takeIf { details.seasonNumbers.isNotEmpty() }
                         ?.let { ep -> TmdbImages.still(ep.stillPath) to (if (ep.hasOwnTitle) "${ep.number}. ${ep.title}" else ep.title) },
                     onOpenElsewhere = viewModel::open,
+                    onPeekTab = { tab -> episodesTab = tab; viewingEpisodes = true },
                     localLabel = stringResource(R.string.cinema_play_local).takeIf { localFiles.isNotEmpty() },
                     onLocal = { if (localFiles.size == 1) viewModel.playLocal(localFiles[0]) else pickingLocal = true },
                     modifier = Modifier
@@ -333,7 +372,7 @@ fun TitleScreen(
                         androidx.tv.material3.Icon(androidx.compose.ui.res.painterResource(com.likhtar.home.core.designsystem.R.drawable.ic_solar_arrow_up), null, tint = tint, modifier = Modifier.size(13.dp))
                         Text(
                             text = stringResource(R.string.cinema_trailer),
-                            style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 11.sp, letterSpacing = 0.22.sp),
+                            style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 11.5.sp, letterSpacing = 0.22.sp),
                             color = tint,
                         )
                         androidx.tv.material3.Icon(androidx.compose.ui.res.painterResource(com.likhtar.home.core.designsystem.R.drawable.ic_solar_arrow_up), null, tint = tint, modifier = Modifier.size(13.dp))
@@ -341,25 +380,26 @@ fun TitleScreen(
                 }
                 // «Чи варто?» на першій сцені більше не плашкою: у прототипі його кличе вогник на вкладці.
             }
-        } else {
-            EpisodesScene(
-                details = details,
-                state = state,
-                firstSeasonFocus = seasonFocus,
-                resumeEpisodeFocus = resumeEpisodeFocus,
-                episodeRail = episodeRail,
-                onExit = { viewingEpisodes = false },
-                onSeason = viewModel::showSeason,
-                onEpisode = viewModel::watchEpisode,
-                onVideo = viewModel::openVideo,
-                onOpenTitle = onOpenTitle,
-                onFranchiseParts = viewModel::loadFranchise,
-                onOpenStudio = onOpenStudio,
-                refocus = episodesRefocus,
-                onRecap = viewModel::openRecap,
-                startTab = episodesTab,
-            )
-        }
+                } else {
+                    EpisodesScene(
+                        details = details,
+                        state = state,
+                        firstSeasonFocus = seasonFocus,
+                        resumeEpisodeFocus = resumeEpisodeFocus,
+                        episodeRail = episodeRail,
+                        onExit = { viewingEpisodes = false },
+                        onSeason = viewModel::showSeason,
+                        onEpisode = viewModel::watchEpisode,
+                        onVideo = viewModel::openVideo,
+                        onOpenTitle = onOpenTitle,
+                        onFranchiseParts = viewModel::loadFranchise,
+                        onOpenStudio = onOpenStudio,
+                        refocus = episodesRefocus,
+                        onRecap = viewModel::openRecap,
+                        startTab = episodesTab,
+                    )
+                }
+            }
         }
 
         if (state.markPanel) details?.let { d ->
@@ -382,7 +422,7 @@ fun TitleScreen(
             RecapDialog(recap = recap, title = details?.item?.title.orEmpty(), onDismiss = viewModel::closeRecap)
         }
 
-        // Прогрів роздачі: без нього перші секунди торента плеєр стоїть чорним екраном.
+        // Підготовка джерела: без неї перші секунди плеєр стоїть чорним екраном.
         // Відсотків тут немає навмисно — сервер віддає прочитані байти, а це не позиція
         // у фільмі, і показувати їх користувачу немає сенсу.
         if (state.preparing) {
@@ -397,11 +437,12 @@ fun TitleScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     // Живий голос замість «Готуємо»: фрази міняються, поки сервер перебирає
-                    // роздачі — 15–20 секунд не лякають, коли видно, що щось відбувається.
+                    // варіанти — 15–20 секунд не лякають, коли видно, що щось відбувається.
                     val phrase = rememberPreparingPhrase(buffering = (state.preparingStat?.bufferShare ?: 0f) > 0f)
                     val note = state.preparingNote
-                        ?: (stringResource(R.string.cinema_prep_connecting) to stringResource(R.string.cinema_prep_waiting_peers))
-                    LanternLoader(title = phrase, subtitle = note.first)
+                        ?: (stringResource(R.string.cinema_prep_connecting) to stringResource(R.string.cinema_prep_waiting))
+                    // Одним блоком по центру (макет «Екрани очікування», B): ліхтар, фраза, значки, швидкість.
+                    LanternLoader(title = phrase, subtitle = note.first, lanternCentered = false)
                     ReleaseChips(note.second)
                     state.preparingStat?.let { stat -> PreparingStat(stat, needMbps(note.second)) }
                 }
@@ -419,6 +460,8 @@ fun TitleScreen(
                 onPlayOption = viewModel::playOption,
                 onBack = viewModel::back,
                 onSearch = viewModel::searchByName.takeIf { state.details?.scan?.known == false },
+                episodeName = state.episodes.takeIf { state.season == picker.season }
+                    ?.firstOrNull { it.number == picker.episode }?.title.orEmpty(),
             )
         }
 

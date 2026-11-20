@@ -104,4 +104,18 @@
     <string name="search_advisor_offline">Nie mogę teraz połączyć się z serwerem Likhtar. Sprawdź połączenie — propozycje pojawią się, gdy wróci.</string>
     <string name="search_query_placeholder_plain">Tytuł lub opis (OK — klawiatura)</string>
     <string name="search_hint_plain">Tytuł lub opis — „film o niebieskich kosmitach”. Przytrzymaj OK na karcie, aby dodać do zakładek.</string>
+    <string name="search_hero_new">Nowy odcinek · już jest</string>
+    <string name="search_hero_continue">Kontynuuj</string>
+    <string name="search_hero_advice">Dla ciebie dziś</string>
+    <string name="search_hero_episode">Sezon %1$d · Odcinek %2$d</string>
+    <string name="search_hero_new_line">Obserwujesz ten serial — wyszedł kolejny odcinek.</string>
+    <string name="search_hero_continue_line">Od miejsca, w którym przerwano.</string>
+    <string name="search_hero_play">Oglądaj S%1$dE%2$d</string>
+    <string name="search_hero_resume">Kontynuuj</string>
+    <string name="search_hero_all_episodes">Wszystkie odcinki</string>
+    <string name="search_hero_empty">Dodaj serial do zakładek — pojawią się tu jego nowe odcinki, plan tygodnia i porady.</string>
+    <string name="search_hero_fresh_on">Nowość w %1$s</string>
+    <string name="search_watched_q">Obejrzano «%1$s» S%2$dE%3$d?</string>
+    <string name="search_watched_yes">Tak</string>
+    <string name="search_watched_no">Jeszcze nie</string>
 </resources>

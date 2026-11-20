@@ -15,7 +15,7 @@ class WatchOptionsResolverTest {
 
     /** Скорочена, але справжня відповідь: «Носферату», `country=UA`. */
     private val body = """
-        {"countries":["UA"],"counts":{"official":5,"own":4,"torrent":3},"results":[
+        {"countries":["UA"],"counts":{"official":5,"own":7},"results":[
           {"order":0,"priority":0,"group":"official","service":"megogo","label":"MEGOGO",
            "deeplink":"megogo://video/25891376","url":"https://megogo.net/ua/view/25891376-nosferatu.html",
            "package":"com.megogo.application","packages":["com.megogo.application"]},
@@ -33,8 +33,8 @@ class WatchOptionsResolverTest {
           {"order":5,"priority":1,"group":"own","service":"site_ua","name":"🇺🇦 1080p · Джерело 2",
            "ref":"https://site.example/films/nosferatu/","quality":1080,
            "packages":["net.gtvbox.videoplayer","com.brouken.player"]},
-          {"order":9,"priority":2,"group":"torrent","service":"torrent","quality":2160,
-           "ref":"9bef60a14518dec66bd218871664c2379ac3ccb4","name":"🇺🇦 2160p · Торент",
+          {"order":9,"priority":2,"group":"own","service":"site_ua2","quality":2160,
+           "ref":"https://site2.example/films/nosferatu/","name":"🇺🇦 2160p · Джерело 3",
            "packages":["net.gtvbox.videoplayer","com.brouken.player"]}
         ]}
     """.trimIndent()
@@ -64,8 +64,8 @@ class WatchOptionsResolverTest {
         val services = parseWatch(body).map { it.service }
         // canalplus: пакета немає й не буде — застосунку на Android TV у нього немає.
         assertTrue("canalpluspremiumpl" !in services)
-        // own і torrent несуть `ref`, а не адресу потоку: їх готує LikhtarStreams, не картка.
-        assertTrue(services.none { it == "site_ua" || it == "torrent" })
+        // own несе `ref`, а не адресу потоку: його готує LikhtarStreams, не картка.
+        assertTrue(services.none { it == "site_ua" || it == "site_ua2" })
     }
 
     @Test

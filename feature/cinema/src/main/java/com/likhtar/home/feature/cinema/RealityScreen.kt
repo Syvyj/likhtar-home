@@ -1,5 +1,8 @@
 package com.likhtar.home.feature.cinema
 
+import com.likhtar.home.core.designsystem.RailRestore
+import com.likhtar.home.core.designsystem.rememberRailRestore
+
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.likhtar.home.core.designsystem.PreparingScrim
@@ -7,6 +10,13 @@ import com.likhtar.home.core.catalog.open
 import com.likhtar.home.core.designsystem.NoBringIntoView
 import com.likhtar.home.core.designsystem.cardSlot
 import com.likhtar.home.core.designsystem.centerItem
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
@@ -47,6 +57,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -101,14 +112,12 @@ fun RealityScreen(
     // екрана (заміряно дампом: `bounds=[64,1046][498,1080]`), і далі ↑/↓ ходили між двома
     // невидимими картками. Причина в тому, що вузлів два, а requester один: хто останній
     // причепився, той і забирає фокус.
-    val heroFocusRequester = remember { FocusRequester() }
     val railsFocusRequester = remember { FocusRequester() }
-    val inRails = state.inRows
+    val inRails = true
     // Меню мусить віддавати фокус туди, де людина зараз: у слайдері це кнопка, у рядах —
     // перший ряд. Один requester на два стани, але щоразу причеплений рівно до одного вузла.
-    val contentFocusRequester = if (inRails) railsFocusRequester else heroFocusRequester
     // Дві дороги з однієї картки: наші позиції відкриваються власною сторінкою шоу, TMDB —
-    // сторінкою матеріалу Кінозалу з торентами й сервісами. Ряд при цьому спільний.
+    // сторінкою матеріалу Кінозалу з озвучками й сервісами. Ряд при цьому спільний.
     // ТРИ дороги з однієї картки, і вибирає їх сервер, а не знак id: позиція порталу
     // відкривається власною сторінкою шоу, позиція TMDB — сторінкою матеріалу Кінозалу, а
     // ютуб-плейлист і позиція сервісу вмикаються там, де лежать: своєї сторінки для них
@@ -125,119 +134,61 @@ fun RealityScreen(
     // сторінка виглядала завислою (той самий випадок, що в Кінозалі).
     val tileState = rememberSaveable { mutableStateOf<String?>(null) }
     var tileRestore by tileState
-    LaunchedEffect(state.slide != null, inRails) {
-        if (state.slide == null) return@LaunchedEffect
-        // Повернення на плитку веде ефект відновлення нижче — тут не заважаємо.
-        if (inRails && tileRestore != null) return@LaunchedEffect
-        // У рядах кнопки слайдера немає — там якір інший, і просити її означало б
-        // відправити фокус у неіснуючий вузол.
-        if (inRails) railsFocusRequester.requestAfterFrame() else heroFocusRequester.requestAfterFrame()
+    LaunchedEffect(state.rows.isNotEmpty(), state.resume.isNotEmpty()) {
+        if (state.rows.isEmpty() && state.resume.isEmpty()) return@LaunchedEffect
+        if (tileRestore != null) return@LaunchedEffect
+        railsFocusRequester.requestAfterFrame()
     }
-    // Кадр іде тим самим ланцюжком, що й шапка нижче: картка ряду, інакше поточний слайд.
-    // Якщо для цієї ж картки вже приїхала велика обкладинка проєкту — беремо її: шапка на
-    // весь екран, і каталожний банер 1440×550 на ній помітно м'якший.
-    // Логотип, добраний на фокусі, підставляємо й у шапку: він уже завантажений, і окремого
-    // запиту це не коштує. Без цього в шапці стояв текстовий заголовок, хоч на картці того
-    // самого шоу в ряду під нею логотип уже був — це впадало в очі.
     val withLogo: (CatalogItem) -> CatalogItem = { card ->
         state.logos[card.tmdbId]?.let { card.copy(logoPath = it) } ?: card
     }
-    val head = state.slide?.let(withLogo)
-    // Те саме правило, що в Кінозалі: немає кадру — беремо власний постер позиції.
-    // Порожнє тло тут не «нейтральне», а просто порожнє: у розділі, де половина карток
-    // портальні, це була більшість заходів.
-    val railBackdrop = state.heroArt?.takeIf { it.first == head }?.second
-        ?: head?.let { TmdbImages.backdrop(it.backdropPath) ?: TmdbImages.poster(it.posterPath) }
 
-    var contentHasFocus by remember { mutableStateOf(false) }
-    // BACK крокує назад по сторінці, як у Кінозалі: перший тап згортає ряди, другий веде у
-    // верхнє меню, і лише третій виходить із розділу.
-    SectionBackHandler(
-        inRails = inRails,
-        contentHasFocus = contentHasFocus,
-        menuFocus = menuFocusRequester,
-        onCollapseRails = backToSlider,
-    )
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        // У рядах тло рівне, як у Кінозалі (як для Кінозалу, так і
-        // для Реаліті): кадр на весь екран, що мінявся з кожним рухом пульта, забирав
-        // пів екрана під шапку й перемальовувався щокроку.
-        Box(modifier = Modifier.fillMaxSize().background(LikhtarColors.Background))
-        // Прототип: кадр шапки — лише ліворуч, праворуч графіт під «Нові випуски».
-        if (!inRails) RealityFrame(railBackdrop)
-
-        LikhtarScreenScaffold(
-            contentModifier = Modifier.onFocusChanged { contentHasFocus = it.hasFocus },
-            section = LikhtarSection.REALITY,
-            onSelectSection = onSelectSection,
-            menuFocusRequester = menuFocusRequester,
-            contentFocusRequester = contentFocusRequester,
-            loading = state.loading,
-        ) {
+    // Підсторінка Кінозалу (без верхнього Hero і без TopMenu): чистий заголовок і ряди,
+    // як на інших сторінках добірок/сервісів; Back одразу повертає в Кінозал.
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LikhtarColors.Background)
+            .background(
+                androidx.compose.ui.graphics.Brush.radialGradient(
+                    colors = listOf(LikhtarColors.HeroGlowCalendar, androidx.compose.ui.graphics.Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(1520f, 180f),
+                    radius = 760f,
+                ),
+            ),
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            androidx.tv.material3.Text(
+                text = stringResource(LikhtarSection.REALITY.titleRes),
+                style = com.likhtar.home.core.designsystem.LikhtarType.HeroTitle.copy(fontSize = 26.sp),
+                color = LikhtarColors.GlassActive,
+                modifier = Modifier.padding(start = LikhtarDimens.ScreenPadding, top = 26.dp, bottom = 10.dp),
+            )
             if (state.loading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     LanternLoader(title = stringResource(R.string.cinema_reality_loader_title), subtitle = stringResource(R.string.cinema_reality_loader_subtitle))
                 }
-                return@LikhtarScreenScaffold
-            }
-
-            val slide = state.slide?.let(withLogo)
-            if (inRails) {
-                // Шапки в рядах немає, як у Кінозалі: ряди починаються під меню.
-            } else if (slide != null) {
-                // Шапка — програма нових випусків (прототип): розміри відраховано від
-                // верху екрана, тож шапка знає, де вона починається.
-                val density = androidx.compose.ui.platform.LocalDensity.current
-                var heroTop by remember { mutableStateOf(56.dp) }
-                val confirmed = remember(state.rows) { state.rows.flatMap { it.confirmed }.toSet() }
-                RealityGuideHero(
-                    pool = state.pool.map(withLogo),
-                    current = slide,
-                    top = heroTop,
-                    focus = heroFocusRequester,
-                    menuFocus = menuFocusRequester,
-                    onShow = viewModel::showSlide,
-                    onOpen = openShow,
-                    ua = { it.tmdbId in confirmed },
-                    modifier = Modifier.onGloballyPositioned {
-                        heroTop = with(density) { it.positionInRoot().y.toDp() }
-                    },
-                )
-            }
-
-            // Сфокусований ряд стає першим у вікні: інакше попередній лишався висіти
-            // половинками карток над ним.
-            //
-            // rememberSaveable, а не remember: перехід на сторінку шоу знищує композицію
-            // розділу, і зі звичайним remember ряд скидався на нульовий — повернення
-            // викидало нагору, а не в той ряд, з якого пішли. Той самий урок, що в
-            // Кінозалі, і лікується тим самим способом.
-            // Ряд, лічильник пришпилювання й прапорці повернення — див. [RailRestore].
-            val restore = rememberRailRestore(tileState) { tile -> inRails && (viewModel.railItem != null || tile != null) }
-            var railIndex by restore::index
-            var railPin by restore::pin
-            var restoreLanded by restore::landed
-            val restorePending by restore::pending
-            val restoreFocus = restore.focus
-            RailsColumn(
-                restore = restore,
-                inRails = inRails,
-                ready = state.rows.isNotEmpty(),
-                onRestoreFallback = { railsFocusRequester.requestAfterFrame() },
-            ) {
-                // «Продовжити перегляд» першим, як домовлено. Рядків тут стільки, скільки
-                // проєктів, а не випусків: сервер тримає один на проєкт, і ряд лишається
-                // «звідки продовжити», а не історією.
-                // Те саме, що в Кінозалі: сервер не віддав рядів — кажемо прямо.
-                if (!state.loading && state.rows.isEmpty()) {
-                    item(key = "server-down") {
-                        ServerDownPanel(
-                            onRetry = viewModel::reload,
-                            focus = heroFocusRequester.takeIf { state.slide == null && !inRails },
-                        )
+            } else {
+                val restore = rememberRailRestore(tileState) { tile -> viewModel.railItem != null || tile != null }
+                var railIndex by restore::index
+                var railPin by restore::pin
+                var restoreLanded by restore::landed
+                val restorePending by restore::pending
+                val restoreFocus = restore.focus
+                RailsColumn(
+                    restore = restore,
+                    inRails = inRails,
+                    ready = state.rows.isNotEmpty(),
+                    onRestoreFallback = { railsFocusRequester.requestAfterFrame() },
+                ) {
+                    if (!state.loading && state.rows.isEmpty()) {
+                        item(key = "server-down") {
+                            ServerDownPanel(
+                                onRetry = viewModel::reload,
+                                focus = railsFocusRequester,
+                            )
+                        }
                     }
-                }
                 if (state.resume.isNotEmpty()) {
                     item(key = "reality-resume") {
                         Column {
@@ -269,25 +220,14 @@ fun RealityScreen(
                                         modifier = Modifier
                                             .width(CatalogBannerWidth)
                                             .cardSlot()
-                                            // Якір ↓ з меню, поки «Продовжити» — перший ряд.
+                                            // Якір на першу картку, поки «Продовжити» — перший ряд.
                                             .then(
-                                                if (index == 0 && inRails) {
+                                                if (index == 0) {
                                                     Modifier.focusRequester(railsFocusRequester)
                                                 } else {
                                                     Modifier
                                                 },
-                                            )
-                                            .onKeyEvent { event ->
-                                                if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
-                                                // ↑ з першого ряду — назад у слайдер, як і
-                                                // з будь-якого першого ряду розділу.
-                                                if (event.key == Key.DirectionUp) {
-                                                    backToSlider()
-                                                    true
-                                                } else {
-                                                    false
-                                                }
-                                            },
+                                            ),
                                     )
                                 }
                             }
@@ -344,11 +284,8 @@ fun RealityScreen(
                         russianAudio = row.russian,
                         onOpen = openShow,
                         onLongOpen = viewModel.rowMarks::open,
-                        // Якір ↓ з меню, поки ми в рядах: кнопки «Дивитись» у цьому стані
-                        // немає, і без якоря меню просто не мало куди віддати фокус —
-                        // розділ здавався замкненим. Ставимо його на першу картку першого
-                        // ряду, тобто рівно туди, звідки в ряди й заходять.
-                        // Ряд, з якого пішли на сторінку: саме в нього повертається фокус.
+                        // Один вузол на requester: коли є «Продовжити», вхідна точка — його перша картка.
+                        anchor = railsFocusRequester.takeIf { index == 0 && state.resume.isEmpty() },
                         restoreId = viewModel.railItem?.id,
                         restore = restore,
                         rowIndex = index,
@@ -356,8 +293,7 @@ fun RealityScreen(
                             railIndex = index
                             viewModel.onRailFocus(card)
                         },
-                        // ↑ з першого ряду робить те саме, що BACK: повертає у слайдер.
-                        onExitUp = if (index == 0) backToSlider else null,
+                        onExitUp = null,
                         // Ряд зі своєю сторінкою («Для вас», теми) веде на неї, як у Кінозалі;
                         // решта, довша за десять карток, — у звичну сітку.
                         onOpenAll = row.openBrand?.let { brand -> { onOpenAll(RealityListViewModel.brandTitle(brand)) } }
@@ -414,8 +350,9 @@ fun RealityScreen(
                     }
                 }
             }
+            }
         }
-        RowMarkPanel(viewModel.rowMarks)
+        RowMarkPanel(viewModel.rowMarks, onOpen = openShow)
         PreparingScrim(viewModel.preparing.collectAsStateWithLifecycle().value)
     }
 }

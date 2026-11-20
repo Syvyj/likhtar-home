@@ -109,4 +109,16 @@
     <string name="catalog_media_status_tmdb">Szukam tytułów w TMDB… (plików: %1$d)</string>
     <string name="catalog_media_summary">Plików: %1$d, tytułów: %2$d</string>
     <string name="catalog_media_summary_other">, nierozpoznanych: %1$d</string>
+    <string name="catalog_because_liked">Bo spodobało się „%1$s”</string>
+    <string name="catalog_mood_gems">Ukryte perełki</string>
+    <string name="catalog_mood_short">Do 100 minut</string>
+    <string name="catalog_mood_true">Na faktach</string>
+    <string name="catalog_row_of_day">Rząd dnia · %1$s</string>
+    <string name="catalog_day_heist">Skoki</string>
+    <string name="catalog_day_time_travel">Podróże w czasie</string>
+    <string name="catalog_day_space">Kosmos</string>
+    <string name="catalog_day_survival">Przetrwanie</string>
+    <string name="catalog_day_small_town">Małe miasteczka</string>
+    <string name="catalog_day_dystopia">Dystopie</string>
+    <string name="catalog_day_ai">Sztuczna inteligencja</string>
 </resources>

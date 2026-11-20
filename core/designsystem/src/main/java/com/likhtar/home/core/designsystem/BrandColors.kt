@@ -21,4 +21,6 @@ object BrandColors {
     val JustPlayer = Color(0xFF9CCC65)
     val Tlc = Color(0xFFE6007E)
     val Spotify = Color(0xFF1ED760)
+    val Megogo = Color(0xFF1BC9BD)
+    val YouTubeRed = Color(0xFFFF0000)
 }

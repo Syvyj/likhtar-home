@@ -1,6 +1,7 @@
 package com.likhtar.home.navigation
 
 import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.toRoute
 import com.likhtar.home.feature.cinema.CatalogListRoute
 import com.likhtar.home.feature.cinema.RealityListRoute
 import com.likhtar.home.feature.cinema.RealityShowRoute
@@ -45,6 +46,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.foundation.focusGroup
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
@@ -81,14 +85,20 @@ import com.likhtar.home.feature.cinema.CinemaScreen
 import com.likhtar.home.feature.cinema.CinemaViewModel
 import com.likhtar.home.feature.cinema.TitleScreen
 import com.likhtar.home.feature.home.HomeScreen
+import com.likhtar.home.feature.home.ModernSmartHomeDrawer
 import com.likhtar.home.feature.home.WeatherScreen
 import com.likhtar.home.feature.search.SearchScreen
 import com.likhtar.home.feature.settings.SettingsScreen
+import androidx.core.net.toUri
 
 /** Підсторінки Кінозалу — єдині маршрути поза плоским списком розділів. */
 /** Сторінка погоди: без аргументів, але типобезпечна, як і решта підсторінок. */
 @kotlinx.serialization.Serializable
 private data object WeatherRoute
+
+/** Повна сторінка «Реаліті», відкрита з ряду в Кінозалі (Back повертає в Кінозал). */
+@kotlinx.serialization.Serializable
+private data object RealityHubRoute
 
 /**
  * Навігація лаунчера.
@@ -113,6 +123,23 @@ fun LikhtarApp(
     val currentSection = LikhtarSection.fromRoute(route) ?: LikhtarSection.HOME
 
     val visibleSections by viewModel.visibleSections.collectAsStateWithLifecycle()
+    val headerWeather by viewModel.headerWeather.collectAsStateWithLifecycle()
+    val smartHomeEnabled by viewModel.smartHomeEnabled.collectAsStateWithLifecycle()
+    var smartDrawerOpen by remember { mutableStateOf(false) }
+    val smartDrawerPanelFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    // Куди повернути фокус, коли бічна панель «Мій дім» закрилась: на той вузол екрана, з якого
+    // її відкрили (focusRestorer пам'ятає останній сфокусований усередині).
+    val screenFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    var smartDrawerWasOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(smartDrawerOpen) {
+        if (smartDrawerOpen) {
+            smartDrawerWasOpen = true
+        } else if (smartDrawerWasOpen) {
+            smartDrawerWasOpen = false
+            androidx.compose.runtime.withFrameNanos { }
+            runCatching { screenFocus.requestFocus() }
+        }
+    }
     val titleUnderLogo by viewModel.titleUnderLogo.collectAsStateWithLifecycle()
     val showHomeOnboarding by viewModel.homeOnboarding.collectAsStateWithLifecycle()
     val showFirstRun by viewModel.firstRun.collectAsStateWithLifecycle()
@@ -241,7 +268,7 @@ fun LikhtarApp(
             // Таким віддаємо саму серію й чергу `video_list` — серії він перемикає сам.
             val takesM3u = request.packageName.isBlank() || runCatching {
                 context.packageManager.queryIntentActivities(
-                    Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse(request.uri), request.mime)
+                    Intent(Intent.ACTION_VIEW).setDataAndType(request.uri.toUri(), request.mime)
                         .setPackage(request.packageName),
                     0,
                 ).isNotEmpty()
@@ -266,7 +293,7 @@ fun LikhtarApp(
                     context.startActivity(
                         Intent.createChooser(
                             Intent(Intent.ACTION_VIEW).setDataAndType(
-                                Uri.parse(request.uri),
+                                request.uri.toUri(),
                                 request.mime,
                             ),
                             openWith,
@@ -317,11 +344,14 @@ fun LikhtarApp(
         drop.drop.arrivals.collect { dropOpen = true }
     }
 
+    val nowPlayingModel: com.likhtar.home.nowplaying.NowPlayingViewModel = hiltViewModel()
+    val nowPlaying by nowPlayingModel.state.collectAsStateWithLifecycle()
     val episodes: com.likhtar.home.episodes.NewEpisodesViewModel = hiltViewModel()
     val episodesState by episodes.state.collectAsStateWithLifecycle()
     var episodesOpen by remember { mutableStateOf(false) }
     if (episodesOpen) com.likhtar.home.episodes.NewEpisodesDialog(
         list = episodesState.list,
+        news = episodesState.news,
         onOpen = { item ->
             episodesOpen = false
             navController.navigate(CinemaViewModel.titleRoute(item))
@@ -329,16 +359,62 @@ fun LikhtarApp(
         onDismiss = { episodesOpen = false },
     )
 
+    val notificationsModel: com.likhtar.home.nowplaying.NotificationsViewModel = hiltViewModel()
+    val notifications by notificationsModel.store.state.collectAsStateWithLifecycle()
+    var notificationsOpen by remember { mutableStateOf(false) }
+    if (notificationsOpen) com.likhtar.home.nowplaying.NotificationsPanel(
+        list = notifications,
+        store = notificationsModel.store,
+        onDismiss = { notificationsOpen = false },
+    )
+
+    val profilesModel: com.likhtar.home.profiles.ProfilesViewModel = hiltViewModel()
+    val profilesState by profilesModel.state.collectAsStateWithLifecycle()
+    var profilesOpen by remember { mutableStateOf(false) }
+    if (profilesOpen) com.likhtar.home.profiles.ProfilesPanel(
+        state = profilesState,
+        onSelect = { id ->
+            profilesOpen = false
+            profilesModel.select(id)
+        },
+        onDismiss = { profilesOpen = false },
+    )
+
     CompositionLocalProvider(
+        com.likhtar.home.core.designsystem.LocalNotificationsTray provides com.likhtar.home.core.designsystem.NotificationsTray(notifications.size) {
+            notificationsOpen = true
+        },
+        com.likhtar.home.core.designsystem.LocalProfileChip provides profilesState.chipName?.let { name ->
+            com.likhtar.home.core.designsystem.ProfileChip(name) {
+                profilesModel.refresh()
+                profilesOpen = true
+            }
+        },
         com.likhtar.home.core.designsystem.LocalNewEpisodesBell provides com.likhtar.home.core.designsystem.NewEpisodesBell(
-            total = episodesState.list.size,
+            total = episodesState.total,
             unseen = episodesState.unseen,
             onOpen = {
                 episodesOpen = true
                 episodes.markSeen()
             },
         ),
+        com.likhtar.home.core.designsystem.LocalNowPlaying provides nowPlaying?.let { np ->
+            com.likhtar.home.core.designsystem.NowPlayingChip(np.title, np.artist, np.playing, nowPlayingModel::toggle, nowPlayingModel::open)
+        },
         LocalVisibleSections provides visibleSections,
+        com.likhtar.home.core.designsystem.LocalWeatherChip provides headerWeather?.let { w ->
+            com.likhtar.home.core.designsystem.WeatherChip(
+                temp = w.temperature.removePrefix("+"),
+                sky = w.sky,
+                night = w.hourly.firstOrNull()?.night ?: false,
+                onOpen = { navController.navigate(WeatherRoute) },
+            )
+        },
+        com.likhtar.home.core.designsystem.LocalSmartHomeAction provides if (smartHomeEnabled) {
+            { smartDrawerOpen = true }
+        } else {
+            null
+        },
         com.likhtar.home.core.designsystem.LocalTitleUnderLogo provides titleUnderLogo,
         LocalAmbientIdle provides idle,
         com.likhtar.home.core.designsystem.LocalPhoneDropAction provides { dropOpen = true },
@@ -360,11 +436,19 @@ fun LikhtarApp(
     val cinemaDetailRoute = destination != null && (
         destination.hasRoute<TitleRoute>() || destination.hasRoute<CatalogListRoute>() ||
             destination.hasRoute<StreamingsRoute>() ||
+            // Календар малює своє суцільне тло — шпалера під ним лише зайвий прохід GPU.
+            destination.hasRoute<com.likhtar.home.feature.cinema.CalendarRoute>() ||
         // Сторінка шоу й сітка «Реаліті» — той самий випадок, що сторінка фільму: власний
         // непрозорий фон із кадру. Без них під сторінкою шоу й далі вантажилась шпалера, і
         // в кутку стояв підпис bing до фото, якого на екрані немає.
             destination.hasRoute<RealityShowRoute>() || destination.hasRoute<RealityListRoute>() ||
-            destination.hasRoute<WeatherRoute>()
+            destination.hasRoute<RealityHubRoute>() ||
+            destination.hasRoute<WeatherRoute>() ||
+            // Хмарні ігри: каталог, картка гри й «Мої сервіси» мають своє суцільне тло — підпис bing
+            // до невидимої шпалери стояв у кутку поверх картки.
+            destination.hasRoute<com.likhtar.home.feature.apps.cloud.CloudCatalogRoute>() ||
+            destination.hasRoute<com.likhtar.home.feature.apps.cloud.CloudGameRoute>() ||
+            destination.hasRoute<com.likhtar.home.feature.apps.cloud.CloudSetupRoute>()
         )
     val catalogSection = cinemaDetailRoute || (
         !onDetailRoute && currentSection in setOf(
@@ -380,6 +464,9 @@ fun LikhtarApp(
     WallpaperBackground(
         imageUri = wallpaper.wallpaper?.imageUri.takeIf { !catalogSection },
         backdrop = wallpaper.wallpaper?.backdrop.takeIf { !catalogSection },
+        media = wallpaper.wallpaper?.videoUri?.takeIf { !catalogSection }?.let { uri ->
+            { com.likhtar.home.AerialWallpaper(uri, playing = idle) }
+        },
         // «Затемнення» зі Налаштувань — ручка Головної й тільки її: решта розділів мають
         // власні scrim'и під свій макет, і глобальне затемнення поверх них лише гасило фото.
         dimPercent = if (!onDetailRoute && currentSection == LikhtarSection.HOME) wallpaper.dimPercent else 0,
@@ -408,6 +495,12 @@ fun LikhtarApp(
         // краще за екран, який відкрився не там, де просив користувач.
         val start = startSection ?: return@Box
 
+        Box(
+            Modifier
+                .focusRequester(screenFocus)
+                .focusRestorer()
+                .focusGroup(),
+        ) {
         NavHost(
             navController = navController,
             startDestination = start.route,
@@ -448,6 +541,32 @@ fun LikhtarApp(
                     onOpenHistory = { navigateTo(LikhtarSection.SEARCH) },
                     onOpenStreamings = { navController.navigate(StreamingsRoute) },
                     onOpenShow = { id -> navController.navigate(RealityTitleViewModel.route(id)) },
+                    onOpenReality = { navController.navigate(RealityHubRoute) },
+                )
+            }
+            composable<RealityHubRoute>(
+                enterTransition = { slideInHorizontally(tween(260)) { it / 3 } + fadeIn(tween(220)) },
+                popExitTransition = { slideOutHorizontally(tween(260)) { it / 3 } + fadeOut(tween(220)) },
+            ) {
+                RealityScreen(
+                    onSelectSection = navigateTo,
+                    onOpenShow = { id -> navController.navigate(RealityTitleViewModel.route(id)) },
+                    onOpenTitle = { item -> navController.navigate(CinemaViewModel.titleRoute(item)) },
+                    onOpenAll = { title -> navController.navigate(RealityListViewModel.route(title)) },
+                    onResume = { extKey ->
+                        RealityTitleViewModel.idOfExtKey(extKey)?.let { id ->
+                            navController.navigate(RealityTitleViewModel.route(id))
+                        }
+                    },
+                )
+            }
+            composable<com.likhtar.home.feature.cinema.CalendarRoute>(
+                enterTransition = { slideInHorizontally(tween(260)) { it / 3 } + fadeIn(tween(220)) },
+                exitTransition = { fadeOut(tween(180)) },
+                popExitTransition = { slideOutHorizontally(tween(260)) { it / 3 } + fadeOut(tween(220)) },
+            ) {
+                com.likhtar.home.feature.cinema.CalendarScreen(
+                    onOpen = { item -> navController.navigate(CinemaViewModel.titleRoute(item)) },
                 )
             }
             composable<StreamingsRoute>(
@@ -531,17 +650,48 @@ fun LikhtarApp(
                     onSelectSection = navigateTo,
                     onOpenTitle = { item -> navController.navigate(CinemaViewModel.titleRoute(item)) },
                     onOpenShow = { id -> navController.navigate(RealityTitleViewModel.route(id)) },
+                    onOpenCalendar = { navController.navigate(com.likhtar.home.feature.cinema.CalendarRoute) },
                 )
             }
             composable(LikhtarSection.APPS.route) {
                 AppsScreen(onSelectSection = navigateTo)
             }
             composable(LikhtarSection.GAMES.route) {
-                AppsScreen(onSelectSection = navigateTo, games = true)
+                AppsScreen(
+                    onSelectSection = navigateTo,
+                    games = true,
+                    onOpenCloudCatalog = { search, mine -> navController.navigate(com.likhtar.home.feature.apps.cloud.CloudCatalogRoute(search = search, mine = mine)) },
+                    onOpenCloudGame = { key -> navController.navigate(com.likhtar.home.feature.apps.cloud.CloudGameRoute(key)) },
+                    onOpenCloudSetup = { first -> navController.navigate(com.likhtar.home.feature.apps.cloud.CloudSetupRoute(first)) },
+                    onOpenRetroSystem = { system -> navController.navigate(com.likhtar.home.feature.apps.cloud.CloudCatalogRoute(system = system)) },
+                )
+            }
+            composable<com.likhtar.home.feature.apps.cloud.CloudSetupRoute> { entry ->
+                com.likhtar.home.feature.apps.cloud.CloudSetupScreen(
+                    first = entry.toRoute<com.likhtar.home.feature.apps.cloud.CloudSetupRoute>().first,
+                    onDone = { navController.popBackStack() },
+                )
+            }
+            composable<com.likhtar.home.feature.apps.cloud.CloudCatalogRoute> { entry ->
+                val route = entry.toRoute<com.likhtar.home.feature.apps.cloud.CloudCatalogRoute>()
+                com.likhtar.home.feature.apps.cloud.CloudCatalogScreen(
+                    search = route.search,
+                    mine = route.mine,
+                    system = route.system,
+                    onOpenGame = { key -> navController.navigate(com.likhtar.home.feature.apps.cloud.CloudGameRoute(key)) },
+                )
+            }
+            composable<com.likhtar.home.feature.apps.cloud.CloudGameRoute> { entry ->
+                com.likhtar.home.feature.apps.cloud.CloudGameScreen(
+                    gameKey = entry.toRoute<com.likhtar.home.feature.apps.cloud.CloudGameRoute>().key,
+                    onOpenGame = { key -> navController.navigate(com.likhtar.home.feature.apps.cloud.CloudGameRoute(key)) },
+                )
             }
             composable(LikhtarSection.SETTINGS.route) {
                 SettingsScreen(onSelectSection = navigateTo)
             }
+        }
+
         }
 
         // Пропозиція забрати кнопку HOME — поверх усього, один раз після встановлення.
@@ -558,6 +708,21 @@ fun LikhtarApp(
             HomeLauncherOverlay(
                 repository = viewModel.homeLauncherRepository,
                 onDismiss = viewModel::dismissHomeOnboarding,
+            )
+        }
+        if (smartDrawerOpen) {
+            // Пристрої збираємо, лише поки панель відкрита: Home Assistant не опитується з
+            // кожного розділу, поки лаунчер на екрані.
+            val smartDevices by viewModel.smartDevices.collectAsStateWithLifecycle()
+            ModernSmartHomeDrawer(
+                devices = smartDevices,
+                panelButton = smartDrawerPanelFocus,
+                onToggleDevice = viewModel::toggleSmartDevice,
+                onOpenAllDevices = {
+                    smartDrawerOpen = false
+                    navigateTo(LikhtarSection.SMART_HOME)
+                },
+                onClose = { smartDrawerOpen = false },
             )
         }
     }

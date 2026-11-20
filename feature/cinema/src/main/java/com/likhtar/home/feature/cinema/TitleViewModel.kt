@@ -10,6 +10,7 @@ import com.likhtar.home.core.catalog.cleanStreamLabel
 import com.likhtar.home.core.catalog.CatalogItem
 import com.likhtar.home.core.catalog.qualityLabel
 import com.likhtar.home.core.catalog.PlayRequest
+import com.likhtar.home.core.catalog.PlayResult
 import com.likhtar.home.core.catalog.PlaybackController
 import com.likhtar.home.core.catalog.UaAudioRepository
 import com.likhtar.home.core.catalog.PlayingTitle
@@ -17,8 +18,7 @@ import com.likhtar.home.core.catalog.CatalogRepository
 import com.likhtar.home.core.catalog.Episode
 import com.likhtar.home.core.catalog.InstalledAppSearch
 import com.likhtar.home.core.catalog.LikhtarStreams
-import com.likhtar.home.core.catalog.TorrentStat
-import com.likhtar.home.core.catalog.torrentRefOf
+import com.likhtar.home.core.catalog.SourceStat
 import com.likhtar.home.core.catalog.bestFirstKey
 import com.likhtar.home.core.catalog.hasDolbyVision
 import com.likhtar.home.core.catalog.qualityOf
@@ -74,8 +74,8 @@ data class TitleUiState(
     val details: TitleDetails? = null,
     val inWatchlist: Boolean = false,
     /**
-     * Ми САМІ бачили українську доріжку — прочитані megogo/sweet.tv, наші сайтові джерела,
-     * торенти, `audioLanguages` із JustWatch. `false` означає і «немає», і «не питали»:
+     * Ми САМІ бачили українську доріжку — прочитані megogo/sweet.tv, джерела збірки,
+     * `audioLanguages` із JustWatch. `false` означає і «немає», і «не питали»:
      * мітка ставиться лише на певне «є», а не на здогад.
      */
     val uaAudio: Boolean = false,
@@ -92,7 +92,7 @@ data class TitleUiState(
     val quality: String = "",
     val message: String? = null,
     val picker: PickerState? = null,
-    /** Іде прогрів роздачі перед запуском плеєра — на екрані оверлей очікування. */
+    /** Джерело готується перед запуском плеєра — на екрані оверлей очікування. */
     val preparing: Boolean = false,
     /**
      * Що з встановлених застосунків відкриє саме цей матеріал. Приїжджає пізніше за
@@ -102,14 +102,14 @@ data class TitleUiState(
     /**
      * Що написати над лоадером, поки джерело готується.
      *
-     * Різні шляхи чекають різного: прогрів торента — це «дані від пірів», а вибрана
+     * Різні шляхи чекають різного: підготовка джерела — це «перші дані», а вибрана
      * озвучка — це «сервер перебирає її джерела». Однаковий підпис на обох брехав би
      * половину часу.
      */
-    /** `null` — загальний підпис «підключаюсь до роздачі» (його ставить екран). */
+    /** `null` — загальний підпис «підключаюсь до джерела» (його ставить екран). */
     val preparingNote: Pair<String, String>? = null,
-    /** Піри, швидкість і підвантаження роздачі, поки вона готується; `null` — не роздача. */
-    val preparingStat: TorrentStat? = null,
+    /** З'єднання, швидкість і підвантаження джерела, поки воно готується; `null` — не відомо. */
+    val preparingStat: SourceStat? = null,
     /** Сторінка серіалу: обраний сезон і його серії з TMDB. */
     val season: Int = 1,
     val episodes: List<Episode> = emptyList(),
@@ -176,7 +176,7 @@ data class PickerState(
      * Озвучки, а не окремі джерела.
      *
      * Плоским списком це й було, і в ньому «Серія 1 · Джерело» стояла поруч із «Серія 1 ·
-     * Джерело 2» — людина обирала балансер, хоч питання в неї інше: якою озвучкою дивитись.
+     * Джерело 2» — людина обирала сайт, хоч питання в неї інше: якою озвучкою дивитись.
      * Сервер зводить одну озвучку з різних сайтів в один пункт, і перебір усередині
      * вибраної озвучки робить теж він.
      */
@@ -191,7 +191,7 @@ data class PickerState(
      * матеріалу вона просто не бачить — його малює лише екран без деталей.
      */
     val note: String = "",
-    /** Онлайн уже показано, торенти ще шукаються — допишуться в цей самий список. */
+    /** Швидкі джерела вже показано, повільніші ще шукаються — допишуться в цей самий список. */
     val searching: Boolean = false,
     /** Озвучка, чиї варіанти розгорнуто під нею (`VoiceGroup.voice`). */
     val expanded: String? = null,
@@ -444,7 +444,8 @@ class TitleViewModel @Inject constructor(
     /**
      * «Ліхтарик» — одна кнопка на все: і «Почати», і «Продовжити», і OK на серії.
      *
-     * Натиснув — пошук наживо — вікно з озвучками — обрав — плеєр. Автовибір помилявся там, де видно лише людині: 4K на три сіди, чужий
+     * Натиснув — пошук наживо — вікно з озвучками — обрав — плеєр. Автовибір помилявся
+     * там, де видно лише людині: 4K, що ледь тягне, чужий
      * однойменний серіал. Фокус у вікні — на першій озвучці (остання, якою вмикали), тож
      * звичайний запуск — OK, OK. Озвучок сервер не дав — запасний шлях без вікна.
      */
@@ -479,8 +480,8 @@ class TitleViewModel @Inject constructor(
                 it.copy(preparing = false, message = null, picker = PickerState(loading = true, season = season, episode = episode))
             }
             val recent = history.voices(settings.settings.first().activeProfileId).first()
-            // Два запити разом, як Лампа виводить кожне джерело, щойно воно відповіло:
-            // онлайн (~1 с) показуємо одразу, торенти (3–8 с) дописуємо в той самий список.
+            // Два запити разом — кожне джерело виводиться, щойно воно відповіло:
+            // швидкі (~1 с) показуємо одразу, повільніші (3–8 с) дописуємо в той самий список.
             val full = async { runCatching { streams.voices(item, season, episode, live = true) }.getOrDefault(emptyList()) }
             val fast = runCatching { streams.voices(item, season, episode, live = true, fast = true) }.getOrDefault(emptyList())
             if (fast.isNotEmpty() && !full.isCompleted && state.value.picker?.loading == true) {
@@ -672,7 +673,7 @@ class TitleViewModel @Inject constructor(
             if (video != null) state.update { it.copy(recapVideos = it.recapVideos + (before to video)) }
         }
         // Мітки перекладу — окремою корутиною: агрегатор опитує чотири джерела, це секунди,
-        // і перелік серій не має на них чекати. Заразом прогріває кеш потоків, тож натиснута
+        // і перелік серій не має на них чекати. Заразом гріє кеш потоків, тож натиснута
         // після цього серія стартує вже без паузи.
         viewModelScope.launch {
             val available = streams.streams(item, season)
@@ -698,7 +699,7 @@ class TitleViewModel @Inject constructor(
         return first to 1
     }
 
-    /** OK на картці серії: одразу найкращий потік цієї серії, з тим самим прогрівом. */
+    /** OK на картці серії: одразу найкращий потік цієї серії, з тією самою підготовкою. */
     fun watchEpisode(episode: Episode) = lantern(state.value.season, episode.number)
 
     private fun playEpisode(season: Int, episode: Int) {
@@ -777,7 +778,7 @@ class TitleViewModel @Inject constructor(
     /**
      * Обрана озвучка: сервер сам перебирає її джерела й віддає готовий потік.
      *
-     * Прогріву тут не робимо — `/api/play` уже дочекався даних, тому [play] з готовим
+     * Окремої підготовки тут не робимо — `/api/play` уже дочекався даних, тому [play] з готовим
      * url обходиться без `prepare`.
      */
     fun playVoice(group: VoiceGroup) {
@@ -787,7 +788,7 @@ class TitleViewModel @Inject constructor(
 
     /**
      * OK на озвучці: один варіант — вмикаємо, кілька — розгортаємо їх під нею, і людина
-     * обирає конкретну роздачу чи сайт («що таке 6 варіантів?»).
+     * обирає конкретний варіант.
      */
     fun pickVoice(group: VoiceGroup) {
         if (group.refs.size <= 1) return playVoice(group)
@@ -799,6 +800,7 @@ class TitleViewModel @Inject constructor(
 
     private fun playVoiceAt(group: VoiceGroup, season: Int, episode: Int) {
         val item = state.value.details?.item ?: return
+        val picker = state.value.picker
         state.update {
             it.copy(
                 picker = null,
@@ -809,21 +811,30 @@ class TitleViewModel @Inject constructor(
                 preparingStat = null,
             )
         }
-        val watch = watchTorrent(group.refs.filter { torrentLike(it, group.names[it], group.sourceOf[it]) })
+        val watch = watchSource(group.refs.filter { streams.isWarmable(it, group.names[it], group.sourceOf[it]) })
         pickerLaunch {
             coroutineContext[Job]?.invokeOnCompletion { watch.cancel() }
-            // Запам'ятовуємо ДО запуску: людина вже зробила вибір, і навіть якщо роздача
+            // Запам'ятовуємо ДО запуску: людина вже зробила вибір, і навіть якщо варіант
             // не стартує, наступного разу цю студію треба показати першою.
             history.rememberVoice(group.voice, settings.settings.first().activeProfileId)
             prefs.remember("voice", group.voice)
-            // Сервер перебирає роздачі по черзі — перша й увімкнеться. Порядок — його: він
-            // знає сіди й ставить роздачу на 3 сіди після живої. Свій сорт за якістю тут це
-            // скасовував (4K DV на 3 сіди першим). Лише DV — у кінець, поки DV на цій
-            // приставці не ввімкнений.
+            // Сервер перебирає варіанти по черзі — перший і увімкнеться. Порядок — його: він
+            // знає, який живіший. Свій сорт за якістю тут це скасовував (4K DV, що ледь тягне,
+            // ставав першим). Лише DV — у кінець, поки DV на цій приставці не ввімкнений.
             val dvFirst = com.likhtar.home.core.catalog.DolbyVision.supported
             val refs = if (dvFirst) group.refs else group.refs.sortedBy { if (hasDolbyVision(group.names[it].orEmpty())) 1 else 0 }
-            val result = streams.playVoice(item, refs, season, episode)
+            var result = streams.playVoice(item, refs, season, episode)
             watch.cancel()
+            val own = result.ok && streams.hasOwnServer() && streams.warmableRef(result.url) != null
+            if (own) {
+                val dead = deadOnOwn(result)
+                if (dead != null) {
+                    // Людина обрала саме цей варіант — замість нього не підсовуємо інший, а кажемо
+                    // правду й лишаємо той самий список, щоб обрала сусідню.
+                    state.update { it.copy(preparing = false, preparingStat = null, picker = picker, message = dead) }
+                    return@pickerLaunch
+                }
+            }
             // Ліхтар лишається до самого плеєра (див. onLeftForPlayer): згаслий раніше, він
             // давав 3–5 с порожньої сторінки, і людина встигала натиснути щось інше.
             state.update { it.copy(preparingStat = null) }
@@ -831,7 +842,7 @@ class TitleViewModel @Inject constructor(
                 state.update {
                     it.copy(
                         preparing = false,
-                        // Причину віддає сервер, і вона змістовна: «роздача гріється» —
+                        // Причину віддає сервер, і вона змістовна: «джерело готується» —
                         // це «спробуйте за хвилину», а не «джерело мертве».
                         message = result.reason.ifBlank { context.getString(R.string.cinema_voice_failed) },
                     )
@@ -848,14 +859,36 @@ class TitleViewModel @Inject constructor(
                     season = season,
                     episode = episode,
                 ),
-                // Решта сезону тією ж роздачею: Vimu отримає m3u, Just+ — чергу серій.
+                // Решта сезону тим самим варіантом: Vimu отримає m3u, Just+ — чергу серій.
                 playlist = if (episode > 0) seasonPlaylist(item, season, episode, result.ref) else null,
                 prepared = true,
+                warmedOnOwn = own,
                 ref = result.ref,
                 source = result.source,
                 subs = result.subs,
             )
         }
+    }
+
+    /**
+     * Свій сервер потоків: головний сервер у цьому режимі не міряє нічого, а варіант, що за
+     * даними сервера живий, на ділі може ледь тягнути (4K, з яким плеєр висів на 0 МБ/с).
+     * Готуємо; не наповнився й качає повільніше, ніж треба його якості, — текст для людини
+     * з живими цифрами, інакше null.
+     */
+    private suspend fun deadOnOwn(result: PlayResult): String? {
+        state.update { it.copy(preparingNote = (it.preparingNote?.first ?: context.getString(R.string.cinema_prep_connecting)) to cleanStreamLabel(result.name)) }
+        val watch = watchSource(listOfNotNull(streams.warmableRef(result.url)))
+        val warm = streams.warmOnOwn(result.url)
+        watch.cancel()
+        if (!looksDead(warm, result.name)) return null
+        return context.resources.getQuantityString(
+            R.plurals.cinema_own_dead,
+            warm.connections,
+            warm.connections,
+            "%.1f".format(warm.bytesPerSec * 8 / 1e6),
+            "%.0f".format(needBytesPerSec(result.name) * 8 / 1e6),
+        )
     }
 
     /**
@@ -873,10 +906,10 @@ class TitleViewModel @Inject constructor(
 
         // Той самий підпис, що з «Продовжити»: чия озвучка й звідки (variantLabel).
         val label = { o: StreamOption -> com.likhtar.home.core.catalog.variantLabel(o.label) }
-        // Роздачі, яких TorrServer ще не знає (4K-ремукс, що ніхто не вмикав), у списку
-        // агрегатора відсутні — лише в озвучках (LikhtarStreams.coldTorrents).
-        val known = all.mapNotNull { torrentRefOf(it.url) }.toSet() + listOfNotNull(torrentRefOf(current.url))
-        val cold = if (episode == 0) streams.coldTorrents(item, known) else emptyList()
+        // Варіанти, яких ще немає серед відомих (4K-ремукс, що ніхто не вмикав), у списку
+        // агрегатора відсутні — лише в озвучках (LikhtarStreams.coldSources).
+        val known = all.mapNotNull { streams.warmableRef(it.url) }.toSet() + listOfNotNull(streams.warmableRef(current.url))
+        val cold = if (episode == 0) streams.coldSources(item, known) else emptyList()
         val dvFirst = com.likhtar.home.core.catalog.DolbyVision.supported
         val rest = (cold + all.filter { it.url != current.url }).distinctBy { it.url }
             .sortedByDescending { bestFirstKey(it.label, dvFirst) }
@@ -916,15 +949,15 @@ class TitleViewModel @Inject constructor(
     }
 
     /**
-     * Раз на секунду — стан роздач, поки сервер їх готує: людина бачить пірів, швидкість і
+     * Раз на секунду — стан джерел, поки сервер їх готує: людина бачить з'єднання, швидкість і
      * смугу підвантаження, а не лише ліхтар. Серед кількох варіантів показуємо той, що вже
-     * підвантажується, інакше — з найбільшою кількістю пірів.
+     * підвантажується, інакше — з найбільшою кількістю з'єднань.
      */
-    private fun watchTorrent(refs: List<String>): Job = viewModelScope.launch {
+    private fun watchSource(refs: List<String>): Job = viewModelScope.launch {
         if (refs.isEmpty()) return@launch
         while (isActive) {
-            val best = refs.mapNotNull { streams.torrentStat(it) }
-                .maxByOrNull { (it.bufferShare ?: 0f) * 10_000 + it.peers }
+            val best = refs.mapNotNull { streams.sourceStat(it) }
+                .maxByOrNull { (it.bufferShare ?: 0f) * 10_000 + it.connections }
             if (best != null) state.update { it.copy(preparingStat = best) }
             delay(STAT_POLL_MS)
         }
@@ -961,29 +994,32 @@ class TitleViewModel @Inject constructor(
         stream: StreamOption,
         playlist: String? = null,
         prepared: Boolean = false,
+        warmedOnOwn: Boolean = false,
         ref: String = "",
         source: String = "",
         subs: List<Pair<String, String>> = emptyList(),
     ) {
         viewModelScope.launch {
-            // Спершу прогрів: TorrServer починає качати лише коли хтось читає файл, тому
-            // відданий одразу торент-лінк перші секунди «висить» у плеєрі. Для HLS сервер
+            // Спершу підготовка: деякі джерела починають віддавати дані лише коли хтось читає
+            // файл, і відданий одразу лінк перші секунди «висить» у плеєрі. Для HLS сервер
             // відповідає миттєво (kind:"direct"), тож розрізняти типи тут не треба.
             //
             // `prepared` — потік уже прийшов з `/api/play`, який сам дочекався даних:
-            // гріти вдруге означало б чекати те, що вже готове.
-            val ownTorrent = streams.ownTorrentServer() != null && torrentRefOf(stream.url) != null
-            val readiness = if (ownTorrent) {
-                // Свій TorrServer: сервер уже обрав роздачу, а гріти її треба там, звідки
-                // гратиме плеєр. Цифри в «Готую» — теж звідти (torrentStat питає його).
+            // готувати вдруге означало б чекати те, що вже готове.
+            val onOwnServer = streams.hasOwnServer() && streams.warmableRef(stream.url) != null
+            val readiness = if (onOwnServer && warmedOnOwn) {
+                LikhtarStreams.Readiness.READY // уже підготовлено в deadOnOwn
+            } else if (onOwnServer) {
+                // Свій сервер потоків: сервер уже обрав варіант, а готувати його треба там,
+                // звідки гратиме плеєр. Цифри в «Готую» — теж звідти (sourceStat питає його).
                 state.update {
                     it.copy(
                         preparing = true, message = null, preparingStat = null,
                         preparingNote = (it.preparingNote?.first ?: context.getString(R.string.cinema_prep_connecting)) to cleanStreamLabel(stream.label),
                     )
                 }
-                val watch = watchTorrent(listOfNotNull(torrentRefOf(stream.url)))
-                val warmed = streams.warmOnOwn(stream.url)
+                val watch = watchSource(listOfNotNull(streams.warmableRef(stream.url)))
+                val warmed = streams.warmOnOwn(stream.url).ready
                 watch.cancel()
                 state.update { s -> s.copy(preparingStat = null) }
                 if (warmed) LikhtarStreams.Readiness.READY else LikhtarStreams.Readiness.UNKNOWN
@@ -996,7 +1032,7 @@ class TitleViewModel @Inject constructor(
                         preparingNote = (it.preparingNote?.first ?: context.getString(R.string.cinema_prep_connecting)) to cleanStreamLabel(stream.label),
                     )
                 }
-                val watch = watchTorrent(listOfNotNull(torrentRefOf(stream.url)))
+                val watch = watchSource(listOfNotNull(streams.warmableRef(stream.url)))
                 streams.prepare(stream.url).also {
                     watch.cancel()
                     state.update { s -> s.copy(preparingStat = null) }
@@ -1004,9 +1040,9 @@ class TitleViewModel @Inject constructor(
             }
 
             if (readiness == LikhtarStreams.Readiness.DEAD) {
-                // Плеєр на мертвій роздачі виглядає як застряглий лаунчер — не запускаємо.
+                // Плеєр на мертвому джерелі виглядає як застряглий лаунчер — не запускаємо.
                 state.update {
-                    it.copy(preparing = false, message = context.getString(R.string.cinema_torrent_dead))
+                    it.copy(preparing = false, message = context.getString(R.string.cinema_source_dead))
                 }
                 return@launch
             }
@@ -1039,13 +1075,23 @@ class TitleViewModel @Inject constructor(
             // Наступні серії — з того самого джерела, що й стартова: плейлист сезону сервер
             // збирає з одного джерела (одного сайту), і після першої серії з іншого плеєр щоразу
             // перескакував на нього. Немає серії на цьому хості — як було.
+            // Опис і кадр кожної серії — для колонки «Епізоди» плеєра (серії сезону сторінка вже має).
+            val seasonEpisodes = if (item != null && isSeries && playlistQueue.size > 1) {
+                state.value.episodes.takeIf { state.value.season == season && it.isNotEmpty() }
+                    ?: runCatching { catalog.seasonEpisodes(item, season) }.getOrDefault(emptyList())
+            } else {
+                emptyList()
+            }
             val queue = playlistQueue.map { e ->
                 if (e.url == stream.url || stream.source.isBlank()) e
                 else all.firstOrNull { it.episode == e.episode && it.source == stream.source }
                     ?.let { e.copy(url = it.url) } ?: e
+            }.map { e ->
+                seasonEpisodes.firstOrNull { it.number == e.episode }
+                    ?.let { ep -> e.copy(overview = ep.overview, still = com.likhtar.home.core.catalog.TmdbImages.still(ep.stillPath).orEmpty()) } ?: e
             }
             // І для кожної наступної серії черги — інакше після переходу на другу серію
-            // панель «Якість» у Just+ порожня: ні інших озвучок, ні інших роздач.
+            // панель «Якість» у Just+ порожня: ні інших озвучок, ні інших варіантів.
             val queueVariants = if (item != null && queue.size > 1) {
                 queue.map { e ->
                     if (e.url == stream.url) variants
@@ -1105,7 +1151,7 @@ class TitleViewModel @Inject constructor(
      * Навіщо: заміряно на 2160p-ремуксі, що ViMu не читає потік ЗОВСІМ, при цьому
      * звітує `state=PLAYING`, а `prepare` каже «ready». Людина бачить чорний екран зі
      * спінером і жодного слова. Ні плеєр, ні наша перевірка готовності про це не скажуть —
-     * скаже лише сервер, який бачить список читачів TorrServer.
+     * скаже лише сервер, який бачить список читачів потоку.
      *
      * Вердикт лише на `readers:0`. Живий читач без руху — законний стан плеєра, що набрав
      * буфер уперед, тому там перепитуємо, і рахуємо тільки повторний нуль.
@@ -1312,7 +1358,7 @@ internal fun prioritizePlaybackOptions(
 ): List<StreamOption> = options.sortedWith(
     compareByDescending<StreamOption> { it.ukrainianAudio }
         // Озвучка — раніше за джерело, і це свідомо: хто звик до однієї студії, тому
-        // байдуже, з торента вона прийде чи з балансера. Зворотне впорядкування —
+        // байдуже, з якого джерела вона прийде. Зворотне впорядкування —
         // «той самий сайт, але чужий голос» — і було тим, від чого людина щоразу лізла
         // в список руками.
         .thenBy { option -> voiceRank(option.label, recentVoices) }
@@ -1325,7 +1371,7 @@ internal fun prioritizePlaybackOptions(
  * Наскільки свіжа ця озвучка в пам'яті: 0 — вмикали останньою.
  *
  * Структурного поля озвучки в пункті немає — сервер віддає готовий підпис («🇺🇦 1080p ·
- * Дубляж · Торент»), і студія в ньому лише текстом. Тому шукаємо входження, і саме тим
+ * Дубляж · Джерело»), і студія в ньому лише текстом. Тому шукаємо входження, і саме тим
  * порівнянням, що терпить різні написання назви.
  */
 internal fun voiceRank(label: String, recentVoices: List<String>): Int {
@@ -1347,15 +1393,29 @@ internal fun matchesStudio(voice: String, studio: String): Boolean {
 
 private const val STAT_POLL_MS = 1_000L
 
+/**
+ * Скільки треба качати, щоб якість не стояла на паузах. Розміру й хронометражу тут немає,
+ * тож за висотою з підпису — як needSpeed на сервері: 4K ≈ 25 Мбіт/с, 1080p ≈ 6.
+ * ponytail: точніше — розмір/хронометраж, коли /api/play почне віддавати розмір.
+ */
+/**
+ * Мертвий — лише той варіант, що за підготовку майже не качав: менше п'ятої частини потреби
+ * якості. Поріг «повна потреба» відкидав варіанти, які ще розганялись; 4K на 0,3 Мбіт/с
+ * лишається мертвим.
+ */
+internal fun looksDead(warm: com.likhtar.home.core.catalog.OwnWarm, label: String): Boolean =
+    !warm.ready && warm.bytesPerSec < needBytesPerSec(label) * DEAD_SHARE
+
+private const val DEAD_SHARE = 0.2
+
+internal fun needBytesPerSec(label: String): Double = when {
+    "2160" in label || "4K" in label -> 25e6 / 8
+    "1080" in label -> 6e6 / 8
+    else -> 3e6 / 8
+}
+
 /** Скільки варіантів класти в панель якості плеєра. */
 private const val MAX_VARIANTS = 12
-
-/**
- * Роздача: джерело сервера `torrent`, ref-infohash, а вже тоді — підпис пункта («… · Торент»), який
- * сервер складає українською для старих відповідей без `sourceOf`.
- */
-private fun torrentLike(ref: String, name: String?, source: String?): Boolean =
-    source == "torrent" || Regex("[0-9a-fA-F]{40}").matches(ref) || name?.contains("Торент") == true
 
 private fun markMessage(context: android.content.Context, m: TitleMark): String = context.getString(
     when {

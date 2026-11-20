@@ -74,11 +74,11 @@ object LikhtarType {
         fontFeatureSettings = TabularNums,
     )
 
-    /** Температура в комірці години: 20px → 10sp. */
+    /** Температура в комірці години: читабельна з 3 м. */
     val HourTemp = TextStyle(
         fontFamily = Body,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 10.sp,
+        fontSize = 11.5.sp,
         fontFeatureSettings = TabularNums,
     )
 
@@ -89,26 +89,26 @@ object LikhtarType {
         fontSize = 20.sp,
     )
 
-    /** Заголовок групи в сітці застосунків: mono 15px → 7.5sp, трекінг 0.18em. */
+    /** Заголовок групи в сітці застосунків: mono, трекінг 0.14em. */
     val SectionMono = TextStyle(
         fontFamily = Mono,
-        fontWeight = FontWeight.Normal,
-        fontSize = 7.5.sp,
-        letterSpacing = 1.35.sp,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.5.sp,
+        letterSpacing = 1.2.sp,
     )
 
-    /** Текст підказки в пігулці: 19px → 9.5sp. */
+    /** Текст підказки в пігулці: мінімум для 3 м. */
     val HintText = TextStyle(
         fontFamily = Body,
         fontWeight = FontWeight.Normal,
-        fontSize = 9.5.sp,
+        fontSize = 11.5.sp,
     )
 
-    /** Підпис під плиткою застосунку: 20px → 10sp, вага 500. */
+    /** Підпис під плиткою застосунку: 22px → 11sp, вага 500. */
     val AppLabel = TextStyle(
         fontFamily = Body,
         fontWeight = FontWeight.Medium,
-        fontSize = 10.sp,
+        fontSize = 11.5.sp,
         letterSpacing = (-0.1).sp,
     )
 
@@ -124,7 +124,7 @@ object LikhtarType {
     val MonoTiny = TextStyle(
         fontFamily = Mono,
         fontWeight = FontWeight.Medium,
-        fontSize = 8.sp,
+        fontSize = 11.5.sp,
         fontFeatureSettings = TabularNums,
     )
 
@@ -171,26 +171,26 @@ object LikhtarType {
         letterSpacing = (-0.3).sp,
     )
 
-    /** Пункт верхнього меню: не дрібніший за службовий текст на TV. */
+    /** Пункт верхнього меню: добре читається з 3 метрів. */
     val MenuItem = TextStyle(
         fontFamily = Body,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 11.5.sp,
+        fontSize = 13.5.sp,
     )
 
     /** Заголовок секції: короткий, але має читатись без наближення до екрана. */
     val SectionTitle = TextStyle(
         fontFamily = Body,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 10.5.sp,
+        fontSize = 11.5.sp,
         letterSpacing = 0.6.sp,
     )
 
-    /** Kicker над hero: службовий рівень, але не мікротекст. */
+    /** Kicker над hero: службовий рівень, читабельний з дивана. */
     val Kicker = TextStyle(
         fontFamily = Body,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 9.sp,
+        fontSize = 11.5.sp,
         letterSpacing = 1.1.sp,
     )
 
@@ -229,15 +229,15 @@ object LikhtarType {
     val Body2 = TextStyle(
         fontFamily = Body,
         fontWeight = FontWeight.Normal,
-        fontSize = 10.sp,
-        lineHeight = 14.sp,
+        fontSize = 11.5.sp,
+        lineHeight = 15.sp,
     )
 
     /** Мітка на кнопці / у рядку. */
     val Label = TextStyle(
         fontFamily = Body,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 10.5.sp,
+        fontSize = 11.5.sp,
     )
 
     /** Числа в рядку тексту (прогноз, метадані) — Inter із табличними цифрами. */
@@ -247,7 +247,7 @@ object LikhtarType {
     val MonoSmall = TextStyle(
         fontFamily = Mono,
         fontWeight = FontWeight.Normal,
-        fontSize = 8.5.sp,
+        fontSize = 11.5.sp,
         letterSpacing = 0.sp,
     )
 }

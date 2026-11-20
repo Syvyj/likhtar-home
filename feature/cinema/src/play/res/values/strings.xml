@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="cinema_prep_looking">Looking for the source…</string>
+    <string name="cinema_prep_slow">The source is slow for this quality — looking for a faster one</string>
+    <string name="cinema_prep_measuring">Measuring the speed</string>
+    <string name="cinema_picker_more">Still looking…</string>
+    <string name="cinema_source_dead">This source isn\'t responding. Try another item in the list.</string>
+    <string name="cinema_prep_connecting">Connecting to the source</string>
+    <string name="cinema_prep_waiting">Waiting for the first data</string>
+    <plurals name="cinema_stat_links">
+        <item quantity="one">connection</item>
+        <item quantity="other">connections</item>
+    </plurals>
+    <plurals name="cinema_stat_sources">
+        <item quantity="one">source</item>
+        <item quantity="other">sources</item>
+    </plurals>
+    <plurals name="cinema_own_dead">
+        <item quantity="one">Source too slow: %1$d connection, %2$s of %3$s Mbit/s needed. Pick another one</item>
+        <item quantity="other">Source too slow: %1$d connections, %2$s of %3$s Mbit/s needed. Pick another one</item>
+    </plurals>
+</resources>

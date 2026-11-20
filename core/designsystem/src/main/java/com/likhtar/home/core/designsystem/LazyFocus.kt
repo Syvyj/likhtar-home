@@ -20,6 +20,7 @@ const val PIN_TOLERANCE_PX = 2
  * Лише коли він не на місці: прокрутка під пошуком фокуса дає каскад переходів.
  */
 suspend fun LazyListState.centerItem(index: Int, topUntil: Int = 1) {
+    if (focusedByPointer()) return
     if (index <= topUntil) {
         if (firstVisibleItemIndex == 0) {
             if (firstVisibleItemScrollOffset > PIN_TOLERANCE_PX) glideBy(-firstVisibleItemScrollOffset.toFloat())
@@ -66,4 +67,17 @@ val MinimalBringIntoView = object : BringIntoViewSpec {
 @OptIn(ExperimentalFoundationApi::class)
 val NoBringIntoView = object : BringIntoViewSpec {
     override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float = 0f
+}
+
+/**
+ * Поставити ряд угорі колонки, якщо він ще не там (Кінозал, Реаліті, каталог хмарних ігор).
+ * Видимий — спільним рухом [glideBy] (перебиває попередній і переймає швидкість); за краєм —
+ * animateScrollToItem. Ряд уже на місці — нічого: зайва прокрутка під пошуком фокуса дає каскад.
+ */
+suspend fun LazyListState.pinTop(index: Int) {
+    if (focusedByPointer()) return
+    val info = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+    if (info != null && abs(info.offset) <= PIN_TOLERANCE_PX) return
+    if (index == 0 && firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset <= PIN_TOLERANCE_PX) return
+    if (info != null) glideBy(info.offset.toFloat()) else animateScrollToItem(index)
 }

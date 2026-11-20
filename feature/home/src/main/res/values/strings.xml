@@ -1,5 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_all_apps">All apps</string>
+    <string name="home_my_home">Smart home</string>
+    <string name="home_likhtar_sections">LIKHTAR HOME</string>
+    <string name="home_apps_and_sections">Your apps and sections</string>
+    <string name="home_all_devices">All devices</string>
+    <string name="home_close_panel">Close</string>
+    <string name="home_smart_subtitle">Your home at hand</string>
+    <string name="home_smart_temp_title">HOME TEMPERATURE</string>
+    <string name="home_quick_settings">Quick settings</string>
+    <string name="home_all_settings">All settings</string>
+    <string name="home_desktop_subtitle">Home screen layout</string>
+    <string name="home_rows_group">HOME LAYOUT</string>
+    <string name="home_extra_rows_group">MORE ROWS</string>
+    <string name="home_layout_mode">Layout</string>
+    <string name="home_layout_two_rows">Two rows</string>
+    <string name="home_layout_one_row">One row</string>
+    <string name="home_row_position_group">ROW POSITION</string>
+    <string name="home_row_position_top">Top</string>
+    <string name="home_row_position_middle">Middle</string>
+    <string name="home_row_position_bottom">Bottom</string>
+    <string name="home_row_position_minimal">Minimal</string>
+    <string name="home_row_position_hint">← → to adjust height</string>
+    <string name="home_row_move">Move row</string>
+    <string name="home_row_move_up">Move row up ↑</string>
+    <string name="home_row_move_down">Move row down ↓</string>
+    <string name="home_row_hide">Hide row</string>
+    <string name="home_row_show_apps">Show “Your apps” row</string>
+    <string name="home_restore_hidden_apps">Restore hidden apps</string>
+    <string name="home_app_move">Move</string>
+    <string name="home_app_open">Open</string>
+    <string name="home_app_move_left">Move left ←</string>
+    <string name="home_app_move_right">Move right →</string>
+    <string name="home_app_hide">Hide</string>
+    <string name="home_likhtar_permanent_note">“LIKHTAR HOME” row cannot be hidden</string>
     <string name="home_tile_live_tv">Live TV</string>
     <string name="home_tile_search">Search</string>
     <string name="home_ua_arrived_title">Now in Ukrainian: %1$s</string>
@@ -69,4 +103,5 @@
     </string-array>
     <string name="home_support">Support the author</string>
     <string name="home_update">Update %1$s</string>
+    <string name="home_devices">Devices</string>
 </resources>

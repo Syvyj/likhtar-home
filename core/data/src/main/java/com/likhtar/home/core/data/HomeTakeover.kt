@@ -8,6 +8,7 @@ import com.likhtar.home.core.adb.LocalAdb
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.content.edit
 
 /**
  * Ліхтар — справжній домашній екран, без комп'ютера: через ADB самого телевізора ([LocalAdb])
@@ -46,12 +47,12 @@ class HomeTakeover @Inject constructor(
             return@withAdb Problem.WIFI_OWNED
         }
         if (!adb.shell("cmd package set-home-activity '$ours'").contains("Success")) return@withAdb Problem.REFUSED
-        prefs.edit().putBoolean(KEY_ACTIVE, true).putString(KEY_ORIGINAL, original).apply()
+        prefs.edit { putBoolean(KEY_ACTIVE, true); putString(KEY_ORIGINAL, original) }
 
         val disabled = prefs.getStringSet(KEY_DISABLED, emptySet()).orEmpty().toMutableSet()
         fun disable(pkg: String) {
             if (adb.shell("pm disable-user --user 0 $pkg").contains("disabled-user")) disabled += pkg
-            prefs.edit().putStringSet(KEY_DISABLED, disabled).apply()
+            prefs.edit { putStringSet(KEY_DISABLED, disabled) }
         }
         if (setupHome) disable(SETUP)
         // Лаунчер — лише коли майстра вже немає: інакше HOME забрав би його RecoveryActivity.
@@ -118,7 +119,7 @@ class HomeTakeover @Inject constructor(
         val original = prefs.getString(KEY_ORIGINAL, "").orEmpty().takeIf(::safe)
         // Спершу знімаємо прапорець: інакше сторож ([watch]) побачив би ввімкнений лаунчер
         // і вимкнув би його назад посеред повернення.
-        prefs.edit().putBoolean(KEY_ACTIVE, false).commit()
+        prefs.edit(commit = true) { putBoolean(KEY_ACTIVE, false) }
         // Обірвалось посеред повернення (ADB, сон) чи пакет не ввімкнувся — прапорець назад:
         // інакше кнопка «Повернути стоковий екран» зникала, а стоковий лишався вимкненим, і
         // запобіжник падінь теж уже не спрацьовував.
@@ -132,15 +133,15 @@ class HomeTakeover @Inject constructor(
             if (SETUP in disabled) adb.shell("pm enable $SETUP")
             disabled.filter { stillDisabled(it) }
         }.getOrElse { e ->
-            prefs.edit().putBoolean(KEY_ACTIVE, true).commit()
+            prefs.edit(commit = true) { putBoolean(KEY_ACTIVE, true) }
             throw e
         }
         if (still.isNotEmpty()) {
-            prefs.edit().putBoolean(KEY_ACTIVE, true).commit()
+            prefs.edit(commit = true) { putBoolean(KEY_ACTIVE, true) }
             Log.w(TAG, "не ввімкнулись: $still")
             return Problem.REFUSED
         }
-        prefs.edit().clear().apply()
+        prefs.edit { clear() }
         Log.i(TAG, "повернуто: $original, увімкнено: $disabled")
         return null
     }

@@ -35,10 +35,29 @@
   .empty { color:var(--muted); padding:24px 0; text-align:center; }
   .thought { white-space:pre-line; background:var(--card); border:1px solid rgba(56,198,192,.35); border-radius:14px; padding:12px 14px; margin-top:4px; color:var(--text); }
   .thought b { color:var(--teal); display:block; margin-bottom:4px; }
+  .tabs { display:flex; gap:6px; margin-bottom:12px; }
+  .tabs button { flex:1; background:var(--card); color:var(--muted); border:1px solid var(--line); padding:9px 0; font-weight:600; }
+  .tabs button.on { background:var(--warm); color:#1B222A; border-color:var(--warm); }
+  [hidden] { display:none !important; }
+  #remote { padding:6px 16px 40px; display:flex; flex-direction:column; align-items:center; gap:18px; }
+  .row { display:flex; gap:12px; justify-content:center; width:100%; max-width:360px; }
+  .row button { flex:1; background:var(--card); color:var(--text); border:1px solid var(--line); padding:14px 0; font-size:15px; font-weight:600;
+                -webkit-user-select:none; user-select:none; touch-action:manipulation; }
+  .row button { display:flex; align-items:center; justify-content:center; gap:7px; }
+  .row button svg { flex:none; }
+  .row button:active, .pad button:active { background:var(--line); }
+  .pad { display:grid; grid-template-columns:repeat(3, 76px); grid-template-rows:repeat(3, 76px); gap:8px; }
+  .pad button { background:var(--card); color:var(--text); border:1px solid var(--line); font-size:24px; border-radius:18px;
+                -webkit-user-select:none; user-select:none; touch-action:manipulation; }
+  .pad .ok { background:var(--warm); color:#1B222A; font-size:18px; font-weight:700; border-radius:50%; }
+  .typer { width:100%; max-width:360px; }
+  .typer .note { color:var(--muted); font-size:12px; margin-top:6px; }
 </style>
 </head>
 <body>
 <header>
+  <nav class="tabs"><button id="tabSearch" class="on">Ліхтарик</button><button id="tabRemote">Пульт</button></nav>
+  <div id="searchHead">
   <h1>Ліхтар<span>ик</span></h1>
   <div class="sub">Пишіть тут і тисніть «Пошук» — шукає на телевізорі. Назвою, описом («фільм про синіх інопланетян») чи проханням («порадь комедію на вечір»).</div>
   <div class="field">
@@ -46,8 +65,23 @@
     <button class="clear" id="mic" aria-label="Голосом">🎙</button>
     <button class="clear" id="clear" aria-label="Стерти">✕</button>
   </div>
+  </div>
 </header>
 <main id="list"><div class="empty">З'єднуюсь із телевізором…</div></main>
+<section id="remote" hidden>
+  <div class="row"><button data-k="back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Назад</button><button data-k="home"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>Дім</button><button data-k="menu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Меню</button></div>
+  <div class="pad">
+    <span></span><button data-k="up" data-repeat aria-label="Вгору">▲</button><span></span>
+    <button data-k="left" data-repeat aria-label="Ліворуч">◀</button><button class="ok" data-k="ok">OK</button><button data-k="right" data-repeat aria-label="Праворуч">▶</button>
+    <span></span><button data-k="down" data-repeat aria-label="Вниз">▼</button><span></span>
+  </div>
+  <div class="row"><button data-k="rewind" aria-label="Перемотати назад"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 18 3 12l8-6z" fill="currentColor"/><path d="M21 18l-8-6 8-6z" fill="currentColor"/></svg></button><button data-k="playpause" aria-label="Пауза / грати"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6v12l8-6z" fill="currentColor"/><path d="M16 6v12M20 6v12"/></svg></button><button data-k="forward" aria-label="Перемотати вперед"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18l8-6-8-6z" fill="currentColor"/><path d="M13 18l8-6-8-6z" fill="currentColor"/></svg></button></div>
+  <div class="row"><button data-k="voldown" data-repeat aria-label="Тихіше"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9.5a3.5 3.5 0 0 1 0 5"/></svg></button><button data-k="mute" aria-label="Без звуку"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4z" fill="currentColor"/><path d="m16 9 5 6M21 9l-5 6"/></svg></button><button data-k="volup" data-repeat aria-label="Гучніше"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9.5a3.5 3.5 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10"/></svg></button></div>
+  <div class="typer">
+    <div class="field"><input id="typeText" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Писати на ТВ (пароль, пошук…)"><button class="clear" id="typeSend">↵</button></div>
+    <div class="note">Текст іде в поле, що зараз у фокусі на телевізорі. Лише латиниця, цифри й знаки — так уміє Android TV.</div>
+  </div>
+</section>
 <div class="toast" id="toast"></div>
 <script>
 const q = document.getElementById('q'), list = document.getElementById('list'), toast = document.getElementById('toast');
@@ -117,6 +151,48 @@ function render(s) {
     }
   }
 }
+
+// ─── Пульт ─────────────────────────────────────────────────────────────
+const remote = document.getElementById('remote'), searchHead = document.getElementById('searchHead');
+const tabs = { search: document.getElementById('tabSearch'), remote: document.getElementById('tabRemote') };
+function tab(name) {
+  tabs.search.classList.toggle('on', name === 'search'); tabs.remote.classList.toggle('on', name === 'remote');
+  remote.hidden = name !== 'remote'; list.hidden = name === 'remote'; searchHead.hidden = name === 'remote';
+  try { localStorage.setItem('tab', name); } catch (e) {}
+}
+tabs.search.onclick = () => tab('search'); tabs.remote.onclick = () => tab('remote');
+try { if (localStorage.getItem('tab') === 'remote') tab('remote'); } catch (e) {}
+
+let warned = false;
+async function key(body) {
+  try {
+    const r = await fetch('key', { method: 'POST', body: JSON.stringify(body) });
+    const ok = (await r.json()).ok;
+    if (!ok && body.text !== undefined) say(/^[\x20-\x7e]+$/.test(body.text) ? 'Телевізор не прийняв текст' : 'Лише латиниця, цифри й знаки');
+    else if (!ok && !warned) { warned = true; say('Пульт працює, коли на ТВ дозволено налагодження'); }
+    return ok;
+  } catch (e) { say('Телевізор не відповідає'); return false; }
+}
+// Натискання — одразу на дотик; стрілки й гучність повторюються, поки тримаєш палець.
+for (const b of remote.querySelectorAll('[data-k]')) {
+  let hold = 0;
+  const stop = () => { clearTimeout(hold); clearInterval(hold); hold = 0; };
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (navigator.vibrate) navigator.vibrate(8);
+    key({ button: b.dataset.k });
+    if (b.hasAttribute('data-repeat')) hold = setTimeout(() => { hold = setInterval(() => key({ button: b.dataset.k }), 160); }, 450);
+  });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, stop);
+  b.addEventListener('contextmenu', e => e.preventDefault());
+}
+const typeText = document.getElementById('typeText');
+async function sendText() {
+  if (!typeText.value) return;
+  if (await key({ text: typeText.value })) { say('Надіслано на телевізор'); typeText.value = ''; }
+}
+document.getElementById('typeSend').onclick = sendText;
+typeText.addEventListener('keydown', e => { if (e.key === 'Enter') sendText(); });
 
 async function poll() {
   try { const r = await fetch('state', { cache: 'no-store' }); render(await r.json()); } catch (e) {}

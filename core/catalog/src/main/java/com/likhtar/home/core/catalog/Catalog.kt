@@ -304,6 +304,10 @@ enum class WatchCollection(
     val title: String,
     val path: String,
     val params: Map<String, String>,
+    /** Назва з ресурсів (en/pl/uk) — для рядів, яких сервер не знає й не перекладає. */
+    val titleRes: Int = 0,
+    /** Тема «Ряду дня» — [moodCollections] бере одну на добу. */
+    val daily: Boolean = false,
 ) {
     // «Вийшло в цифрі» (`with_release_type=4|6`) стояв окремим рядом і показував ті самі
     // назви, що й цей: заміряно — обидва ряди відкривались четвіркою «Біжи!»,
@@ -375,11 +379,54 @@ enum class WatchCollection(
             "primary_release_date.lte" to "{current_date}",
         ),
     ),
+
+    // C3 — ряди за настроєм (Nottilo): збираються з TMDB на самій приставці, сервер їх не знає.
+    // Фільми, бо «до 100 хвилин» і «за реальними подіями» — це про вечір, а не про сезон.
+    HIDDEN_GEMS(
+        "mood_gems", "", "discover/movie",
+        // Висока оцінка, але мало голосів: те, що «Топи» (від 1500 голосів) ніколи не покажуть.
+        // Без документалок, концертів, ТБ-фільмів, мультфільмів і сімейного: там при малій кількості голосів
+        // оцінки найвищі, і ряд відкривався концертом і короткометражкою. Пів року після
+        // прем'єри — щоб оцінка встигла влягтись.
+        mapOf(
+            "sort_by" to "vote_average.desc", "vote_average.gte" to "7.4", "vote_count.gte" to "600", "vote_count.lte" to "3000",
+            "without_genres" to "99,10402,10770,16,10751", "with_runtime.gte" to "80",
+            "primary_release_date.gte" to "1995-01-01", "primary_release_date.lte" to "{current_date-180}",
+        ),
+        titleRes = R.string.catalog_mood_gems,
+    ),
+    UNDER_100(
+        "mood_short", "", "discover/movie",
+        mapOf(
+            "sort_by" to "popularity.desc", "with_runtime.gte" to "70", "with_runtime.lte" to "100", "vote_count.gte" to "300",
+            "vote_average.gte" to "6.5", "without_genres" to "99,10402,10770",
+        ),
+        titleRes = R.string.catalog_mood_short,
+    ),
+    TRUE_STORIES(
+        "mood_true", "", "discover/movie",
+        mapOf("sort_by" to "popularity.desc", "with_keywords" to "9672", "vote_count.gte" to "200", "without_genres" to "99,10402"),
+        titleRes = R.string.catalog_mood_true,
+    ),
+    DAY_HEIST("day_heist", "", "discover/movie", mapOf("sort_by" to "popularity.desc", "vote_count.gte" to "300", "with_keywords" to "10051"), titleRes = R.string.catalog_day_heist, daily = true),
+    DAY_TIME_TRAVEL("day_time_travel", "", "discover/movie", mapOf("sort_by" to "popularity.desc", "vote_count.gte" to "300", "with_keywords" to "4379"), titleRes = R.string.catalog_day_time_travel, daily = true),
+    DAY_SPACE("day_space", "", "discover/movie", mapOf("sort_by" to "popularity.desc", "vote_count.gte" to "300", "with_keywords" to "9882"), titleRes = R.string.catalog_day_space, daily = true),
+    DAY_SURVIVAL("day_survival", "", "discover/movie", mapOf("sort_by" to "popularity.desc", "vote_count.gte" to "300", "with_keywords" to "10349"), titleRes = R.string.catalog_day_survival, daily = true),
+    DAY_SMALL_TOWN("day_small_town", "", "discover/movie", mapOf("sort_by" to "popularity.desc", "vote_count.gte" to "300", "with_keywords" to "1415"), titleRes = R.string.catalog_day_small_town, daily = true),
+    DAY_DYSTOPIA("day_dystopia", "", "discover/movie", mapOf("sort_by" to "popularity.desc", "vote_count.gte" to "300", "with_keywords" to "4565"), titleRes = R.string.catalog_day_dystopia, daily = true),
+    DAY_AI("day_ai", "", "discover/movie", mapOf("sort_by" to "popularity.desc", "vote_count.gte" to "300", "with_keywords" to "310"), titleRes = R.string.catalog_day_ai, daily = true),
     ;
 
     companion object {
         fun byKey(key: String?): WatchCollection? = entries.firstOrNull { it.key == key }
     }
+}
+
+/** Ряди за настроєм на добу [epochDay]: три постійні й «Ряд дня» — тема змінюється щодня. */
+fun moodCollections(epochDay: Long): List<WatchCollection> {
+    val themes = WatchCollection.entries.filter { it.daily }
+    return listOf(WatchCollection.HIDDEN_GEMS, WatchCollection.UNDER_100, WatchCollection.TRUE_STORIES) +
+        themes[Math.floorMod(epochDay, themes.size.toLong()).toInt()]
 }
 
 /**
@@ -729,7 +776,7 @@ val CatalogItem.opensListing: Pair<CatalogListingKind, String>?
 
 /**
  * Кадр шапки сторінки (стрімінг, студія, жанр, бренд Реаліті) — не завжди перший
- * матеріал, а один із перших [POOL] з кадром, свій на кожну годину Зерно — сторінка й година: протягом години
+ * матеріал, а один із перших [POOL] з кадром, свій на кожну годину (* «сьогодні так, через годину зайшов — так»). Зерно — сторінка й година: протягом години
  * повернення на сторінку не міняє шапку під ногами.
  */
 fun rotatingPick(key: String, items: List<CatalogItem>, now: Long = System.currentTimeMillis()): CatalogItem? {

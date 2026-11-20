@@ -1,6 +1,9 @@
 package com.likhtar.home.core.designsystem
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.layout.Arrangement
@@ -116,6 +119,13 @@ fun LikhtarRail(
         val edges = remember(state) { RailEdges(wrap, count = { state.layoutInfo.totalItemsCount }, jump = { wrapTo = it }) }
         var left by remember { mutableStateOf(false) }
         var hadFocus by remember { mutableStateOf(false) }
+        var rowFocused by remember { mutableStateOf(false) }
+        val reduceMotion = LocalReduceMotion.current
+        val rowAlpha by animateFloatAsState(
+            targetValue = if (rowFocused) 1f else 0.78f,
+            animationSpec = tween(if (reduceMotion) 0 else 220),
+            label = "railFocusDim",
+        )
         LaunchedEffect(left) {
             if (left) {
                 state.scrollToItem(0)
@@ -125,7 +135,17 @@ fun LikhtarRail(
         LazyRow(
             state = state,
             modifier = modifier
-                .bleedHorizontally(bleed)
+                // bleed ДО graphicsLayer: інакше при alpha < 1f (під час 220мс переходу фокуса
+                // ряду 0.78f -> 1f) offscreen-шар graphicsLayer обрізає ліву/верхню межу першої
+                // картки рівно до моменту, поки alpha не досягне 1f.
+                .bleed(horizontal = bleed, vertical = bleed)
+                .graphicsLayer {
+                    alpha = rowAlpha
+                    clip = false
+                    // Прозорість — на кожен вузол, а не окремим буфером поза екраном: інакше кожен
+                    // ряд без фокуса щокадру малювався двічі (картки ряду не перекриваються).
+                    compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
+                }
                 .onPreviewKeyEvent(wrap::onKey)
                 .focusGroup()
                 .focusProperties {
@@ -140,6 +160,7 @@ fun LikhtarRail(
                 // (без фокуса), і ряд, щойно прокручений до плитки повернення, одразу
                 // відмотувався назад — фокус не мав куди стати.
                 .onFocusChanged {
+                    rowFocused = it.hasFocus
                     if (it.hasFocus) hadFocus = true else if (hadFocus) {
                         hadFocus = false
                         left = true
@@ -147,7 +168,7 @@ fun LikhtarRail(
                 },
             horizontalArrangement = Arrangement.spacedBy(gap),
             verticalAlignment = verticalAlignment,
-            contentPadding = PaddingValues(horizontal = bleed),
+            contentPadding = PaddingValues(horizontal = bleed, vertical = bleed),
             content = { FirstMarked(this, first, keeper, edges).content() },
         )
     }
@@ -179,12 +200,16 @@ private val SafeZone = object : BringIntoViewSpec {
 /** Чверть ряду — приблизно одна картка запасу на типовій сітці Кінозалу. */
 private const val SafeZoneFraction = 0.25f
 
-/** Дає вузлу [amount] додаткового простору зліва й справа, не займаючи його в розкладці. */
-private fun Modifier.bleedHorizontally(amount: Dp): Modifier = layout { measurable, constraints ->
-    val extra = amount.roundToPx()
-    val placeable = measurable.measure(constraints.offset(horizontal = extra * 2))
-    layout((placeable.width - extra * 2).coerceAtLeast(0), placeable.height) {
-        placeable.place(-extra, 0)
+/** Дає вузлу додатковий простір з усіх боків, не займаючи його в розкладці. */
+private fun Modifier.bleed(horizontal: Dp, vertical: Dp): Modifier = layout { measurable, constraints ->
+    val extraX = horizontal.roundToPx()
+    val extraY = vertical.roundToPx()
+    val placeable = measurable.measure(constraints.offset(horizontal = extraX * 2, vertical = extraY * 2))
+    layout(
+        width = (placeable.width - extraX * 2).coerceAtLeast(0),
+        height = (placeable.height - extraY * 2).coerceAtLeast(0),
+    ) {
+        placeable.place(-extraX, -extraY)
     }
 }
 

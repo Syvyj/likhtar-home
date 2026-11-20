@@ -16,6 +16,8 @@ data class Wallpaper(
     val backdrop: BackdropSpec? = null,
     val author: String? = null,
     val sourceUri: String? = null,
+    /** Відео замість кадру (з висоти): на Головній стоїть, грає лише в «Спокої». */
+    val videoUri: String? = null,
 ) {
     /**
      * Рядок атрибуції під шпалерами. Показуємо автора й хост джерела, а не повне посилання:

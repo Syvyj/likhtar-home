@@ -27,7 +27,6 @@ internal fun SmartHomeSection(
     viewModel: SettingsViewModel,
     editedRowFocusRequester: FocusRequester,
 ) {
-    // Заголовок — над перемикачем: у «Підключеннях» він інакше стояв би під «Медіатекою».
     GroupTitle("Home Assistant")
     ToggleRow(
         text = stringResource(R.string.settings_smart_home_toggle),

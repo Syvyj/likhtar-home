@@ -17,6 +17,9 @@
     <string name="fsmarthome_link_opened">The phone opened the page — sign in to HA…</string>
     <string name="fsmarthome_link_done">Connected ✓</string>
     <string name="fsmarthome_link_failed">Didn\'t work: %1$s</string>
+    <string name="fsmarthome_google_home">Google Home</string>
+    <string name="fsmarthome_google_home_needs_gtv">The Google Home panel needs Google TV to be enabled: it takes the account from it. Turn Google TV on in the app settings.</string>
+    <string name="fsmarthome_google_home_unavailable">The Google Home panel is not available on this device.</string>
     <string name="fsmarthome_voice">By voice</string>
     <string name="fsmarthome_voice_prompt">Say a command for your home</string>
     <string name="fsmarthome_connecting">Connecting…</string>
@@ -31,4 +34,14 @@
     <string name="fsmarthome_reading_air">air</string>
     <string name="fsmarthome_reading_humidity">humidity</string>
     <string name="fsmarthome_unit_ugm3">µg/m³</string>
+    <string name="fsmarthome_tv">TV</string>
+    <string name="fsmarthome_tv_woken">TV turned on and switched to the box</string>
+    <string name="fsmarthome_tv_failed">No access to the TV (ADB debugging) — nothing was sent</string>
+    <string name="fsmarthome_tv_devices">On HDMI: %1$s</string>
+    <string name="fsmarthome_tv_device_tv">TV</string>
+    <string name="fsmarthome_tv_device_audio">Audio system</string>
+    <string name="fsmarthome_tv_wake">Turn on the TV and switch to the box</string>
+    <string name="fsmarthome_tv_volume_on">Remote volume: through HDMI-CEC ✓</string>
+    <string name="fsmarthome_tv_volume_off">Remote volume: fixed (tap to send via HDMI-CEC)</string>
+    <string name="fsmarthome_tv_volume_note">The box remote\u2019s volume buttons go to the TV or soundbar over HDMI-CEC.</string>
 </resources>

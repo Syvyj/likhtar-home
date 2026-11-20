@@ -2,8 +2,8 @@
 <resources>
     <string name="app_open_with">Otwórz za pomocą</string>
     <string name="drop_title">Wyślij na TV z telefonu</string>
-    <string name="new_episodes_title">Nowe odcinki</string>
-    <string name="new_episodes_hint">Z ostatnich dwóch tygodni, z oglądanych i zapisanych seriali</string>
+    <string name="new_episodes_title">Nowe dla Ciebie</string>
+    <string name="new_episodes_hint">Nowe odcinki oglądanych i zapisanych seriali oraz nowości z listy — z dwóch tygodni</string>
     <string name="drop_no_network">Dekoder nie jest w sieci domowej — kod QR nie ma dokąd prowadzić.</string>
     <string name="drop_step1">1. Skieruj aparat telefonu na kod</string>
     <string name="drop_step2">2. Wybierz plik lub wklej link</string>
@@ -19,6 +19,7 @@
     <string name="drop_saved">Zapisano w %1$s</string>
     <string name="drop_open_link">Otwórz</string>
     <string name="drop_close">Zamknij</string>
+    <string name="now_playing_listener_label">LIKHTAR: co gra</string>
     <string name="home_key_service_label">LIKHTAR: przycisk „Home”</string>
     <string name="home_key_service_description">Przycisk „Home” na pilocie otwiera LIKHTAR. Usługa widzi tylko naciśnięcia „Home” i niczego nie czyta z ekranu.</string>
     <string name="assistant_listening">Słucham. Pytaj o cokolwiek: pogodę, fakt, „otwórz TV na żywo”</string>
@@ -36,4 +37,17 @@
     <string name="assistant_no_time">Nie zrozumiałem, o której przypomnieć.</string>
     <string name="assistant_service_off">Włącz usługę przycisków pilota w Ustawieniach — bez niej tego nie potrafię.</string>
     <string name="live_reminder_text">%1$s o %2$s — „%3$s”</string>
+    <string name="wallpaper_provider_aerial">Z lotu ptaka (wideo)</string>
+    <string name="wallpaper_provider_fresh">Nowości w moich serwisach</string>
+    <string name="screensaver_new_on">Nowość w %1$s</string>
+    <string name="screensaver_open_hint">OK — otwórz</string>
+    <string name="screensaver_aerial_source">z lotu ptaka · Apple</string>
+    <string name="profiles_title">Kto ogląda</string>
+    <string name="profiles_hint">Zakładki, „Kontynuuj” i polecenia — osobne dla każdego</string>
+    <string name="profiles_kids">dziecięcy</string>
+    <string name="notifications_title">Powiadomienia</string>
+    <string name="notifications_clear">Usuń</string>
+    <string name="notifications_mute_app">Ukryj z tej aplikacji</string>
+    <string name="bell_news_service">Teraz na %1$s</string>
+    <string name="bell_news_trailer">Nowy zwiastun · %1$s</string>
 </resources>

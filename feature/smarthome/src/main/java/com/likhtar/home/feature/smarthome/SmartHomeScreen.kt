@@ -30,6 +30,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -94,8 +97,19 @@ fun SmartHomeScreen(
     val menuFocusRequester = rememberInitialFocusRequester(state.devices.isEmpty())
     val firstDeviceFocusRequester = rememberInitialFocusRequester(state.devices.isNotEmpty())
     val voiceFocusRequester = remember { FocusRequester() }
-    // ↑ з першого ряду карток веде на кнопку голосу, якщо вона є, і лише потім у меню.
-    val gridUpFocusRequester = if (state.voiceEnabled) voiceFocusRequester else menuFocusRequester
+    val googleFocusRequester = remember { FocusRequester() }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // Панель «Дім» самого Google TV — той самий дашборд, що в застосунку Google Home на телефоні.
+    // Кнопка є лише там, де ця панель встановлена (Google TV), і нічого не налаштовує сама.
+    val googleHome = remember { googleHomeIntent().takeIf { it.resolveActivity(context.packageManager) != null } }
+    val tv by viewModel.tv.collectAsStateWithLifecycle()
+    var tvOpen by remember { mutableStateOf(false) }
+    // ↑ з першого ряду карток веде на кнопку голосу чи Google Home, якщо вони є, і лише потім у меню.
+    val gridUpFocusRequester = when {
+        state.voiceEnabled -> voiceFocusRequester
+        googleHome != null -> googleFocusRequester
+        else -> menuFocusRequester
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LikhtarScreenScaffold(
@@ -122,6 +136,41 @@ fun SmartHomeScreen(
                             style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontSize = 13.sp),
                             color = LikhtarColors.TextDim,
                             modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                    // Телевізор через HDMI-CEC — лише коли приставка його бачить (ADB і CEC є).
+                    if (tv != null) {
+                        com.likhtar.home.core.designsystem.ProtoButton(
+                            label = stringResource(R.string.fsmarthome_tv),
+                            icon = com.likhtar.home.core.designsystem.R.drawable.ic_solar_tv,
+                            onClick = { tvOpen = true },
+                            modifier = Modifier
+                                .padding(end = 10.dp)
+                                .focusDirections { up = menuFocusRequester },
+                        )
+                    }
+                    googleHome?.let { intent ->
+                        com.likhtar.home.core.designsystem.ProtoButton(
+                            label = stringResource(R.string.fsmarthome_google_home),
+                            icon = com.likhtar.home.core.designsystem.R.drawable.ic_solar_widget,
+                            onClick = {
+                                // Панель бере акаунт у лаунчера Google TV: коли його вимкнено (Ліхтар замість
+                                // нього), вона відкривається й одразу закривається — «account mode is not
+                                // valid». Пояснюємо словами, а не мовчки нічого не показуємо.
+                                if (!googleTvLauncherEnabled(context)) {
+                                    viewModel.onGoogleHomeNeedsGoogleTv()
+                                } else {
+                                    try {
+                                        context.startActivity(intent)
+                                    } catch (e: ActivityNotFoundException) {
+                                        viewModel.onGoogleHomeUnavailable()
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .padding(end = if (state.voiceEnabled) 10.dp else 0.dp)
+                                .focusRequester(googleFocusRequester)
+                                .focusDirections { up = menuFocusRequester },
                         )
                     }
                     if (state.voiceEnabled) {
@@ -168,6 +217,7 @@ fun SmartHomeScreen(
             modifier = Modifier.align(Alignment.BottomCenter),
             onShown = viewModel::clearMessage,
         )
+        tv?.takeIf { tvOpen }?.let { state -> TvPanel(state, onWake = { viewModel.wakeTv(); tvOpen = false }, onVolume = viewModel::toggleTvVolume, onDismiss = { tvOpen = false }) }
         val link by viewModel.link.collectAsStateWithLifecycle()
         val linkStatus by viewModel.linkStatus.collectAsStateWithLifecycle()
         link?.let { url ->
@@ -451,7 +501,7 @@ private fun Room(
                 readings.forEach {
                     Text(
                         readingLabel(it),
-                        style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Mono, fontSize = 10.sp),
+                        style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Mono, fontSize = 11.5.sp),
                         color = LikhtarColors.TextDim,
                         maxLines = 1,
                     )
@@ -557,7 +607,7 @@ private fun DeviceCard(
                                 else -> CoreR.string.smarthome_off
                             },
                         ),
-                        style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.sp),
+                        style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp),
                         color = stateColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -565,7 +615,7 @@ private fun DeviceCard(
                     )
                 }
                 device.extra?.let {
-                    Text(text = it, style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Mono, fontSize = 10.sp), color = stateColor, maxLines = 1)
+                    Text(text = it, style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Mono, fontSize = 11.5.sp), color = stateColor, maxLines = 1)
                 }
             }
             device.progress?.let { done ->
@@ -595,4 +645,71 @@ private fun DeviceIcon(device: SmartDevice, tint: Color) {
         else -> DsR.drawable.ic_solar_power
     }
     androidx.tv.material3.Icon(androidx.compose.ui.res.painterResource(icon), null, tint = tint, modifier = Modifier.size(22.dp))
+}
+
+/** Панель розумного дому Google TV (компонент заставки dreamx): улюблені пристрої з Google Home. */
+private fun googleHomeIntent(): Intent =
+    Intent("com.google.android.libraries.tv.smarthome.intent.action.OPEN_SMART_HOME")
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+/** Лаунчер Google TV увімкнено: без нього панель «Дім» не бачить акаунта. */
+private fun googleTvLauncherEnabled(context: android.content.Context): Boolean =
+    runCatching { context.packageManager.getApplicationInfo(GOOGLE_TV_LAUNCHER, 0).enabled }.getOrDefault(false)
+
+private const val GOOGLE_TV_LAUNCHER = "com.google.android.apps.tv.launcherx"
+
+
+/**
+ * Бічна панель «Телевізор» (HDMI-CEC з приставки): хто в мережі, увімкнути ТВ і перемкнути на
+ * приставку, гучність пульта — через ТВ/аудіосистему чи фіксована.
+ */
+@Composable
+private fun TvPanel(
+    state: com.likhtar.home.core.data.CecState,
+    onWake: () -> Unit,
+    onVolume: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val first = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+    com.likhtar.home.core.designsystem.LikhtarDialog(onDismiss = onDismiss, width = 420.dp, side = true) {
+        Text(
+            stringResource(R.string.fsmarthome_tv),
+            style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 22.sp),
+            color = Color.White,
+        )
+        val names = state.devices.map {
+            when (it.type) {
+                com.likhtar.home.core.data.CEC_TV -> stringResource(R.string.fsmarthome_tv_device_tv)
+                com.likhtar.home.core.data.CEC_AUDIO_SYSTEM -> stringResource(R.string.fsmarthome_tv_device_audio)
+                else -> it.name
+            }
+        }
+        Text(
+            stringResource(R.string.fsmarthome_tv_devices, names.joinToString(", ")),
+            style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontSize = 13.sp),
+            color = LikhtarColors.TextDim,
+            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            com.likhtar.home.core.designsystem.LikhtarButton(
+                label = stringResource(R.string.fsmarthome_tv_wake),
+                onClick = onWake,
+                primary = true,
+                modifier = Modifier.fillMaxWidth().focusRequester(first),
+            )
+            com.likhtar.home.core.designsystem.LikhtarButton(
+                label = stringResource(
+                    if (state.volumeControl) R.string.fsmarthome_tv_volume_on else R.string.fsmarthome_tv_volume_off,
+                ),
+                onClick = onVolume,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                stringResource(R.string.fsmarthome_tv_volume_note),
+                style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontSize = 12.sp),
+                color = LikhtarColors.TextDim,
+            )
+        }
+    }
 }

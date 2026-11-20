@@ -34,6 +34,12 @@ class HomeKeyService : AccessibilityService() {
 
     @Inject lateinit var keys: RemoteKeysRepository
     @Inject lateinit var catcher: RemoteKeyCatcher
+    @Inject lateinit var settings: com.likhtar.home.core.data.SettingsRepository
+    @Inject lateinit var restore: com.likhtar.home.core.data.KeyServiceRestore
+
+    /** Остання кнопка пульта будь-де — від неї рахує заставка (як Projectivy, без ADB). */
+    @Volatile private var lastKeyAt = android.os.SystemClock.uptimeMillis()
+    @Volatile private var saverMinutes = 0
 
     private val scope = MainScope()
     @Volatile private var bindings: Map<Pair<Int, KeyPress>, KeyAction> = emptyMap()
@@ -41,7 +47,47 @@ class HomeKeyService : AccessibilityService() {
 
     override fun onServiceConnected() {
         instance = this
+        restore.wanted = true
         scope.launch { keys.bindings.collect { list -> bindings = list.associate { (it.keyCode to it.press) to it.action } } }
+        scope.launch { settings.settings.collect { saverMinutes = it.screensaverMinutes } }
+        scope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(IDLE_CHECK_MS)
+                maybeScreensaver()
+            }
+        }
+    }
+
+    /**
+     * Заставка: пульт не чіпали [saverMinutes] хв, екран увімкнений і нічого не грає. Поки щось
+     * грає (фільм, музика), відлік стоїть — після кінця він піде заново, а не спрацює одразу.
+     */
+    private fun maybeScreensaver() {
+        val minutes = saverMinutes
+        if (minutes <= 0 || ScreensaverActivity.showing) return
+        val now = android.os.SystemClock.uptimeMillis()
+        if (getSystemService(android.media.AudioManager::class.java)?.isMusicActive == true) {
+            lastKeyAt = now
+            return
+        }
+        // Поки екран погашений, відлік теж стоїть: інакше після пробудження простій рахувався від
+        // кнопки перед сном, і заставка вмикалась одразу, ще до першого натискання.
+        if (getSystemService(android.os.PowerManager::class.java)?.isInteractive != true) {
+            lastKeyAt = now
+            return
+        }
+        if (now - lastKeyAt < minutes * 60_000L) return
+        Log.i(TAG, "пульт не чіпали $minutes хв → заставка")
+        lastKeyAt = now
+        runCatching {
+            startActivity(Intent(this, ScreensaverActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }.onFailure { Log.w(TAG, "заставка не відкрилась", it) }
+    }
+
+    /** Систему кличе, коли службу вимкнули в налаштуваннях; при заміні пакета процес просто вбивають. */
+    override fun onUnbind(intent: Intent?): Boolean {
+        restore.wanted = false
+        return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
@@ -51,6 +97,7 @@ class HomeKeyService : AccessibilityService() {
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
+        lastKeyAt = android.os.SystemClock.uptimeMillis()
         val code = event.keyCode
         if (code == KeyEvent.KEYCODE_HOME) {
             // Пару DOWN/UP забираємо цілою: віддати системі лише половину — це «утримання» HOME.
@@ -98,7 +145,18 @@ class HomeKeyService : AccessibilityService() {
         )
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
+    /**
+     * Головна Google TV вийшла наперед сама (пробудження, системний HOME-інтент) — на її місце
+     * Ліхтар. Google TV лишається увімкненим заради панелі Google Home, але домашнім екраном
+     * людина обрала Ліхтар. Події приходять лише з пакета Google TV (home_key_service.xml).
+     */
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        if (event.packageName != GOOGLE_TV_LAUNCHER) return
+        if (event.className?.toString()?.endsWith(".HomeActivity") != true) return
+        Log.i(TAG, "головна Google TV наперед → LIKHTAR")
+        openLikhtar()
+    }
 
     override fun onInterrupt() = Unit
 
@@ -134,12 +192,16 @@ class HomeKeyService : AccessibilityService() {
     companion object {
         private const val TAG = "LikhtarHomeKey"
         private const val REMINDER_MS = 20_000L
+        private const val IDLE_CHECK_MS = 20_000L
+        private const val GOOGLE_TV_LAUNCHER = "com.google.android.apps.tv.launcherx"
 
         @Volatile private var instance: HomeKeyService? = null
 
         /** Приспати приставку (і через HDMI-CEC — телевізор): «заблокувати екран» служби доступності. */
         fun sleepNow(): Boolean =
-            instance?.performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN) ?: false
+            // До Android 9 такої дії немає — кажемо чесне «не вийшло», а не шлемо невідомий код.
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P &&
+                instance?.performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN) == true
 
         fun showReminder(text: String): Boolean = instance?.let { it.reminder(text); true } ?: false
     }

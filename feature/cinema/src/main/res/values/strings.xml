@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="cinema_advisor_picking">Picking…</string>
     <string name="cinema_advisor_because_liked">✦ Because you liked %1$s</string>
     <string name="cinema_advisor_worth">Worth it: %1$s</string>
@@ -19,6 +19,11 @@
     <string name="cinema_advisor_mood_mystery">Mysterious</string>
     <string name="cinema_advisor_mood_adventure">Adventure</string>
     <string name="cinema_watch">Watch</string>
+    <string name="cinema_hero_eyebrow">LIKHTAR PICK</string>
+    <string name="cinema_to_rows">Collections ↓</string>
+    <string name="cinema_more_tip">↓  More collections</string>
+    <string name="cinema_live_eyebrow">ON AIR NOW</string>
+    <string name="cinema_reality_eyebrow">REALITY · SHOWS</string>
     <string name="cinema_kind_series_lower">series</string>
     <string name="cinema_kind_movie_lower">movie</string>
     <string name="cinema_unknown_collection">Unknown collection</string>
@@ -96,12 +101,11 @@
     <string name="cinema_live_at">at %1$s</string>
     <string name="cinema_live_on">on %1$s</string>
     <string name="cinema_live_next">Next at %1$s · %2$s</string>
+    <string name="cinema_prep_rate">%1$s MB/s</string>
+    <string name="cinema_prep_need">need %1$s</string>
     <string name="cinema_prep_mbps_need">MB/s · need %1$s</string>
     <string name="cinema_prep_buffered">Start buffered — launching the player</string>
     <string name="cinema_prep_buffering_percent">Buffering the start · %1$d%%</string>
-    <string name="cinema_prep_looking_for_peers">Looking for peers…</string>
-    <string name="cinema_prep_slow">Too slow for this quality — looking for a faster one</string>
-    <string name="cinema_prep_measuring">Measuring the download speed</string>
     <string name="cinema_prep_buffering_first">Buffering the first minutes…</string>
     <string name="cinema_genres">Genres</string>
     <string name="cinema_page_failed">The page didn\'t open</string>
@@ -120,7 +124,7 @@
     <string name="cinema_mark_watched_season">Watched · season %1$d</string>
     <string name="cinema_mark_watched_upto">Watched · up to S%1$dE%2$d</string>
     <string name="cinema_mark_postponed_month">Postponed for a month</string>
-    <string name="cinema_mark_season_skipped_n">Season %1$d skipped</string>
+    <string name="cinema_mark_season_skipped_n" tools:ignore="PluralsCandidate">Season %1$d skipped</string>
     <string name="cinema_mark_episode_skipped">Episode skipped</string>
     <string name="cinema_mark_seen_elsewhere">Seen elsewhere</string>
     <string name="cinema_mark_not_recommended">Not recommended</string>
@@ -138,7 +142,7 @@
     <string name="cinema_mark_whole_series">Whole series</string>
     <string name="cinema_mark_whole_series_hint">All episodes released so far</string>
     <string name="cinema_mark_season_all_hint">All episodes of season %1$d</string>
-    <string name="cinema_mark_upto">Up to S%1$dE%2$d inclusive</string>
+    <string name="cinema_mark_upto" tools:ignore="PluralsCandidate">Up to S%1$dE%2$d inclusive</string>
     <string name="cinema_mark_upto_hint">Everything up to the episode where you stopped</string>
     <string name="cinema_mark_like">Liked it</string>
     <string name="cinema_mark_like_hint">I\'ll find similar ones</string>
@@ -169,16 +173,15 @@
     <string name="cinema_yesterday">yesterday</string>
     <string name="cinema_new_episode_on">new episode %1$s</string>
     <string name="cinema_kind_documentary">Documentary</string>
-    <string name="cinema_picker_episode_hint">The episode is chosen in «Choose episode» — here only the audio for this one</string>
-    <string name="cinema_picker_more">Still looking for torrents…</string>
+    <string name="cinema_picker_episode_hint">Change the episode in «Choose episode»</string>
     <string name="cinema_picker_searching">Looking for sources…</string>
     <string name="cinema_search">Search</string>
     <string name="cinema_scan_no_answer">The server hasn\'t answered about this title yet.</string>
     <string name="cinema_scan_unknown">This title isn\'t in the server catalog — «Search» will check sources now.</string>
     <string name="cinema_scan_unchecked">The server hasn\'t crawled this title yet — sources will appear after the crawl.</string>
     <string name="cinema_scan_none">No sources found.</string>
-    <string name="cinema_recap_header">Season %1$d recap</string>
-    <string name="cinema_recap_header_titled">Season %1$d recap · «%2$s»</string>
+    <string name="cinema_recap_header" tools:ignore="PluralsCandidate">Season %1$d recap</string>
+    <string name="cinema_recap_header_titled" tools:ignore="PluralsCandidate">Season %1$d recap · «%2$s»</string>
     <string name="cinema_recap_loading">Likhtaryk is recapping the season…</string>
     <string name="cinema_recap_loading_hint">First time — up to a minute, then instant</string>
     <string name="cinema_recap_stop">■  Stop</string>
@@ -247,7 +250,6 @@
     <string name="cinema_prep_voice">Preparing «%1$s»</string>
     <string name="cinema_prep_voice_sources">Trying this dub\'s sources</string>
     <string name="cinema_voice_failed">This dub didn\'t start</string>
-    <string name="cinema_torrent_dead">This torrent isn\'t responding. Try another item in the list.</string>
     <string name="cinema_player">Player</string>
     <string name="cinema_player_silent">Looks like «%1$s» isn\'t reading this stream: the server sees no reader. If there\'s no picture — try another player in «Settings → Cinema → Stream player».</string>
     <string name="cinema_no_app_for_video">No app to open the video</string>
@@ -256,10 +258,9 @@
     <string name="cinema_ua_wait_off">No longer waiting for Ukrainian</string>
     <string name="cinema_watchlist_added">Added to «My list»</string>
     <string name="cinema_watchlist_removed">Removed from «My list»</string>
-    <string name="cinema_prep_connecting">Connecting to the torrent</string>
-    <string name="cinema_prep_waiting_peers">Waiting for the first data from peers</string>
     <string name="cinema_picker_title">Choose audio</string>
-    <string name="cinema_picker_title_episode">S%1$dE%2$d · audio</string>
+    <string name="cinema_picker_title_episode">Season %1$d · Episode %2$d</string>
+    <string name="cinema_picker_heading">Audio</string>
     <string name="cinema_mark_msg_liked">Watched — I\'ll find similar ones</string>
     <string name="cinema_mark_msg_disliked">Watched — fewer like it from now on</string>
     <string name="cinema_mark_msg_watched">Marked as watched</string>
@@ -271,14 +272,6 @@
     <plurals name="cinema_episodes_count">
         <item quantity="one">%d episode</item>
         <item quantity="other">%d episodes</item>
-    </plurals>
-    <plurals name="cinema_peers">
-        <item quantity="one">peer</item>
-        <item quantity="other">peers</item>
-    </plurals>
-    <plurals name="cinema_seeders">
-        <item quantity="one">seed</item>
-        <item quantity="other">seeds</item>
     </plurals>
     <plurals name="cinema_services_count">
         <item quantity="one">%d service</item>
@@ -300,7 +293,7 @@
     </string-array>
     <string-array name="cinema_preparing_phrases">
         <item>Looking for the best option…</item>
-        <item>Checking who\'s seeding right now…</item>
+        <item>Checking which source is fastest…</item>
         <item>Measuring the download speed…</item>
         <item>Highlighting what matters…</item>
         <item>Pouring light into the lantern…</item>
@@ -333,6 +326,11 @@
     <string name="cinema_live_add_playlist">Add your playlist</string>
     <string name="cinema_live_free_install">%1$s · install</string>
     <string name="cinema_live_free_open">Open %1$s</string>
+    <string name="cinema_live_update_tv">Update Likhtar TV</string>
+    <string name="cinema_live_update_tv_hint">There is a new version of the channel player. Updating takes a minute; your channels and settings stay.</string>
+    <string name="cinema_live_update_tv_now">Update now</string>
+    <string name="cinema_live_update_tv_later">Later</string>
+    <string name="cinema_live_update_tv_later_why">This channel opens in the current version</string>
     <string name="cinema_live_need_player">No video player</string>
     <string name="cinema_live_need_player_hint">Channels from your playlist play in a video player, and this device has none.</string>
     <string name="cinema_live_need_player_why">Free, open source, no ads</string>
@@ -377,4 +375,70 @@
     <string name="cinema_live_group_show_hidden_hint">Hidden groups come back with their channels</string>
     <string name="cinema_live_group_restore_name">Back to “%1$s”</string>
     <string name="cinema_live_group_restore_name_hint">The group’s original name</string>
+    <string name="cinema_tier_dv_4k">4K · Dolby Vision</string>
+    <string name="cinema_tier_hdr_4k">4K · HDR</string>
+    <string name="cinema_tier_4k">4K</string>
+    <string name="cinema_tier_1080">1080p</string>
+    <string name="cinema_tier_lower">Lower</string>
+    <string name="tracker_my_shows">My shows</string>
+    <string name="tracker_my_shows_hint">Long OK — Drop or Watched</string>
+    <string name="tracker_new">New · S%1$dE%2$d</string>
+    <string name="tracker_watching">Watching · %1$d of %2$d</string>
+    <string name="tracker_waiting_episode">Next episode · %1$s</string>
+    <string name="tracker_waiting_season">Waiting for a season</string>
+    <string name="tracker_done">Watched ✓</string>
+    <string name="tracker_week">This week</string>
+    <string name="tracker_week_hint">New episodes of your shows and premieres from bookmarks, by day</string>
+    <string name="tracker_today">today</string>
+    <string name="tracker_nothing">nothing</string>
+    <string name="tracker_calendar_link">Full calendar ›</string>
+    <string name="tracker_online">online</string>
+    <string name="tracker_cinema">in cinemas</string>
+    <string name="tracker_episode">S%1$dE%2$d</string>
+    <string name="cinema_mark_drop">Drop the show</string>
+    <string name="cinema_mark_drop_hint">Hide it from My shows and stop reminding about new episodes</string>
+    <string name="tracker_calendar">Calendar</string>
+    <string name="tracker_tab_mine">Mine</string>
+    <string name="tracker_tab_all">All premieres</string>
+    <string name="tracker_calendar_loading">Looking at the schedule…</string>
+    <string name="tracker_calendar_empty">Nothing in the next month. Bookmark a show — its episodes will appear here.</string>
+    <string name="tracker_today_title">Today</string>
+    <string name="tracker_state_new">New episode</string>
+    <string name="tracker_state_watching">Watching</string>
+    <string name="tracker_state_waiting">Next episode</string>
+    <string name="cinema_likhtarik">Likhtaryk</string>
+    <string name="cinema_likhtarik_search">Search</string>
+    <string name="cinema_likhtarik_calendar">Calendar</string>
+    <string name="cinema_likhtarik_bookmarks_n">Bookmarks %1$d</string>
+    <string name="cinema_likhtarik_history">History</string>
+    <string name="tracker_dropped">Dropped</string>
+    <string name="tracker_dropped_section">Dropped</string>
+    <string name="tracker_dropped_hint">Long OK — Clear mark, and the show comes back</string>
+    <string name="tracker_dropped_show">Show</string>
+    <string name="tracker_dropped_hide">Hide</string>
+    <string name="trivia_kicker">True or false</string>
+    <string name="trivia_round">Round of the day · %1$d / %2$d</string>
+    <string name="trivia_true">True</string>
+    <string name="trivia_false">False</string>
+    <string name="trivia_right">Correct</string>
+    <string name="trivia_wrong">Wrong</string>
+    <string name="trivia_next">Next</string>
+    <string name="trivia_more">Another one</string>
+    <string name="trivia_open">Open</string>
+    <string name="trivia_done">Round of the day: %1$d of %2$d</string>
+    <string name="trivia_streak">Days in a row: %1$d</string>
+    <string name="trivia_done_line">A new round tomorrow.</string>
+    <string name="trivia_slide_kicker">True or false · question</string>
+    <string name="trivia_hint">Ten statements a day, the same for everyone</string>
+    <string name="cinema_action_open">Open</string>
+    <string name="cinema_action_open_hint">Film or series page</string>
+    <string name="cinema_action_list_hint">Save to “My list”</string>
+    <string name="cinema_action_unlist_hint">Remove from “My list”</string>
+    <string name="cinema_actions">Actions</string>
+    <string name="cinema_also_on">Also on</string>
+    <string name="cinema_franchise_kicker">FRANCHISE · %1$d PARTS</string>
+    <string name="cinema_franchise_seen">Watched %1$d of %2$d</string>
+    <string name="cinema_franchise_next">Next: %1$s</string>
+    <string name="cinema_open_app">Open %1$s</string>
+    <string name="cinema_badge_ukr">UKR</string>
 </resources>

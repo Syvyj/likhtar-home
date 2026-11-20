@@ -22,7 +22,7 @@ internal fun ConnectionsSection(
     viewModel: SettingsViewModel,
     editedRowFocusRequester: FocusRequester,
 ) {
-    // Збірка для магазину: сервер наш і невидимий; власного ключа TMDB
+    // Збірка для магазину: сервер наш і невидимий, власного ключа TMDB
     // немає, MEGOGO — лише в Україні.
     val store = Distribution.store
     if (!store) {
@@ -65,7 +65,6 @@ internal fun ConnectionsSection(
     // Групи, яких у збірці для магазину немає зовсім, — у джерелах flavor-а.
     FlavorConnections(viewModel)
 
-    MediaLibraryGroup(viewModel.media)
 
     // Акаунт MEGOGO — лише домашня збірка.
     if (!store) {

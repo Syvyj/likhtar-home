@@ -15,7 +15,7 @@ import java.util.WeakHashMap
  * колонка під'їжджають і гальмують, а не стрибають. Досі колонки рядів (Кінозал-сторінки,
  * Застосунки, Пошук) ставали на місце миттєво, а ряди їхали типовою, різкішою пружиною.
  */
-val LikhtarGlide: AnimationSpec<Float> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+val LikhtarGlide: AnimationSpec<Float> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 220f)
 
 /**
  * Той самий spec, але з рухом [LikhtarGlide]. `scrollAnimationSpec` у Compose 1.12 позначено

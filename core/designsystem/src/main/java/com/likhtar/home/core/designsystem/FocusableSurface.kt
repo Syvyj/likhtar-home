@@ -1,7 +1,10 @@
 package com.likhtar.home.core.designsystem
 
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -11,11 +14,13 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -23,14 +28,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusProperties
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawOutline
@@ -43,9 +53,12 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -129,9 +142,8 @@ fun FocusableSurface(
     background: Color = LikhtarColors.Surface,
     focusedBackground: Color = LikhtarColors.Surface,
     borderColor: Color = LikhtarColors.Border,
-    // Кільця фокуса більше немає (фокус показують масштаб, тінь і світло), але параметр
-    // лишається: його досі передають екрани у feature/*, і чіпати їх звідси не можна.
-    @Suppress("UNUSED_PARAMETER") focusRingColor: Color = LikhtarColors.Accent,
+    /** Колір зовнішнього кільця фокуса (теплий білий за замовчуванням; бурштин у режимі переміщення). */
+    focusRingColor: Color = LikhtarColors.GlassActive,
     focusedScale: Float = 1.10f,
     /** Підйом сфокусованої поверхні. Для плиток Головної він замінює кільце фокуса. */
     focusedLift: Dp = 0.dp,
@@ -154,121 +166,122 @@ fun FocusableSurface(
     instantFill: Boolean = false,
     /** Наскільки заливка світлішає під фокусом; темним панелям (ТВ Ефір) — менше. */
     focusLighten: Float = FocusLighten,
+    /** Примусово тримати поверхню в активному/підсвіченому стані (напр. переміщення плитки). */
+    highlighted: Boolean = false,
     content: @Composable BoxScope.(focused: Boolean) -> Unit,
 ) {
     val blocked = LocalFocusBlocked.current
+    val reduceMotion = LocalReduceMotion.current
+    val highContrast = LocalHighContrast.current
+    val effectiveBg = if (highContrast && background.alpha > 0f) background.copy(alpha = 1f) else background
+    val effectiveFocusedBg = if (highContrast && focusedBackground.alpha > 0f) focusedBackground.copy(alpha = 1f) else focusedBackground
+    val tapFocus = remember { FocusRequester() }
     var focused by remember { mutableStateOf(false) }
-    /**
-     * Ріст картки під фокусом анімується, кольори — ні.
-     *
-     * Анімацію тут уже прибирали, і не даремно: одна спільна clock на 80 мс змушувала
-     * **перезбиратись** усі видимі картки під час швидких повторів D-pad, і ввід ставав у
-     * чергу за декоративними кадрами. Причина була не в анімації, а в тому, що значення
-     * читалося під час композиції — `.scale()` бере його саме там.
-     *
-     * Тут те саме значення читається всередині лямбди `graphicsLayer`, тобто у фазі
-     * відмальовки. Композиція не запускається взагалі, перемальовується лише шар картки.
-     * Заливка йде тим самим шляхом — у `drawBehind`, — і теж не коштує композиції.
-     */
+    var okPressed by remember { mutableStateOf(false) }
+    val active = focused || highlighted
+    val tiltX = remember { mutableFloatStateOf(0f) }
+    val tiltY = remember { mutableFloatStateOf(0f) }
     val grow = remember { Animatable(0f) }
-    /**
-     * Вихід із фокуса не є дзеркалом входу.
-     *
-     * Симетричний `tween` в обидві сторони давав рівномірне просідання, і на приставці воно
-     * читалось як механічне: картка «падає» назад у ряд з тією самою швидкістю, з якою
-     * росла. Реальний рух складніший — і саме його ми й повторюємо:
-     *
-     *   1. коротке утримання ([ExitHoldMs]) — масштаб іще мить тримає збільшений стан,
-     *      тобто відпускає картку не в той самий кадр, у якому пішов фокус;
-     *   2. основне просідання — швидке;
-     *   3. останні відсотки — м'яко сідають на місце.
-     *
-     * Кроки 2 і 3 дає критично затухаюча пружина: overshoot нульовий (жодного «відскоку»
-     * на TV бути не має), але швидкість спадає нерівномірно, як у фізичного руху. Вхід
-     * лишається `tween`: там рівномірність доречна — картка мусить піднятись рівно за той
-     * час, за який око встигає перевести погляд.
-     */
-    /**
-     * Прапорець для вмісту: кольори тексту й значків живуть у каллері й міняються стрибком.
-     *
-     * На вході стрибок збігається з початком росту, а на виході мусить збігтися з початком
-     * просідання — інакше вміст «відпускає» фокус на два кадри раніше за саму картку, і
-     * рух розшаровується: біла плитка ще тут, а підпис уже ні. Тому та сама пауза
-     * [ExitHoldMs], що тримає масштаб.
-     */
+    val pressDip = remember { Animatable(1f) }
     var contentFocused by remember { mutableStateOf(false) }
-    LaunchedEffect(focused) {
-        if (focused) {
+    LaunchedEffect(active, reduceMotion) {
+        if (active) {
             contentFocused = true
-            grow.animateTo(1f, tween(FocusGrowMs, easing = FastOutSlowInEasing))
+            if (reduceMotion) grow.snapTo(1f) else grow.animateTo(1f, tween(FocusGrowMs, easing = ModernFocusEase))
         } else {
-            delay(ExitHoldMs)
+            okPressed = false
+            tiltX.floatValue = 0f
+            tiltY.floatValue = 0f
+            if (!reduceMotion) delay(ExitHoldMs)
             contentFocused = false
-            grow.animateTo(
-                targetValue = 0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = ExitStiffness,
-                ),
-            )
+            if (reduceMotion) grow.snapTo(0f) else grow.animateTo(0f, tween(FocusGrowMs, easing = ModernFocusEase))
+        }
+    }
+    LaunchedEffect(okPressed, reduceMotion) {
+        if (reduceMotion) {
+            pressDip.snapTo(1f)
+        } else {
+            pressDip.animateTo(if (okPressed) 0.965f else 1f, tween(90, easing = ModernFocusEase))
         }
     }
 
     Box(
+        propagateMinConstraints = true,
         modifier = modifier
             .onFocusChanged { focused = it.isFocused }
             .focusProperties { canFocus = !blocked }
-            .clickHandling(onClick = onClick, onLongClick = onLongClick)
-            // Масштаб і підйом — ПІСЛЯ вузла фокуса, а не перед ним: інакше пошук фокуса
-            // бачив зсунутий угору й збільшений прямокутник, сусіди виходили «нижче», і ↓
-            // їздив уздовж ряду — у доці Головної, рядах Застосунків (на приставці).
+            .onPreviewKeyEvent { ev ->
+                if (ev.nativeKeyEvent.keyCode in CENTER_KEY_CODES) {
+                    if (ev.type == KeyEventType.KeyDown) okPressed = true
+                    else if (ev.type == KeyEventType.KeyUp) okPressed = false
+                }
+                false
+            }
+            .clickHandling(onClick = onClick, onLongClick = onLongClick, tapFocus = tapFocus)
+            .pointerInput(reduceMotion) {
+                if (reduceMotion) return@pointerInput
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val pointer = event.changes.firstOrNull() ?: continue
+                        if (pointer.type != PointerType.Mouse) continue
+                        when (event.type) {
+                            PointerEventType.Exit -> {
+                                tiltX.floatValue = 0f
+                                tiltY.floatValue = 0f
+                            }
+                            PointerEventType.Move -> if (size.width > 0 && size.height > 0) {
+                                tiltX.floatValue = -(pointer.position.y / size.height * 2f - 1f).coerceIn(-1f, 1f) * 3f
+                                tiltY.floatValue = (pointer.position.x / size.width * 2f - 1f).coerceIn(-1f, 1f) * 3f
+                            }
+                            else -> Unit
+                        }
+                    }
+                }
+            }
+            .zIndex(if (active) 1f else 0f)
+            // Кільце фокуса — ПОЗА шаром картки: шар знову обрізає вміст сам (clip = true), і другого
+            // шару обрізки на кожну картку не треба. Масштаб і підйом кільця — ті самі, що в шару.
+            .drawWithContent {
+                drawContent()
+                val p = grow.value
+                if (p > 0f) {
+                    val s = (1f + (focusedScale - 1f) * p) * pressDip.value
+                    val pivot = Offset(size.width * focusOrigin.pivotFractionX, size.height * focusOrigin.pivotFractionY)
+                    val liftPx = focusedLift.toPx() * p
+                    withTransform({
+                        translate(top = -liftPx)
+                        scale(s, s, pivot)
+                    }) {
+                        drawFocusRing(shape, focusRingColor, p, highlighted)
+                    }
+                }
+            }
+            // Масштаб, підйом і 3D-нахил — ПІСЛЯ вузла фокуса, а не перед ним: інакше пошук фокуса
+            // бачив зсунутий прямокутник і плутав напрямки D-pad.
             .graphicsLayer {
                 val p = grow.value
-                val s = 1f + (focusedScale - 1f) * p
+                val s = (1f + (focusedScale - 1f) * p) * pressDip.value
                 scaleX = s
                 scaleY = s
                 translationY = -focusedLift.toPx() * p
-                // Тіні під фокусом немає: на приставці вона коштувала ~8 мс
-                // на найповільніших кадрах, а на теплому тлі картку й так виділяють масштаб,
-                // підйом і світлішання заливки.
+                rotationX = if (reduceMotion) 0f else tiltX.floatValue * p
+                rotationY = if (reduceMotion) 0f else tiltY.floatValue * p
+                cameraDistance = 850.dp.toPx()
+                // Прозора поверхня (обгортка над чужою плашкою) тіні не кидає: інакше тінь читається
+                // як друга сіра рамка навколо (поле пошуку Ліхтарика).
+                shadowElevation = if (background.alpha == 0f && focusedBackground.alpha == 0f) 0f else 6.dp.toPx() * p
                 transformOrigin = focusOrigin
                 this.shape = shape
-                // Обрізка тут же, а не окремим `.clip(shape)`: той ставив другий шар на
-                // кожну картку, а RenderThread приставки й так ледь вкладається в кадр.
+                // Обрізка тут же, а не окремим `.clip(shape)`: той ставив другий шар на кожну картку.
                 clip = true
             }
-            // Заливка і рамка ведуть той самий прогрес, що й масштаб.
-            //
-            // Заливка перемикалась стрибком, і на виході лишався кадр, де плитка вже
-            // скляна, а ще збільшена — на приставці це читалось як сходинка. `instantFill`
-            // при цьому не працював: обидві гілки того `if` давали однакове миттєве
-            // значення, тобто «плавної» гілки просто не було.
-            //
-            // Рамка ж не анімувалась зовсім: вона малювалась окремим модифікатором зі
-            // сталим кольором, і на темному тлі **проявлялась** уже після того, як фон
-            // згас. Виходило дві події замість одної: «зник фон» і «повернувся бордер».
-            // Тому вона тут же, у фазі відмальовки, і гасне в міру росту фокуса: під
-            // фокусом сфокусоване виділяється масштабом, тінню й світлом, а не контуром —
-            // у жодному ряду Apple TV обведення немає.
             .drawBehind {
-                val p = if (instantFill) (if (focused) 1f else 0f) else grow.value
+                val p = if (instantFill) (if (active) 1f else 0f) else grow.value
                 val outline = shape.createOutline(size, layoutDirection, this)
-                val base = lerp(background, focusedBackground, p)
-                // Підсвітка: та сама заливка, зведена до світла, а не окремий шар.
+                val base = lerp(effectiveBg, effectiveFocusedBg, p)
                 drawOutline(outline, color = lerp(base, Color.White, focusLighten * p))
                 if (borderColor.alpha > 0f) {
-                    // Рамка НЕ бере участі в анімації фокуса.
-                    //
-                    // Спершу вона гасла під фокусом і поверталась на виході — і на
-                    // напівпрозорих поверхнях це давало саме те, від чого ми тікали: у
-                    // картки погоди `background` і `focusedBackground` однакові, фон під
-                    // фокусом не змінюється, тому єдиною видимою подією ставала поява
-                    // бордера після згасання підсвітки. Крива (корінь степеня) цього не
-                    // лікувала: вона міняла лише те, КОЛИ друга подія трапиться.
-                    //
-                    // Тепер межа поверхні стала — вона частина форми, а не сигнал. Фокус
-                    // показують масштаб, підйом, тінь і світлішання заливки, і всі вони
-                    // ведуть один прогрес, тобто рух один.
                     drawOutline(
                         outline = outline,
                         color = borderColor,
@@ -277,8 +290,116 @@ fun FocusableSurface(
                 }
             },
     ) {
-        content(contentFocused)
+        // Внутрішній Box отримує розмір від зовнішнього (propagateMinConstraints = true на зовнішньому),
+        // але сам НЕ форсує minConstraints дітям — інакше Modifier.align(Alignment.Center) усередині
+        // карток (OpenAllCard, BrandTile тощо) розтягувалося на всю висоту й прилипало до верху.
+        Box {
+            content(contentFocused || highlighted)
+        }
     }
+}
+
+/** Зовнішнє кільце фокуса (і тонка внутрішня лінія) навколо картки форми [shape]. */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFocusRing(shape: Shape, color: Color, p: Float, highlighted: Boolean) {
+    // Прозоре кільце — без кільця. `Transparent.copy(alpha = p)` — це ЧОРНИЙ із прозорістю p:
+    // поверхні з вимкненим кільцем (поле пошуку, плитки) малювали чорну рамку.
+    if (color.alpha == 0f) return
+    val strokeWidth = if (highlighted) 2.dp.toPx() else 1.5.dp.toPx()
+    val gap = 1.5.dp.toPx()
+    val outset = gap + strokeWidth / 2f
+    val innerWidth = 0.5.dp.toPx()
+    val corner = (shape as? CornerBasedShape)?.topStart?.toPx(size, this)?.coerceAtMost(size.minDimension / 2f)
+    if (corner != null) {
+        drawRoundRect(
+            color = color.copy(alpha = color.alpha * 0.91f * p),
+            topLeft = Offset(innerWidth / 2f, innerWidth / 2f),
+            size = Size(size.width - innerWidth, size.height - innerWidth),
+            cornerRadius = CornerRadius((corner - innerWidth / 2f).coerceAtLeast(0f)),
+            style = Stroke(width = innerWidth),
+        )
+        drawRoundRect(
+            color = color.copy(alpha = color.alpha * p),
+            topLeft = Offset(-outset, -outset),
+            size = Size(size.width + 2 * outset, size.height + 2 * outset),
+            cornerRadius = CornerRadius(corner + outset),
+            style = Stroke(width = strokeWidth),
+        )
+    } else {
+        drawOutline(outline = shape.createOutline(size, layoutDirection, this), color = color.copy(alpha = color.alpha * p), style = Stroke(width = strokeWidth))
+    }
+}
+
+/**
+ * Коли наведення миші чи аеромиші переводить фокус (free-my-tv `HomeView` hover):
+ *  - лише на ІНШИЙ елемент — рука, що тремтить над карткою, не тягне фокус назад після пульта;
+ *  - лише коли вказівник справді зрушив — інакше ряд, що проїхав під нерухомим вказівником,
+ *    віддав би фокус наступній картці, та прокрутила б ряд, і так по колу;
+ *  - лише на картку, видну цілком: частково видна змусила б ряд прокрутитись.
+ */
+class HoverFocusGate {
+    private var last: Any? = null
+    private var lastX = Float.NaN
+    private var lastY = Float.NaN
+    var lastMs = Long.MIN_VALUE / 2
+        private set
+
+    /**
+     * [atMs] — час події (uptime). Після фокуса від вказівника [SETTLE_MS] наступні картки його не
+     * перехоплюють: прокрутка ряду вбік ще доїжджає, і під рухомим вказівником пропливали б сусіди.
+     */
+    fun entered(target: Any, x: Float, y: Float, fullyVisible: Boolean, atMs: Long): Boolean {
+        if (target === last || !fullyVisible) return false
+        if (atMs - lastMs < SETTLE_MS) return false
+        if (!lastX.isNaN() && kotlin.math.abs(x - lastX) < MIN_MOVE_PX && kotlin.math.abs(y - lastY) < MIN_MOVE_PX) return false
+        last = target
+        lastX = x
+        lastY = y
+        lastMs = atMs
+        return true
+    }
+
+    private companion object {
+        const val MIN_MOVE_PX = 4f
+        const val SETTLE_MS = 200L
+    }
+}
+
+/** Один на весь лаунчер: вказівник теж один. */
+private val hoverGate = HoverFocusGate()
+
+/**
+ * Фокус щойно поставив вказівник — колонка рядів не підтягує ряд ([pinTop], [centerItem]): під
+ * нерухомим вказівником опинявся наступний ряд, він брав фокус, і сторінка їхала ряд за рядом.
+ * Сторінку миша гортає колесом.
+ */
+internal fun focusedByPointer(): Boolean = android.os.SystemClock.uptimeMillis() - hoverGate.lastMs < 300
+
+/** Наведення миші → фокус за правилами [HoverFocusGate]; клік миші — це тап у [touchFocusable]. */
+@Composable
+private fun Modifier.hoverFocus(requester: FocusRequester): Modifier {
+    val target = remember { Any() }
+    val coords = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
+    return this
+        .onGloballyPositioned { coords[0] = it }
+        .pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent()
+                    val change = event.changes.firstOrNull() ?: continue
+                    // Не лише вхід: картка, що підпливла під вказівник, поки сторінка доїжджала (пауза
+                    // гейта), бере фокус від першого руху всередині, а не лише після виходу й повторного входу.
+                    if ((event.type != androidx.compose.ui.input.pointer.PointerEventType.Enter &&
+                            event.type != androidx.compose.ui.input.pointer.PointerEventType.Move) ||
+                        change.type != androidx.compose.ui.input.pointer.PointerType.Mouse
+                    ) continue
+                    val c = coords[0]?.takeIf { it.isAttached } ?: continue
+                    val visible = c.boundsInWindow()
+                    val full = visible.width >= c.size.width - 1 && visible.height >= c.size.height - 1
+                    val at = c.localToWindow(change.position)
+                    if (hoverGate.entered(target, at.x, at.y, full, change.uptimeMillis)) runCatching { requester.requestFocus() }
+                }
+            }
+        }
 }
 
 /** Обробка кліку поверхні: [dpadClick] (уся історія багів — у його доці) + дотик. */
@@ -287,14 +408,32 @@ fun FocusableSurface(
 private fun Modifier.clickHandling(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)?,
+    tapFocus: FocusRequester,
 ): Modifier = this
     .dpadClick(
         onClick = { onClick(); true },
         onLongClick = onLongClick?.let { long -> { long(); true } },
     )
+    .touchFocusable(tapFocus, onTap = onClick, onLongPress = onLongClick)
+    .hoverFocus(tapFocus)
+
+/**
+ * `focusable()`, який розуміє й дотик (телефон, сенсорний екран): тап спершу ставить фокус —
+ * як пульт, — і лише тоді [onTap]. Без цього все, що вибирається фокусом (розділи налаштувань,
+ * вкладки тайтла, дні погоди), на дотик не перемикалось: фокус від тапу сам не з'являється.
+ */
+fun Modifier.touchFocusable(
+    /** Свій на кожен елемент (`remember { FocusRequester() }`): ним тап і ставить фокус. */
+    requester: FocusRequester,
+    onTap: () -> Unit = {},
+    onLongPress: (() -> Unit)? = null,
+): Modifier = focusRequester(requester)
     .focusable()
-    .pointerInput(onClick, onLongClick) {
-        detectTapGestures(onTap = { onClick() }, onLongPress = { onLongClick?.invoke() })
+    .pointerInput(onTap, onLongPress) {
+        detectTapGestures(
+            onTap = { runCatching { requester.requestFocus() }; onTap() },
+            onLongPress = { runCatching { requester.requestFocus() }; onLongPress?.invoke() },
+        )
     }
 
 /**
@@ -345,9 +484,17 @@ fun Modifier.dpadClick(
 
         when (event.type) {
             KeyEventType.KeyDown -> {
+                // Повтор утримання, почате на іншому елементі (тримали OK на картці — відкрилось
+                // меню — повтори йдуть уже в пункт меню), не наш: інакше пункт вважав би натискання
+                // своїм, і відпускання клікнуло б його. Як `tilePress` у lounge.
+                if (!ownsPress(native.repeatCount, pressed.value)) return@handler true
                 pressed.value = true
                 // Прошивки, які прапорець таки шлють, відкривають меню одразу.
-                if (onLongClick != null && native.isLongPress && !fired.value) {
+                // Прапорець — лише якщо кнопку справді тримають: прошивка цієї приставки ставить його
+                // й на фантомні повтори короткого натискання, і меню відкривалось від звичайного OK.
+                if (onLongClick != null && native.isLongPress && !fired.value &&
+                    native.eventTime - native.downTime >= LONG_PRESS_MS
+                ) {
                     longPress.value?.cancel()
                     longPress.value = null
                     android.util.Log.d(LONG_PRESS_TAG, "via FLAG_LONG_PRESS")
@@ -387,7 +534,8 @@ fun Modifier.dpadClick(
     return if (preview) this.onPreviewKeyEvent(handler) else this.onKeyEvent(handler)
 }
 
-private const val LONG_PRESS_MS = 500L
+/** Утримання OK: 650 мс — коротке, але «довге» натискання людини не стає довгим OK. */
+private const val LONG_PRESS_MS = 650L
 
 /** Тег діагностики пультів: `adb logcat -s LikhtarLongPress` показує, який шлях спрацював. */
 private const val LONG_PRESS_TAG = "LikhtarLongPress"
@@ -408,6 +556,7 @@ private const val FocusLighten = 0.16f
  * повільнішим за мобільні 150 мс — інакше він не читається, а лише блимає.
  */
 private const val FocusGrowMs = 200
+private val ModernFocusEase = CubicBezierEasing(0.2f, 0.7f, 0.2f, 1f)
 
 /**
  * Скільки картка тримає збільшений стан після втрати фокуса.
@@ -425,3 +574,5 @@ private const val ExitStiffness = 550f
 
 /** Тінь під сфокусованою карткою: підіймає її над рядом, не малюючи навколо неї лінії. */
 
+/** Чи це натискання OK цього елемента: свіже — так; повтор — лише якщо утримання почалось тут. */
+internal fun ownsPress(repeatCount: Int, pressedBefore: Boolean): Boolean = repeatCount == 0 || pressedBefore

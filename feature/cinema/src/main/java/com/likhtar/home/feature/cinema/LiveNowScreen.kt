@@ -3,11 +3,16 @@ package com.likhtar.home.feature.cinema
 import com.likhtar.home.core.tv.channelLabel
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
+import com.likhtar.home.core.designsystem.LocalReduceMotion
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -74,7 +79,7 @@ import com.likhtar.home.core.model.LikhtarSection
 import kotlinx.coroutines.delay
 
 /**
- * ТВ Ефір, сцена 1 — варіант A прототипу (site/livetv/variants, 22.10; 1920×1080 px, 1 dp = 2 px).
+ * ТВ Ефір, сцена 1 — варіант A прототипу (1920×1080 px, 1 dp = 2 px).
  * Банер — картка під фокусом: знак каналу, передача, «зараз на X · ще N хв», кадр праворуч.
  * Ряди з 600 px; у кінці кожного — «Усі канали», сцена 2 ([LiveGuide]).
  */
@@ -157,7 +162,18 @@ fun LiveNowScreen(
     val stillHeight = 350.dp
     val rowsTop = 262.dp
 
-    Box(Modifier.fillMaxSize().background(LikhtarColors.Background)) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(LikhtarColors.Background)
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(LikhtarColors.HeroGlowLive, Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(1520f, 210f),
+                    radius = 740f,
+                ),
+            ),
+    ) {
         // .still: праворуч 1340×700 px, center 30% / cover; перехрестя .45s.
         AnimatedContent(
             targetState = shown?.let(::cardImage),
@@ -300,6 +316,7 @@ fun LiveNowScreen(
             menuFocusRequester = menuFocus,
             contentFocusRequester = rowsFocus,
             loading = state.loading,
+            showTopBar = guideGroup == null,
         ) {
             if (state.loading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -308,13 +325,21 @@ fun LiveNowScreen(
             }
         }
 
-        guideGroup?.let { group ->
+        val reduceMotion = LocalReduceMotion.current
+        var lastGuideGroup by remember { mutableStateOf(GuideAll) }
+        if (guideGroup != null) lastGuideGroup = guideGroup!!
+        AnimatedVisibility(
+            visible = guideGroup != null,
+            enter = if (reduceMotion) EnterTransition.None
+            else fadeIn(tween(240, easing = FastOutSlowInEasing)) + slideInVertically(tween(280, easing = FastOutSlowInEasing)) { it / 16 },
+            exit = if (reduceMotion) ExitTransition.None else fadeOut(tween(180)),
+        ) {
             LiveGuide(
                 channels = state.channels,
                 groups = state.groups,
                 schedules = state.schedules,
                 now = now,
-                group = group,
+                group = guideGroup ?: lastGuideGroup,
                 onGroup = { guideGroup = it },
                 onOpen = viewModel::open,
                 onLong = { menuCard = it },
@@ -331,6 +356,13 @@ fun LiveNowScreen(
                 // сцена 2 зникає, фокус падав у верхнє меню.
                 // Без своїх каналів фокус далі йде в меню (див. повернення фокуса вище).
                 onClose = { guideGroup = null },
+            )
+        }
+
+        if (state.updateTvFor != null) {
+            UpdateTvPlayerDialog(
+                onUpdate = viewModel::updateTvPlayer,
+                onLater = viewModel::skipTvUpdate,
             )
         }
 
@@ -408,7 +440,7 @@ fun LiveNowScreen(
 /** .hero варіанта A: знак 132×76 px, h1 62 px / 1.02 на 10 px нижче, .meta 25 px за 14 px. */
 @Composable
 private fun LiveHero(card: LiveCard, now: Long, modifier: Modifier = Modifier) {
-    val res = LocalContext.current.resources
+    val res = androidx.compose.ui.platform.LocalResources.current
     // .swap: opacity і translateY 6 px за .2s.
     AnimatedContent(
         targetState = card,
@@ -418,6 +450,22 @@ private fun LiveHero(card: LiveCard, now: Long, modifier: Modifier = Modifier) {
         label = "heroText",
     ) { c ->
         Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                modifier = Modifier.padding(bottom = 8.dp),
+            ) {
+                Box(
+                    Modifier
+                        .size(6.dp)
+                        .background(LikhtarColors.LanternAmber, androidx.compose.foundation.shape.CircleShape),
+                )
+                Text(
+                    stringResource(R.string.cinema_live_eyebrow),
+                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, letterSpacing = 1.4.sp),
+                    color = LikhtarColors.LanternAmber,
+                )
+            }
             ChannelMark(c.link, 66.dp, 38.dp)
             Text(
                 programmeTitle(res, c),
@@ -429,12 +477,29 @@ private fun LiveHero(card: LiveCard, now: Long, modifier: Modifier = Modifier) {
             )
             Text(
                 heroMeta(res, c, now),
-                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Medium, fontSize = 12.5.sp),
+                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Medium, fontSize = 13.sp),
                 color = LikhtarColors.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 7.dp),
             )
+            if (!c.bare && c.endMillis > c.startMillis && now in c.startMillis..c.endMillis) {
+                val share = ((now - c.startMillis).toFloat() / (c.endMillis - c.startMillis)).coerceIn(0.03f, 1f)
+                Box(
+                    Modifier
+                        .padding(top = 10.dp)
+                        .width(240.dp)
+                        .height(3.5.dp)
+                        .background(Color.White.copy(alpha = 0.16f), androidx.compose.foundation.shape.RoundedCornerShape(50)),
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth(share)
+                            .height(3.5.dp)
+                            .background(LikhtarColors.LanternAmber, androidx.compose.foundation.shape.RoundedCornerShape(50)),
+                    )
+                }
+            }
         }
     }
 }
@@ -462,8 +527,8 @@ private val QuotedLead = Regex("""^"([^"]+)"[.,]?""")
 private val ProtoPad = 48.dp
 
 private val Faint = LikhtarColors.TextPrimary.copy(alpha = 0.42f)
-private val MonoSmall = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 8.sp)
-private val RowTitleStyle = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+private val MonoSmall = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 11.5.sp)
+private val RowTitleStyle = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 15.5.sp)
 
 /** Назва на картці: твір, а для серіалу ще й серія, якщо телепрограма її назвала. */
 internal fun programmeTitle(res: android.content.res.Resources, card: LiveCard): String {

@@ -38,6 +38,30 @@ class PlayerPlanTest {
     }
 
     @Test
+    fun `кадр і опис кожної серії — у черзі для колонки «Епізоди»`() {
+        val described = request.copy(queue = listOf(
+            QueueEntry(1, "S01E01 · Анджін", "http://s/1.mkv", overview = "Корабель розбивається.", still = "https://image.tmdb.org/t/p/w500/a.jpg"),
+            QueueEntry(2, "S01E02 · Слуги", "http://s/2.mkv"),
+        ))
+        val plan = described.playerPlan(takesM3u = false, companion = emptyMap())
+        assertArrayEquals(arrayOf("https://image.tmdb.org/t/p/w500/a.jpg", "https://image.tmdb.org/t/p/w342/p.jpg"),
+            plan.extras["video_list.thumbnail"] as Array<*>)
+        assertArrayEquals(arrayOf("Корабель розбивається.", ""), plan.extras["video_list.description"] as Array<*>)
+    }
+
+    @Test
+    fun `знак тайтла — у паузу Just+`() {
+        val withLogo = request.copy(title = PlayingTitle(show.copy(logoPath = "/l.png"), season = 1, episode = 2))
+        assertEquals("https://image.tmdb.org/t/p/w500/l.png", withLogo.playerPlan(takesM3u = false, companion = emptyMap()).extras["likhtar.logo"])
+        assertNull(request.playerPlan(takesM3u = false, companion = emptyMap()).extras["likhtar.logo"])
+    }
+
+    @Test
+    fun `без описів ключа опису немає`() {
+        assertNull(request.playerPlan(takesM3u = false, companion = emptyMap()).extras["video_list.description"])
+    }
+
+    @Test
     fun `плеєр з m3u — плейлист сезону з його mime`() {
         val plan = request.playerPlan(takesM3u = true, companion = emptyMap())
         assertFalse(plan.asQueue)

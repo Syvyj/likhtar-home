@@ -11,7 +11,10 @@ import com.likhtar.home.feature.settings.SettingsViewModel
 import com.likhtar.home.feature.settings.TextField
 import com.likhtar.home.feature.settings.GroupTitle
 import com.likhtar.home.feature.settings.ValueRow
-import com.likhtar.home.feature.settings.ChoiceRow
+import com.likhtar.home.feature.settings.CountryPickerDialog
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.likhtar.home.feature.settings.ActionRow
 import com.likhtar.home.feature.settings.Note
 
@@ -66,31 +69,24 @@ internal fun TvSection(
 
     // Країни каналів — каталоги MEGOGO/Sweet з нашого сервера; публічна збірка живе плейлистом.
     if (com.likhtar.home.core.model.Distribution.store) return
-    GroupTitle(stringResource(R.string.settings_tv_countries_group))
+    var countriesOpen by remember { mutableStateOf(false) }
+    val picked = state.tvCountries.filter { it.code in state.settings.tvCountries }
     ValueRow(
-        text = stringResource(R.string.settings_tv_find_country),
-        value = state.tvCountryFilter.ifBlank { stringResource(R.string.settings_tv_filter_all) },
-        onClick = viewModel::editTvCountryFilter,
-        focusRequester = editedRowFocusRequester
-            .takeIf { state.lastEditedField == TextField.TV_COUNTRY_FILTER },
+        text = stringResource(R.string.settings_tv_countries),
+        value = when {
+            picked.isEmpty() -> stringResource(R.string.settings_not_set)
+            picked.size <= 2 -> picked.joinToString(" ") { it.flag }
+            else -> "${picked.take(2).joinToString(" ") { it.flag }} +${picked.size - 2}"
+        },
+        onClick = { countriesOpen = true },
     )
-    if (state.tvCountries.isEmpty()) {
-        Note(stringResource(R.string.settings_countries_loading))
-    }
-    val filter = state.tvCountryFilter.trim().lowercase()
-    // Вибрані — вгору: інакше після вибору країна губиться серед 250 інших.
-    val countries = state.tvCountries
-        .filter { filter.isBlank() || it.name.lowercase().contains(filter) }
-        .sortedByDescending { it.code in state.settings.tvCountries }
-        .take(COUNTRY_ROWS)
-    countries.forEach { country ->
-        ChoiceRow(
-            text = "${country.flag} ${country.name}",
-            selected = country.code in state.settings.tvCountries,
-            onSelect = { viewModel.toggleTvCountry(country.code) },
+    if (countriesOpen) {
+        CountryPickerDialog(
+            title = stringResource(R.string.settings_tv_countries),
+            countries = state.tvCountries,
+            selected = state.settings.tvCountries,
+            onToggle = viewModel::toggleTvCountry,
+            onDismiss = { countriesOpen = false },
         )
     }
 }
-
-/** Скільки країн показуємо за раз: далі список стає непрохідним пультом, є пошук. */
-private const val COUNTRY_ROWS = 40

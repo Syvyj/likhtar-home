@@ -9,6 +9,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.core.net.toUri
 
 /**
  * «Продовжити перегляд» інших застосунків — системна таблиця Android TV `watch_next_program`.
@@ -42,10 +43,10 @@ class AppWatchNext @Inject constructor(
                         val episode = c.getString(4).orEmpty()
                         val position = c.getLong(7)
                         val duration = c.getLong(8)
-                        add(
+                        add(WatchNextRow(
                             ServiceResume(
                                 title = title,
-                                imageUrl = (c.getString(9) ?: c.getString(6))?.ifBlank { null },
+                                imageUrl = safeArtwork((c.getString(9) ?: c.getString(6))?.ifBlank { null }),
                                 deeplink = intent,
                                 packageName = pkg,
                                 updatedAt = c.getLong(10) / 1000,
@@ -55,14 +56,16 @@ class AppWatchNext @Inject constructor(
                                 ).joinToString(" · "),
                                 progress = if (duration > 0 && position > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else null,
                             ),
-                        )
+                            type = if (c.isNull(11)) 0 else c.getInt(11),
+                            browsable = c.isNull(12) || c.getInt(12) != 0,
+                        ))
                     }
                 }
             }.orEmpty()
         }.onFailure { Log.w(TAG, "WatchNext не прочитався", it) }.getOrDefault(emptyList())
-        Log.i(TAG, "WatchNext: ${rows.size} — " + rows.groupingBy { it.packageName }.eachCount())
-        // Один рядок на назву: застосунок пише окремий запис на серію.
-        rows.sortedByDescending { it.updatedAt }.distinctBy { it.packageName to it.title }
+        val picked = pickWatchNext(rows)
+        Log.i(TAG, "WatchNext: ${rows.size} → ${picked.size} — " + rows.groupingBy { it.resume.packageName }.eachCount())
+        picked
     }
 
     private fun appLabel(pkg: String): String = runCatching {
@@ -73,14 +76,14 @@ class AppWatchNext @Inject constructor(
     private companion object {
         const val TAG = "LikhtarWatchNext"
         const val READ_TV_LISTINGS = "android.permission.READ_TV_LISTINGS"
-        val URI: Uri = Uri.parse("content://android.media.tv/watch_next_program")
+        val URI: Uri = "content://android.media.tv/watch_next_program".toUri()
         val SKIP = com.likhtar.home.core.model.StreamingService.MEGOGO.packages.toSet()
 
         // Рядками, а не з TvContract: імена стабільні від API 26.
         val COLUMNS = arrayOf(
             "package_name", "title", "episode_title", "season_display_number", "episode_display_number",
             "intent_uri", "poster_art_uri", "last_playback_position_millis", "duration_millis",
-            "thumbnail_uri", "last_engagement_time_utc_millis",
+            "thumbnail_uri", "last_engagement_time_utc_millis", "watch_next_type", "browsable",
         )
     }
 }

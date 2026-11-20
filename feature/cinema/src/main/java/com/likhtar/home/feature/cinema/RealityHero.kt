@@ -176,6 +176,12 @@ internal fun RealityGuideHero(
 @Composable
 private fun RealityAbout(item: CatalogItem, ua: Boolean) {
     Column {
+        Text(
+            stringResource(R.string.cinema_reality_eyebrow),
+            style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, letterSpacing = 1.4.sp),
+            color = LikhtarColors.LanternAmber,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
         val logo = item.logoPath?.let { TmdbImages.logo(it) ?: it }
         if (logo != null) {
             // .mark: до 560×190 px, низом ліворуч; англійський знак — з назвою Oswald 40 px.
@@ -273,9 +279,9 @@ private fun GuideRow(
                     focused = it.isFocused
                     if (it.isFocused) onFocused()
                 },
-            shape = RoundedCornerShape(LikhtarDimens.CornerPill),
+            shape = RoundedCornerShape(12.dp),
             background = Color.Transparent,
-            focusedBackground = LikhtarColors.Paper,
+            focusedBackground = LikhtarColors.GlassActive,
             borderColor = Color.Transparent,
             focusedScale = 1.03f,
             instantFill = true,
@@ -286,7 +292,7 @@ private fun GuideRow(
             ) {
                 Text(
                     whenLabel(item.availabilityDate),
-                    style = TextStyle(fontFamily = LikhtarType.Mono, fontWeight = FontWeight.Medium, fontSize = 10.sp),
+                    style = TextStyle(fontFamily = LikhtarType.Mono, fontWeight = FontWeight.Medium, fontSize = 11.5.sp),
                     color = if (hasFocus) LikhtarColors.InkOnPaper else LikhtarColors.TextDim,
                     modifier = Modifier.width(48.dp),
                     maxLines = 1,
@@ -311,7 +317,7 @@ private fun GuideRow(
                         Icon(painterResource(DsR.drawable.ic_solar_play), null, tint = LikhtarColors.AmberOnPaper, modifier = Modifier.size(13.dp))
                         Text(
                             stringResource(R.string.cinema_watch),
-                            style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.sp),
+                            style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp),
                             color = LikhtarColors.Background,
                             maxLines = 1,
                         )

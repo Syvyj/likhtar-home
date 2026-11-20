@@ -18,17 +18,17 @@ data class StreamOption(
      * Мова доріжки словами сервера: `ukr`, `unknown`, `other`. Порожньо — поля не було.
      *
      * Три стани, не два: `unknown` — це «ми не знаємо», а не «не українська». На неігровому
-     * він основний (заміряно на сервері: 583 роздачі з 638 без мовної позначки), і саме
+     * він основний (заміряно на сервері: 583 варіанти з 638 без мовної позначки), і саме
      * тому рішення «вмикати мовчки» спирається на підтверджене `ukr`, а не на відсутність
      * заперечення.
      */
     val lang: String = "",
 ) {
     /**
-     * Чим це грається: свій TorrServer, свій медіасервер, чужий прямий лінк.
+     * Чим це грається: свій медіасервер чи чужий прямий лінк.
      *
      * Ключем беремо хост, а не шматок [label]: підпис сервер збирає для показу
-     * («🇺🇦 2160p · HDR10+ · Торент») і вільний змінити його формат будь-коли, а хост —
+     * («🇺🇦 2160p · HDR10+ · Джерело») і вільний змінити його формат будь-коли, а хост —
      * це те, чим воно є. Структурного поля про джерело агрегатор не віддає взагалі:
      * у відповіді лише `name`, `stream`, `s`, `e` і завжди однаковий `method`.
      */
@@ -83,7 +83,7 @@ fun cleanStreamLabel(label: String): String =
 fun qualityOf(label: String): Int =
     QUALITY_P.find(label)?.groupValues?.get(1)?.toIntOrNull() ?: 0
 
-/** Dolby Vision у підписі роздачі: «DV», «DV+HDR10+», «Dolby Vision». */
+/** Dolby Vision у підписі варіанта: «DV», «DV+HDR10+», «Dolby Vision». */
 fun hasDolbyVision(label: String): Boolean =
     "Dolby Vision" in label || Regex("(^|[^A-Za-z])DV([^A-Za-z]|$)").containsMatchIn(label)
 
@@ -99,7 +99,7 @@ fun bestFirstKey(label: String, dolbyVisionFirst: Boolean): Int =
 /**
  * Озвучка як одиниця вибору.
  *
- * Головне тут — саме озвучка, а балансер її властивість, а не навпаки: людина обирає
+ * Головне тут — саме озвучка, а сайт її властивість, а не навпаки: людина обирає
  * «дубляж чи Postmodern», а не «цей сайт чи той». Сервер зводить одну озвучку з різних
  * сайтів в один пункт, тому [refs] — це всі її варіанти в порядку сервера (краща якість,
  * тоді офіційніше джерело).
@@ -142,36 +142,29 @@ data class VoiceGroup(
      * Що ffprobe знайшов усередині файла: підписані аудіодоріжки й мови субтитрів.
      *
      * Одна «озвучка» в списку — це один ФАЙЛ, а в ньому доріжок буває кілька, і підпис
-     * роздачі про це мовчить. З'являється не одразу: розбір іде фоном після першого
+     * варіанта про це мовчить. З'являється не одразу: розбір іде фоном після першого
      * відкриття картки.
      */
-    val audio: List<String> = emptyList(),
-    val subs: List<String> = emptyList(),
-    /** Підписи пунктів за ref — що саме відкривається («1080p · WEBRip · HEVC · 3.8 ГБ · Торент»). */
+    val audio: List<Track> = emptyList(),
+    val subs: List<Track> = emptyList(),
+    /** Підписи пунктів за ref — що саме відкривається («1080p · WEBRip · HEVC · 3.8 ГБ»). */
     val names: Map<String, String> = emptyMap(),
-    /** Джерело пункта за ref: `torrent`, `ashdi`, `uakino_ua`… */
+    /** Джерело пункта за ref — службова назва сервера. */
     val sourceOf: Map<String, String> = emptyMap(),
-    /** Сіди роздачі за ref у мить пошуку; немає — не торент або трекер не сказав. */
-    val seeders: Map<String, Int> = emptyMap(),
+    /** Ранг варіанта за ref від сервера в мить пошуку; немає — сервер не сказав. */
+    val rank: Map<String, Int> = emptyMap(),
 ) {
     /**
-     * Підпис одного варіанта в розгорнутій озвучці: роздача — якість, розмір і сіди
-     * («2160p · HDR · 58 ГБ · 12 сідів»), онлайн — сайт і якість. з цього
-     * людина й вирішує, що вмикати, а не сервер за неї.
+     * Підпис одного варіанта в розгорнутій озвучці: сайт і якість — з цього людина й
+     * вирішує, що вмикати, а не сервер за неї. Збірка може підписати свої джерела інакше.
      */
     fun optionLabel(ref: String): String {
         val name = cleanStreamLabel(names[ref].orEmpty())
         val source = sourceOf[ref].orEmpty()
+        flavorOptionLabel(source, name, rank[ref])?.let { return it }
         return buildString {
-            if (source == "torrent") {
-                append(name.replace(" · Торент", "").replace("Торент", "").trim(' ', '·').ifBlank { "роздача" })
-                seeders[ref]?.takeIf { it > 0 }?.let {
-                    append(" · ").append(it).append(' ').append(UkrainianPlurals.pick(it, "сід", "сіди", "сідів"))
-                }
-            } else {
-                append(siteName(source).ifBlank { "онлайн" })
-                qualityOf(name).takeIf { it > 0 }?.let { append(" · ").append(it).append('p') }
-            }
+            append(siteName(source).ifBlank { "онлайн" })
+            qualityOf(name).takeIf { it > 0 }?.let { append(" · ").append(it).append('p') }
         }
     }
 
@@ -188,7 +181,7 @@ data class VoiceGroup(
                 "other" -> append(" · інша мова")
             }
             // Сайт показуємо завжди, а не лише для безіменної озвучки: «3 джерела» саме
-            // по собі ні про що не каже, а «роздача · 3 варіанти» — каже, що це три
+            // по собі ні про що не каже, а «сайт · 3 варіанти» — каже, що це три
             // різні релізи тієї самої озвучки й перший-ліпший можна брати.
             if (from.isNotEmpty()) {
                 append(" · ").append(from.joinToString(", ") { siteName(it) })
@@ -208,24 +201,38 @@ data class VoiceGroup(
     val short: String
         get() = if (unnamed) from.joinToString(", ") { siteName(it) }.ifBlank { voice } else voice
 
-    /** Другий рядок під пігулкою: що лежить усередині файла. */
+    /**
+     * Рядок під сфокусованою озвучкою: що лежить усередині файла, коротко. Українські —
+     * до двох, оригінал — перша англійська, решта — «ще N». Повний перелік (два десятки
+     * студій) не потрібен; російських тут уже немає — їх відкидає [probeTracks].
+     */
     val inside: String
-        get() = buildString {
-            if (audio.isNotEmpty()) append("доріжки: ").append(audio.joinToString(", "))
-            if (subs.isNotEmpty()) {
-                if (isNotEmpty()) append("   ")
-                append("субтитри: ").append(subs.joinToString(", "))
-            }
+        get() {
+            val ukr = audio.filter { it.lang == "ukr" }
+            val original = audio.firstOrNull { it.lang == "eng" }
+            val shown = ukr.take(2) + listOfNotNull(original)
+            val rest = audio.size - shown.size
+            return listOfNotNull(
+                ukr.take(2).joinToString(", ") { it.label }.ifBlank { null },
+                original?.let { "оригінал: ${it.label}" },
+                "ще $rest".takeIf { rest > 0 },
+                "укр. субтитри".takeIf { subs.any { it.lang == "ukr" } },
+            ).joinToString(" · ")
         }
 }
+
+/** Доріжка файла з ffprobe: підпис для людини й код мови (`ukr`, `eng`, порожньо — невідома). */
+data class Track(val label: String, val lang: String)
 
 /**
  * Відповідь `/api/play`.
  *
- * [reason] важлива не менше за [url]: «роздача гріється» — це «спробуйте за хвилину», а
- * не «мертве джерело», і на екрані це різні слова. Перший клік по озвучці, роздачі якої
- * TorrServer ще не знає, законно не грає — метадані приходять у фоні.
+ * [reason] важлива не менше за [url]: «джерело готується» — це «спробуйте за хвилину», а
+ * не «мертве джерело», і на екрані це різні слова.
  */
+/** Підсумок підготовки на своєму сервері потоків: чи наповнився початок і як швидко качало. */
+data class OwnWarm(val ready: Boolean, val bytesPerSec: Double = 0.0, val connections: Int = 0)
+
 data class PlayResult(
     val url: String = "",
     val name: String = "",
@@ -233,14 +240,14 @@ data class PlayResult(
     /**
      * Яке саме джерело зіграло — щоб потім переслати назад у `/api/attempt`.
      *
-     * Сервер бере якість роздачі за `ref`, тож без нього статистика по плеєрах сліпа на
+     * Сервер бере якість варіанта за `ref`, тож без нього статистика по плеєрах сліпа на
      * той самий розріз, заради якого й збиралась: «який плеєр тягне 2160p» лишається без
      * відповіді, хоч рядки й ідуть.
      */
     val ref: String = "",
     val source: String = "",
     val quality: Int = 0,
-    /** Субтитри, які знайшов сервер (з роздачі й OpenSubtitles): підпис → адреса. */
+    /** Субтитри, які знайшов сервер (з самого джерела й OpenSubtitles): підпис → адреса. */
     val subs: List<Pair<String, String>> = emptyList(),
 ) {
     val ok: Boolean get() = url.startsWith("http")
@@ -249,7 +256,7 @@ data class PlayResult(
 /**
  * Чи читає плеєр потік.
  *
- * Не про мережу: сервер дивиться список читачів TorrServer із їхньою позицією в шматках,
+ * Не про мережу: сервер дивиться список читачів потоку з їхньою позицією,
  * тому показник рухається й тоді, коли плеєр бере дані з кешу, де трафіку немає взагалі.
  *
  * [readers] `0` — сигнал сильний: плеєр навіть не відкрив потік. [moved] `0` при живому
@@ -313,46 +320,29 @@ internal fun langName(code: String): String = when (code) {
 }
 
 
-/** Стан роздачі під час запуску (`/api/torrent/stat`). */
-data class TorrentStat(
-    val peers: Int,
-    val seeders: Int,
+/** Стан джерела під час запуску: з'єднання, швидкість, хід підвантаження початку. */
+data class SourceStat(
+    val connections: Int,
+    val sources: Int,
     val speedBytes: Double,
     val buffered: Long,
     val bufferTarget: Long,
 ) {
     /** Частка підвантаженого початку, 0..1; `null` — підвантаження ще не почалось. */
     val bufferShare: Float? get() = if (bufferTarget > 0) (buffered.toFloat() / bufferTarget).coerceIn(0f, 1f) else null
-
-    /** «12 пірів · 11 сідів · 24.6 МБ/с». */
-    val line: String
-        get() = buildString {
-            append(peers).append(' ').append(UkrainianPlurals.pick(peers, "пір", "піри", "пірів"))
-            append(" · ").append(seeders).append(' ').append(UkrainianPlurals.pick(seeders, "сід", "сіди", "сідів"))
-            if (speedBytes > 0) append(" · ").append(String.format(java.util.Locale.ROOT, "%.1f", speedBytes / 1_048_576)).append(" МБ/с")
-        }
 }
-
-/** Ref роздачі з адреси потоку TorrServer (`…/stream/…?link=<hash>`); `null` — це не роздача. */
-fun torrentRefOf(streamUrl: String): String? =
-    TORRENT_LINK.find(streamUrl)?.groupValues?.get(1)
 
 /**
- * Посилання для плеєра — через TorrServer людини, якщо вона його вказала: роздачу
- * TorrServer сам додасть за хешем із `link=`. Плейлист сезону збирає сервер, тож йому
- * адреса їде параметром `ts`. Решта посилань (HLS сайтів) не змінюється.
+ * Серія в черзі плеєра. [overview] і [still] — з TMDB, для колонки «Епізоди» в нашому Just+: опис під
+ * серією у фокусі й кадр самої серії замість постера серіалу.
  */
-fun retargetTorrent(url: String, torrServer: String?): String = when {
-    torrServer.isNullOrBlank() -> url
-    // link= — хеш або наш .torrent (/api/torrent/file, own_ts): TorrServer приставки бере
-    // обидва, а з .torrent ще й бачить трекер.
-    "/stream/" in url && ANY_LINK.containsMatchIn(url) -> torrServer.trimEnd('/') + "/stream/" + url.substringAfter("/stream/")
-    "/api/playlist.m3u" in url -> url + "&ts=" + java.net.URLEncoder.encode(torrServer, "UTF-8")
-    else -> url
-}
-
-/** Серія в черзі плеєра. */
-data class QueueEntry(val episode: Int, val name: String, val url: String)
+data class QueueEntry(
+    val episode: Int,
+    val name: String,
+    val url: String,
+    val overview: String = "",
+    val still: String = "",
+)
 
 /** `#EXTINF:-1,S01E03 · Назва` + адреса → серії; номер серії — з `SxxEyy`. */
 internal fun parseM3u(body: String): List<QueueEntry> {
@@ -377,8 +367,6 @@ internal fun parseM3u(body: String): List<QueueEntry> {
 // Шаблони — один раз на процес, а не на кожен виклик: `qualityOf` кличуть на кожну картку й
 // кожне джерело.
 private val QUALITY_P = Regex("""(?<!\d)(\d{3,4})p(?!\d)""")
-private val TORRENT_LINK = Regex("""[?&]link=([0-9a-fA-F]{40})""")
-private val ANY_LINK = Regex("""[?&]link=""")
 private val EPISODE_TAG = Regex("""S\d+E(\d+)""")
 
 /** Назва джерела для людини; назви сайтів — у джерелах збірки ([FLAVOR_SITE_NAMES]). */

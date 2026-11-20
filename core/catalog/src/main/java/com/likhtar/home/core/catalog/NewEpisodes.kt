@@ -13,6 +13,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 /** Серія, що вже вийшла: на неї вказує дзвіночок у шапці. */
@@ -39,19 +40,31 @@ class NewEpisodes @Inject constructor(
     private val tmdb: TmdbClient,
     private val watchlist: WatchlistRepository,
     private val progress: WatchProgressRepository,
+    private val tracker: TrackerRepository,
 ) {
     val seen: Flow<Set<String>> = context.newEpisodesStore.data.map { it[SEEN].orEmpty() }
+
+    /** Які серіали в закладках — змінились, і дзвіночок має перерахуватись одразу, не за дві години. */
+    val bookmarkedShows: Flow<Set<Int>> = watchlist.items
+        .map { items -> items.filter { it.kind == TitleKind.TV }.map { it.tmdbId }.toSet() }
+        .distinctUntilChanged()
 
     @Volatile private var cache: Pair<Long, List<AiredEpisode>>? = null
 
     suspend fun load(force: Boolean = false): List<AiredEpisode> {
-        cache?.takeIf { !force && System.currentTimeMillis() - it.first < CACHE_MS }?.let { return it.second }
+        cache?.takeIf { !force && System.currentTimeMillis() - it.first < CACHE_MS && it.first >= TitleMarksRevision.changedAt }?.let { return it.second }
         val watching = runCatching { progress.continueWatching(limit = 40, all = true, kind = "cinema") }
             .getOrDefault(emptyList()).filter { it.kind == TitleKind.TV }
         // Де людина вже є в серіалі: серія, що вийшла, але стоїть до «наступної», — переглянута.
         val reached = watching.associate { it.tmdbId to (it.season to it.nextEpisode) }
         val ids = (watching.map { it.tmdbId } + watchlist.items.first().filter { it.kind == TitleKind.TV }.map { it.tmdbId })
             .distinct().take(MAX_SHOWS)
+            .let { list ->
+                // Дзвіночок каже те саме, що трекер: лише серіали зі статусом «Нова». Кинуті й ті, що
+                // лише в закладках без переглянутого (публічна збірка), сюди не потрапляють.
+                val states = runCatching { tracker.shows() }.getOrDefault(emptyList()).associate { it.item.tmdbId to it.state }
+                onlyNew(list, states)
+            }
         // SimpleDateFormat, а не java.time: minSdk 24.
         val format = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
         val now = System.currentTimeMillis()
@@ -65,10 +78,11 @@ class NewEpisodes @Inject constructor(
         return found
     }
 
-    suspend fun markSeen(list: List<AiredEpisode>) {
+    /** [keys] — усе, що зараз у дзвіночку: серії ([AiredEpisode.key]) і новини закладок ([TitleNews.key]). */
+    suspend fun markSeen(keys: Set<String>) {
         context.newEpisodesStore.edit { prefs ->
             // Лише поточні: старі серії випадають із вікна й зі сховища разом.
-            prefs[SEEN] = list.map { it.key }.toSet()
+            prefs[SEEN] = keys
         }
     }
 
@@ -77,6 +91,9 @@ class NewEpisodes @Inject constructor(
         private const val MAX_SHOWS = 40
         private const val CACHE_MS = 2 * 60 * 60 * 1000L
         private val SEEN = stringSetPreferencesKey("seen")
+
+        internal fun onlyNew(ids: List<Int>, states: Map<Int, ShowState>): List<Int> =
+            ids.filter { states[it] == ShowState.NEW }
 
         /** Серія за «наступною» в «Продовжити» або на ній із позначкою переглянутого — бачена. */
         internal fun watched(aired: AiredEpisode, next: Pair<Int, Int>?): Boolean {

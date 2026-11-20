@@ -19,6 +19,11 @@
     <string name="cinema_advisor_mood_mystery">Таємниче</string>
     <string name="cinema_advisor_mood_adventure">Пригоди</string>
     <string name="cinema_watch">Дивитись</string>
+    <string name="cinema_hero_eyebrow">ВИБІР ЛІХТАРЯ</string>
+    <string name="cinema_to_rows">До добірок ↓</string>
+    <string name="cinema_more_tip">↓  Більше добірок</string>
+    <string name="cinema_live_eyebrow">ЗАРАЗ В ЕФІРІ</string>
+    <string name="cinema_reality_eyebrow">РЕАЛІТІ · ШОУ</string>
     <string name="cinema_kind_series_lower">серіал</string>
     <string name="cinema_kind_movie_lower">фільм</string>
     <string name="cinema_unknown_collection">Невідома добірка</string>
@@ -96,12 +101,11 @@
     <string name="cinema_live_at">о %1$s</string>
     <string name="cinema_live_on">на %1$s</string>
     <string name="cinema_live_next">Далі о %1$s · %2$s</string>
+    <string name="cinema_prep_rate">%1$s МБ/с</string>
+    <string name="cinema_prep_need">треба %1$s</string>
     <string name="cinema_prep_mbps_need">МБ/с · треба %1$s</string>
     <string name="cinema_prep_buffered">Початок підвантажено — вмикаю плеєр</string>
     <string name="cinema_prep_buffering_percent">Підвантажую початок · %1$d%%</string>
-    <string name="cinema_prep_looking_for_peers">Шукаю пірів…</string>
-    <string name="cinema_prep_slow">Роздача повільна для цієї якості — шукаю живішу</string>
-    <string name="cinema_prep_measuring">Міряю швидкість роздачі</string>
     <string name="cinema_prep_buffering_first">Підвантажую перші хвилини…</string>
     <string name="cinema_genres">Жанри</string>
     <string name="cinema_page_failed">Сторінка не відкрилась</string>
@@ -169,8 +173,7 @@
     <string name="cinema_yesterday">вчора</string>
     <string name="cinema_new_episode_on">новий випуск %1$s</string>
     <string name="cinema_kind_documentary">Документальне</string>
-    <string name="cinema_picker_episode_hint">Серію обирають у «Вибір серії» — тут лише озвучка цієї</string>
-    <string name="cinema_picker_more">Шукаємо ще торенти…</string>
+    <string name="cinema_picker_episode_hint">Серію змінюють у «Вибір серії»</string>
     <string name="cinema_picker_searching">Шукаємо джерела…</string>
     <string name="cinema_search">Шукати</string>
     <string name="cinema_scan_no_answer">Сервер ще не відповів про цей тайтл.</string>
@@ -247,7 +250,6 @@
     <string name="cinema_prep_voice">Готую «%1$s»</string>
     <string name="cinema_prep_voice_sources">Перебираю джерела цієї озвучки</string>
     <string name="cinema_voice_failed">Ця озвучка не стартувала</string>
-    <string name="cinema_torrent_dead">Ця роздача не відповідає. Спробуйте інший пункт списку.</string>
     <string name="cinema_player">Плеєр</string>
     <string name="cinema_player_silent">Схоже, «%1$s» не читає цей потік: сервер не бачить жодного читача. Якщо картинки немає — спробуйте інший плеєр у «Налаштування → Кінозал → Плеєр для потоків».</string>
     <string name="cinema_no_app_for_video">Немає чим відкрити ролик</string>
@@ -256,10 +258,9 @@
     <string name="cinema_ua_wait_off">Більше не чекаємо української</string>
     <string name="cinema_watchlist_added">Додано в «Мій список»</string>
     <string name="cinema_watchlist_removed">Прибрано з «Мого списку»</string>
-    <string name="cinema_prep_connecting">Підключаюсь до роздачі</string>
-    <string name="cinema_prep_waiting_peers">Чекаю перші дані від пірів</string>
     <string name="cinema_picker_title">Оберіть озвучку</string>
-    <string name="cinema_picker_title_episode">S%1$dE%2$d · озвучка</string>
+    <string name="cinema_picker_title_episode">Сезон %1$d · Серія %2$d</string>
+    <string name="cinema_picker_heading">Озвучка</string>
     <string name="cinema_mark_msg_liked">Переглянуто — підберу схоже</string>
     <string name="cinema_mark_msg_disliked">Переглянуто — схожого буде менше</string>
     <string name="cinema_mark_msg_watched">Позначено переглянутим</string>
@@ -273,18 +274,6 @@
         <item quantity="few">%d серії</item>
         <item quantity="many">%d серій</item>
         <item quantity="other">%d серії</item>
-    </plurals>
-    <plurals name="cinema_peers" tools:ignore="ImpliedQuantity">
-        <item quantity="one">пір</item>
-        <item quantity="few">піри</item>
-        <item quantity="many">пірів</item>
-        <item quantity="other">піра</item>
-    </plurals>
-    <plurals name="cinema_seeders" tools:ignore="ImpliedQuantity">
-        <item quantity="one">сід</item>
-        <item quantity="few">сіди</item>
-        <item quantity="many">сідів</item>
-        <item quantity="other">сіда</item>
     </plurals>
     <plurals name="cinema_services_count">
         <item quantity="one">%d сервіс</item>
@@ -312,8 +301,8 @@
     </string-array>
     <string-array name="cinema_preparing_phrases">
         <item>Шукаю найкращий варіант…</item>
-        <item>Перевіряю, хто зараз роздає…</item>
-        <item>Міряю швидкість роздачі…</item>
+        <item>Перевіряю, звідки найшвидше…</item>
+        <item>Міряю швидкість…</item>
         <item>Підсвічую найважливіше…</item>
         <item>Наливаю світла в ліхтар…</item>
         <item>Ще мить — і вмикаю…</item>
@@ -345,6 +334,11 @@
     <string name="cinema_live_add_playlist">Додати свій плейлист</string>
     <string name="cinema_live_free_install">%1$s · встановити</string>
     <string name="cinema_live_free_open">Відкрити %1$s</string>
+    <string name="cinema_live_update_tv">Оновіть «Ліхтар ТБ»</string>
+    <string name="cinema_live_update_tv_hint">Вийшла нова версія плеєра для каналів. Оновлення займе хвилину, канали й налаштування лишаться.</string>
+    <string name="cinema_live_update_tv_now">Оновити зараз</string>
+    <string name="cinema_live_update_tv_later">Пізніше</string>
+    <string name="cinema_live_update_tv_later_why">Цей канал відкриється в нинішній версії</string>
     <string name="cinema_live_need_player">Немає відеоплеєра</string>
     <string name="cinema_live_need_player_hint">Канали з вашого плейлиста грає відеоплеєр, а на цьому пристрої його немає.</string>
     <string name="cinema_live_need_player_why">Безкоштовний, відкритий код, без реклами</string>
@@ -389,4 +383,70 @@
     <string name="cinema_live_group_show_hidden_hint">Сховані групи повернуться з усіма каналами</string>
     <string name="cinema_live_group_restore_name">Повернути назву «%1$s»</string>
     <string name="cinema_live_group_restore_name_hint">Назва, з якою група прийшла</string>
+    <string name="cinema_tier_dv_4k">4K · Dolby Vision</string>
+    <string name="cinema_tier_hdr_4k">4K · HDR</string>
+    <string name="cinema_tier_4k">4K</string>
+    <string name="cinema_tier_1080">1080p</string>
+    <string name="cinema_tier_lower">Нижче</string>
+    <string name="tracker_my_shows">Мої серіали</string>
+    <string name="tracker_my_shows_hint">Довге OK — «Кинути» або «Переглянуто»</string>
+    <string name="tracker_new">Нова · S%1$dE%2$d</string>
+    <string name="tracker_watching">Дивлюсь · %1$d з %2$d</string>
+    <string name="tracker_waiting_episode">Чекаю серію · %1$s</string>
+    <string name="tracker_waiting_season">Чекаю сезон</string>
+    <string name="tracker_done">Переглянуто ✓</string>
+    <string name="tracker_week">Цього тижня</string>
+    <string name="tracker_week_hint">Нові серії ваших серіалів і прем\'єри із закладок — по днях</string>
+    <string name="tracker_today">сьогодні</string>
+    <string name="tracker_nothing">нічого</string>
+    <string name="tracker_calendar_link">Повний календар ›</string>
+    <string name="tracker_online">онлайн</string>
+    <string name="tracker_cinema">у кіно</string>
+    <string name="tracker_episode">S%1$dE%2$d</string>
+    <string name="cinema_mark_drop">Кинути серіал</string>
+    <string name="cinema_mark_drop_hint">Сховати з «Моїх серіалів» і більше не нагадувати про нові серії</string>
+    <string name="tracker_calendar">Календар</string>
+    <string name="tracker_tab_mine">Мої</string>
+    <string name="tracker_tab_all">Усі прем\'єри</string>
+    <string name="tracker_calendar_loading">Дивлюсь розклад…</string>
+    <string name="tracker_calendar_empty">Наступного місяця нічого. Додайте серіал у закладки — його серії з\'являться тут.</string>
+    <string name="tracker_today_title">Сьогодні</string>
+    <string name="tracker_state_new">Нова серія</string>
+    <string name="tracker_state_watching">Дивлюсь</string>
+    <string name="tracker_state_waiting">Чекаю серію</string>
+    <string name="cinema_likhtarik">Ліхтарик</string>
+    <string name="cinema_likhtarik_search">Пошук</string>
+    <string name="cinema_likhtarik_calendar">Календар</string>
+    <string name="cinema_likhtarik_bookmarks_n">Закладки %1$d</string>
+    <string name="cinema_likhtarik_history">Історія</string>
+    <string name="tracker_dropped">Кинуто</string>
+    <string name="tracker_dropped_section">Кинуті</string>
+    <string name="tracker_dropped_hint">Довге OK — «Зняти позначку», і серіал повернеться</string>
+    <string name="tracker_dropped_show">Показати</string>
+    <string name="tracker_dropped_hide">Сховати</string>
+    <string name="trivia_kicker">Правда чи брехня</string>
+    <string name="trivia_round">Раунд дня · %1$d / %2$d</string>
+    <string name="trivia_true">Правда</string>
+    <string name="trivia_false">Брехня</string>
+    <string name="trivia_right">Вгадали</string>
+    <string name="trivia_wrong">Не вгадали</string>
+    <string name="trivia_next">Далі</string>
+    <string name="trivia_more">Ще питання</string>
+    <string name="trivia_open">Відкрити</string>
+    <string name="trivia_done">Раунд дня: %1$d з %2$d</string>
+    <string name="trivia_streak">Днів поспіль: %1$d</string>
+    <string name="trivia_done_line">Новий раунд — завтра.</string>
+    <string name="trivia_slide_kicker">Правда чи брехня · питання</string>
+    <string name="trivia_hint">Десять тверджень щодня — однакові для всіх</string>
+    <string name="cinema_action_open">Відкрити</string>
+    <string name="cinema_action_open_hint">Сторінка фільму чи серіалу</string>
+    <string name="cinema_action_list_hint">Зберегти в «Мій список»</string>
+    <string name="cinema_action_unlist_hint">Прибрати з «Мого списку»</string>
+    <string name="cinema_actions">Дії</string>
+    <string name="cinema_also_on">Також у</string>
+    <string name="cinema_franchise_kicker">ФРАНШИЗА · ЧАСТИН: %1$d</string>
+    <string name="cinema_franchise_seen">Переглянуто %1$d з %2$d</string>
+    <string name="cinema_franchise_next">Далі: %1$s</string>
+    <string name="cinema_open_app">Відкрити %1$s</string>
+    <string name="cinema_badge_ukr">УКР</string>
 </resources>

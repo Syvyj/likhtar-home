@@ -1,5 +1,10 @@
 package com.likhtar.home.feature.cinema
 
+import com.likhtar.home.core.designsystem.RailRestore
+import com.likhtar.home.core.designsystem.leave
+import com.likhtar.home.core.designsystem.returnPoint
+import com.likhtar.home.core.designsystem.ScrollRailTo
+
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

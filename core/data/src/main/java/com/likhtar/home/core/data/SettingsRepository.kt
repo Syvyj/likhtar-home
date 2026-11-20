@@ -40,7 +40,7 @@ data class LikhtarSettings(
      * до нього при кожному старті не можна — розділ у налаштуваннях лишається завжди.
      */
     val homeOnboardingShown: Boolean = false,
-    /** Майстер першого запуску пройдено чи пропущено. */
+    /** Майстер першого запуску пройдено чи пропущено (крок 3б). */
     val firstRunDone: Boolean = false,
 
     // ── Контекстні ряди Головної ────────────────────────────────────────────────
@@ -64,9 +64,27 @@ data class LikhtarSettings(
     /** Закріплені канали (URL) — стоять першими й не витісняються історією. */
     val pinnedChannels: Set<String> = emptySet(),
     /** Ряд «Застосунки» показує закріплені, а не останні запущені. */
-    val homeAppsPinned: Boolean = false,
+    /** Ряд застосунків — сталий (порядок людини), а не за останнім запуском: «там, де лишив». */
+    val homeAppsPinned: Boolean = true,
     /** Скільки застосунків у ряду. */
     val homeAppsCount: Int = 5,
+    /** Застосунки й розділи в одному ряду замість двох. */
+    val homeCombinedRows: Boolean = false,
+    /** Ряд «Продовжити перегляд» на Головній (Watch Next Android і наш прогрес) — з швидкого меню. */
+    val homeShowResume: Boolean = false,
+    /** Ряд ігор на Головній — з швидкого меню. */
+    val homeShowGames: Boolean = false,
+    /** Ряд «Від Ліхтаря» стоїть першим над «Моїми застосунками». */
+    /** Розділи Ліхтаря першими (і в одному ряду, і рядом угорі) — за замовчуванням так. */
+    val homeSectionsFirst: Boolean = true,
+    /** Ручний порядок застосунків у ряду на Головній (список id). */
+    val homeAppsOrder: List<String> = emptyList(),
+    /** Застосунки, приховані з ряду на Головній. */
+    val homeHiddenApps: Set<String> = emptySet(),
+    /** Чи приховано весь ряд «Мої застосунки» на Головній. */
+    val homeAppsRowHidden: Boolean = false,
+    /** Висота рядів на Головній відносно нижнього краю. */
+    val homeRowPosition: HomeRowPosition = HomeRowPosition.TOP,
 
     /** Ідентифікатор джерела шпалер (`WallpaperProvider.id`). */
     // Likhtar Home має власний набір, який працює без мережі й уже підготовлений під
@@ -87,9 +105,16 @@ data class LikhtarSettings(
     val hideWatched: Boolean = false,
     /** Ряд «Аніме» в Кінозалі й його сторінка. Вимкнено: аніме дивляться не всі. */
     val showAnime: Boolean = false,
+    /** Дитячий режим: без жахів і трилерів у рядах, поради — з віковою межею сервера. */
+    val kidsMode: Boolean = false,
+    /** Панель сповіщень Android у верхньому меню (lounge): служба-слухач тримається лише тоді. */
+    val notificationFeed: Boolean = false,
+    /** Застосунки, сповіщення яких панель не показує («Сховати від цього застосунку»). */
+    val mutedNotificationApps: Set<String> = emptySet(),
     /**
      * Кінозал лише з того, що вмикається встановленими застосунками: без топів і новинок
      * сервісів, яких на приставці немає. Вимкнено: побачити, що варте підписки, теж корисно
+     *.
      */
     val onlyMyApps: Boolean = false,
     /** Сервіси, яких людина не хоче бачити в Кінозалі: ні плитки, ні їхніх рядів (ключі StreamingService). */
@@ -125,8 +150,11 @@ data class LikhtarSettings(
 
     /** «Смарт дім» можна повністю прибрати з меню та з Головної. */
     val smartHomeEnabled: Boolean = true,
-    /** Розділ «Ігри»: емулятори й ігри окремим екраном. Вимкнено, доки людина не ввімкне. */
-    val gamesEnabled: Boolean = false,
+    /**
+     * Розділ «Ігри»: хмарні ігри, ретро й встановлені ігри. Увімкнено з коробки — лаунчер підказує
+     * не лише що подивитись, а й де пограти; вимикається в Налаштуваннях → Головна.
+     */
+    val gamesEnabled: Boolean = true,
     val smartHomeRefreshSeconds: Int = 15,
     /** Адреса Home Assistant і long-lived access token; порожні — інтеграція не налаштована. */
     val smartHomeUrl: String = "",
@@ -150,6 +178,13 @@ data class LikhtarSettings(
 
     /** Через скільки секунд бездіяльності Головна ховає плитки; 0 — ніколи. */
     val ambientTimeoutSeconds: Int = 60,
+    /** Заставка Ліхтаря: через скільки хвилин без пульта (0 — ніколи). */
+    val screensaverMinutes: Int = 5,
+    /** Скільки хвилин показувати заставку до сну (0 — не присипляти). */
+    val screensaverSleepMinutes: Int = 60,
+    /** Що в заставці: відео з висоти Apple і кадри нового з моїх сервісів. */
+    val screensaverAerial: Boolean = true,
+    val screensaverTitles: Boolean = true,
 
     /** Ключ TMDB для каталогу Кінозалу; порожній — каталог вимкнено. */
     val tmdbApiKey: String = "",
@@ -252,14 +287,25 @@ class SettingsRepository @Inject constructor(
             titleTrailerOnUp = prefs[KEY_TRAILER_UP] ?: true,
             homeChannelCount = prefs[KEY_HOME_CHANNELS] ?: 4,
             pinnedChannels = prefs[KEY_PINNED_CHANNELS].orEmpty(),
-            homeAppsPinned = prefs[KEY_HOME_APPS_PINNED] ?: false,
+            homeAppsPinned = prefs[KEY_HOME_APPS_PINNED] ?: true,
             homeAppsCount = prefs[KEY_HOME_APPS_COUNT] ?: 5,
+            homeCombinedRows = prefs[KEY_HOME_COMBINED_ROWS] ?: false,
+            homeShowResume = prefs[KEY_HOME_SHOW_RESUME] ?: false,
+            homeShowGames = prefs[KEY_HOME_SHOW_GAMES] ?: false,
+            homeSectionsFirst = prefs[KEY_HOME_SECTIONS_FIRST] ?: true,
+            homeAppsOrder = prefs[KEY_HOME_APPS_ORDER].orEmpty().split(',').filter { it.isNotBlank() },
+            homeHiddenApps = prefs[KEY_HOME_HIDDEN_APPS].orEmpty(),
+            homeAppsRowHidden = prefs[KEY_HOME_APPS_ROW_HIDDEN] ?: false,
+            homeRowPosition = HomeRowPosition.fromKey(prefs[KEY_HOME_ROW_POSITION]),
             wallpaperProviderId = prefs[KEY_WALLPAPER_PROVIDER] ?: "bundled",
             wallpaperIntervalMinutes = prefs[KEY_WALLPAPER_INTERVAL] ?: 15,
             wallpaperDimPercent = prefs[KEY_WALLPAPER_DIM] ?: 0,
             activeProfileId = prefs[KEY_ACTIVE_PROFILE] ?: "default",
             hideWatched = prefs[KEY_HIDE_WATCHED] ?: false,
             showAnime = prefs[KEY_SHOW_ANIME] ?: false,
+            kidsMode = prefs[KEY_KIDS_MODE] ?: false,
+            notificationFeed = prefs[KEY_NOTIFICATION_FEED] ?: false,
+            mutedNotificationApps = prefs[KEY_MUTED_NOTIFICATION_APPS].orEmpty(),
             onlyMyApps = prefs[KEY_ONLY_MY_APPS] ?: false,
             hiddenServices = prefs[KEY_HIDDEN_SERVICES].orEmpty(),
             hiddenDockSections = prefs[KEY_HIDDEN_DOCK].orEmpty(),
@@ -270,7 +316,7 @@ class SettingsRepository @Inject constructor(
             wallpaperManifestUrl = prefs[KEY_WALLPAPER_MANIFEST] ?: "",
             wallpaperTheme = prefs[KEY_WALLPAPER_THEME] ?: "mix",
             smartHomeEnabled = prefs[KEY_SMART_HOME_ENABLED] ?: true,
-            gamesEnabled = prefs[KEY_GAMES_ENABLED] ?: false,
+            gamesEnabled = prefs[KEY_GAMES_ENABLED] ?: true,
             smartHomeRefreshSeconds = prefs[KEY_SMART_HOME_REFRESH] ?: 15,
             smartHomeUrl = prefs[KEY_SMART_HOME_URL] ?: "",
             smartHomeToken = Secrets.open(prefs[KEY_SMART_HOME_TOKEN]),
@@ -293,6 +339,10 @@ class SettingsRepository @Inject constructor(
             hiddenCinemaRows = prefs[KEY_HIDDEN_CINEMA_ROWS].orEmpty(),
             titleUnderLogo = prefs[KEY_TITLE_UNDER_LOGO] ?: false,
             ambientTimeoutSeconds = prefs[KEY_AMBIENT_TIMEOUT] ?: 60,
+            screensaverMinutes = prefs[KEY_SCREENSAVER_MINUTES] ?: 5,
+            screensaverSleepMinutes = prefs[KEY_SCREENSAVER_SLEEP] ?: 60,
+            screensaverAerial = prefs[KEY_SCREENSAVER_AERIAL] ?: true,
+            screensaverTitles = prefs[KEY_SCREENSAVER_TITLES] ?: true,
             weatherCity = prefs[KEY_WEATHER_CITY] ?: "",
             weatherLatitude = prefs[KEY_WEATHER_LAT] ?: 0.0,
             weatherLongitude = prefs[KEY_WEATHER_LON] ?: 0.0,
@@ -363,6 +413,22 @@ class SettingsRepository @Inject constructor(
 
     suspend fun setVideoPlayerPackage(packageName: String) {
         context.settingsDataStore.edit { it[KEY_VIDEO_PLAYER] = packageName.trim() }
+    }
+
+    suspend fun setScreensaverMinutes(minutes: Int) {
+        context.settingsDataStore.edit { it[KEY_SCREENSAVER_MINUTES] = minutes.coerceIn(0, 240) }
+    }
+
+    suspend fun setScreensaverSleepMinutes(minutes: Int) {
+        context.settingsDataStore.edit { it[KEY_SCREENSAVER_SLEEP] = minutes.coerceIn(0, 600) }
+    }
+
+    suspend fun setScreensaverAerial(on: Boolean) {
+        context.settingsDataStore.edit { it[KEY_SCREENSAVER_AERIAL] = on }
+    }
+
+    suspend fun setScreensaverTitles(on: Boolean) {
+        context.settingsDataStore.edit { it[KEY_SCREENSAVER_TITLES] = on }
     }
 
     suspend fun setAmbientTimeoutSeconds(seconds: Int) {
@@ -500,6 +566,22 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    suspend fun setKidsMode(on: Boolean) {
+        context.settingsDataStore.edit { prefs -> prefs[KEY_KIDS_MODE] = on }
+    }
+
+    suspend fun setNotificationFeed(on: Boolean) {
+        context.settingsDataStore.edit { prefs -> prefs[KEY_NOTIFICATION_FEED] = on }
+    }
+
+    suspend fun clearMutedNotificationApps() {
+        context.settingsDataStore.edit { prefs -> prefs.remove(KEY_MUTED_NOTIFICATION_APPS) }
+    }
+
+    suspend fun muteNotificationApp(pkg: String) {
+        context.settingsDataStore.edit { prefs -> prefs[KEY_MUTED_NOTIFICATION_APPS] = prefs[KEY_MUTED_NOTIFICATION_APPS].orEmpty() + pkg }
+    }
+
     suspend fun setShowAnime(show: Boolean) {
         context.settingsDataStore.edit { prefs -> prefs[KEY_SHOW_ANIME] = show }
     }
@@ -523,6 +605,66 @@ class SettingsRepository @Inject constructor(
         context.settingsDataStore.edit { it[KEY_HOME_APPS_PINNED] = pinned }
     }
 
+    suspend fun toggleHomeCombinedRows() {
+        context.settingsDataStore.edit { prefs ->
+            prefs[KEY_HOME_COMBINED_ROWS] = !(prefs[KEY_HOME_COMBINED_ROWS] ?: false)
+        }
+    }
+
+    suspend fun toggleHomeShowResume() {
+        context.settingsDataStore.edit { it[KEY_HOME_SHOW_RESUME] = !(it[KEY_HOME_SHOW_RESUME] ?: false) }
+    }
+
+    suspend fun toggleHomeShowGames() {
+        context.settingsDataStore.edit { it[KEY_HOME_SHOW_GAMES] = !(it[KEY_HOME_SHOW_GAMES] ?: false) }
+    }
+
+    suspend fun setHomeCombinedRows(combined: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[KEY_HOME_COMBINED_ROWS] = combined
+        }
+    }
+
+    suspend fun setHomeRowPosition(position: HomeRowPosition) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[KEY_HOME_ROW_POSITION] = position.key
+        }
+    }
+
+    suspend fun toggleHomeSectionsFirst() {
+        context.settingsDataStore.edit { prefs ->
+            prefs[KEY_HOME_SECTIONS_FIRST] = !(prefs[KEY_HOME_SECTIONS_FIRST] ?: true)
+        }
+    }
+
+    suspend fun toggleHomeAppsRowHidden() {
+        context.settingsDataStore.edit { prefs ->
+            prefs[KEY_HOME_APPS_ROW_HIDDEN] = !(prefs[KEY_HOME_APPS_ROW_HIDDEN] ?: false)
+        }
+    }
+
+    suspend fun toggleHomeHiddenApp(appId: String) {
+        context.settingsDataStore.edit { prefs ->
+            val current = prefs[KEY_HOME_HIDDEN_APPS].orEmpty()
+            prefs[KEY_HOME_HIDDEN_APPS] = if (appId in current) current - appId else current + appId
+        }
+    }
+
+    suspend fun unhideAllHomeApps() {
+        context.settingsDataStore.edit { prefs ->
+            prefs[KEY_HOME_HIDDEN_APPS] = emptySet()
+            prefs[KEY_HOME_APPS_ROW_HIDDEN] = false
+        }
+    }
+
+    suspend fun setHomeAppsOrder(order: List<String>) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[KEY_HOME_APPS_ORDER] = order.joinToString(",")
+            // Переставив руками — отже, хоче сталий ряд: «останні» перемішали б його на першому запуску.
+            prefs[KEY_HOME_APPS_PINNED] = true
+        }
+    }
+
     suspend fun cycleHomeAppsCount() {
         context.settingsDataStore.edit { prefs ->
             val current = prefs[KEY_HOME_APPS_COUNT] ?: 5
@@ -543,6 +685,14 @@ class SettingsRepository @Inject constructor(
         val KEY_PINNED_CHANNELS = stringSetPreferencesKey("pinned_channels")
         val KEY_HOME_APPS_PINNED = booleanPreferencesKey("home_apps_pinned")
         val KEY_HOME_APPS_COUNT = intPreferencesKey("home_apps_count")
+        val KEY_HOME_COMBINED_ROWS = booleanPreferencesKey("home_combined_rows")
+        val KEY_HOME_SHOW_RESUME = booleanPreferencesKey("home_show_resume")
+        val KEY_HOME_SHOW_GAMES = booleanPreferencesKey("home_show_games")
+        val KEY_HOME_SECTIONS_FIRST = booleanPreferencesKey("home_sections_first")
+        val KEY_HOME_APPS_ORDER = stringPreferencesKey("home_apps_order")
+        val KEY_HOME_HIDDEN_APPS = stringSetPreferencesKey("home_hidden_apps")
+        val KEY_HOME_APPS_ROW_HIDDEN = booleanPreferencesKey("home_apps_row_hidden")
+        val KEY_HOME_ROW_POSITION = stringPreferencesKey("home_row_position")
 
         val CHANNEL_COUNTS = listOf(4, 6, 8)
         val APPS_COUNTS = listOf(3, 5, 7)
@@ -552,6 +702,9 @@ class SettingsRepository @Inject constructor(
         val KEY_ACTIVE_PROFILE = stringPreferencesKey("active_profile")
         val KEY_HIDE_WATCHED = booleanPreferencesKey("hide_watched")
         val KEY_SHOW_ANIME = booleanPreferencesKey("show_anime")
+        val KEY_KIDS_MODE = booleanPreferencesKey("kids_mode")
+        val KEY_NOTIFICATION_FEED = booleanPreferencesKey("notification_feed")
+        val KEY_MUTED_NOTIFICATION_APPS = stringSetPreferencesKey("muted_notification_apps")
         val KEY_ONLY_MY_APPS = booleanPreferencesKey("only_my_apps")
         val KEY_HIDDEN_SERVICES = stringSetPreferencesKey("hidden_services")
         val KEY_HIDDEN_DOCK = stringSetPreferencesKey("hidden_dock_sections")
@@ -589,9 +742,37 @@ class SettingsRepository @Inject constructor(
         val KEY_HIDDEN_CINEMA_ROWS = stringSetPreferencesKey("hidden_cinema_rows")
         val KEY_TITLE_UNDER_LOGO = booleanPreferencesKey("title_under_logo")
         val KEY_AMBIENT_TIMEOUT = intPreferencesKey("ambient_timeout_seconds")
+        val KEY_SCREENSAVER_MINUTES = intPreferencesKey("screensaver_minutes")
+        val KEY_SCREENSAVER_SLEEP = intPreferencesKey("screensaver_sleep_minutes")
+        val KEY_SCREENSAVER_AERIAL = booleanPreferencesKey("screensaver_aerial")
+        val KEY_SCREENSAVER_TITLES = booleanPreferencesKey("screensaver_titles")
         val KEY_WEATHER_CITY = stringPreferencesKey("weather_city")
         val KEY_WEATHER_LAT = doublePreferencesKey("weather_latitude")
         val KEY_WEATHER_LON = doublePreferencesKey("weather_longitude")
+    }
+}
+
+/** Положення рядів Головної відносно нижнього краю. */
+enum class HomeRowPosition(val key: String) {
+    /** Обидва ряди повністю (стандарт). */
+    TOP("top"),
+    /** Обидва ряди нижче — більше простору для шпалер. */
+    MIDDLE("middle"),
+    /** Перший ряд повністю + половина другого (tvOS peek). */
+    BOTTOM("bottom"),
+    /** Лише перший ряд у безпечній зоні, другий — нижче краю до натискання ↓. */
+    MINIMAL("minimal");
+
+    fun step(delta: Int): HomeRowPosition {
+        val all = entries
+        val idx = (ordinal + delta).coerceIn(0, all.lastIndex)
+        return all[idx]
+    }
+
+    fun next(): HomeRowPosition = entries[(ordinal + 1) % entries.size]
+
+    companion object {
+        fun fromKey(key: String?): HomeRowPosition = entries.firstOrNull { it.key == key } ?: TOP
     }
 }
 

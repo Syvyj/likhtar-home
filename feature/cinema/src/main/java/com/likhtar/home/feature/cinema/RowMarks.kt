@@ -21,18 +21,25 @@ import kotlinx.coroutines.launch
 class RowMarks(
     private val marks: TitleMarksRepository,
     private val scope: CoroutineScope,
+    /** Є — у меню довгого OK пункт «У список» / «Прибрати зі списку». */
+    private val watchlist: com.likhtar.home.core.catalog.WatchlistRepository? = null,
     private val onDone: suspend (item: CatalogItem, ok: Boolean) -> Unit,
 ) {
-    data class Target(val item: CatalogItem, val mark: TitleMark? = null)
+    /** [season]/[episode] — остання вийшла серія: панель тоді пропонує «Переглянуто до SxEy». */
+    data class Target(val item: CatalogItem, val mark: TitleMark? = null, val season: Int = 0, val episode: Int = 0, val inList: Boolean? = null)
 
     private val state = MutableStateFlow<Target?>(null)
     val target: StateFlow<Target?> = state.asStateFlow()
 
-    fun open(item: CatalogItem) {
-        state.value = Target(item)
+    fun open(item: CatalogItem) = openAt(item, 0, 0)
+
+    /** Як [open], але з останньою вийшлою серією — для «Переглянуто до SxEy» з трекера. */
+    fun openAt(item: CatalogItem, season: Int, episode: Int) {
+        state.value = Target(item, season = season, episode = episode)
         scope.launch {
+            val inList = watchlist?.contains(item)
             val mark = marks.markOf(item)
-            if (state.value?.item?.id == item.id) state.value = Target(item, mark)
+            if (state.value?.item?.id == item.id) state.value = Target(item, mark, season, episode, inList)
         }
     }
 
@@ -49,6 +56,13 @@ class RowMarks(
         }
     }
 
+    /** «У список» / «Прибрати зі списку» з меню довгого OK. */
+    fun toggleList() {
+        val item = state.value?.item ?: return
+        close()
+        scope.launch { watchlist?.toggle(item) }
+    }
+
     fun clear() {
         val item = state.value?.item ?: return
         close()
@@ -60,22 +74,25 @@ class RowMarks(
 internal fun CatalogItem.markable(): Boolean = tmdbId != 0 && opens.isBlank()
 
 @Composable
-internal fun RowMarkPanel(marks: RowMarks) {
+fun RowMarkPanel(marks: RowMarks, onOpen: ((CatalogItem) -> Unit)? = null) {
     val target by marks.target.collectAsState()
     target?.let { t ->
         MarkPanel(
             title = t.item.title,
             isTv = t.item.kind == TitleKind.TV,
             mark = t.mark,
-            season = 0,
-            resumeSeason = 0,
-            resumeEpisode = 0,
+            season = t.season,
+            resumeSeason = t.season,
+            resumeEpisode = t.episode,
             genres = emptyList(),
             franchise = null,
             onChoice = marks::apply,
             onClear = marks::clear,
             onDismiss = marks::close,
             armed = false,
+            onOpen = onOpen?.let { open -> { marks.close(); open(t.item) } },
+            inList = t.inList,
+            onToggleList = marks::toggleList,
         )
     }
 }

@@ -216,7 +216,6 @@ class AssistantViewModel @Inject constructor(
 
     override fun onCleared() {
         tts.shutdown()
-        super.onCleared()
     }
 
     private fun String.normalized() = lowercase().filter(Char::isLetterOrDigit)

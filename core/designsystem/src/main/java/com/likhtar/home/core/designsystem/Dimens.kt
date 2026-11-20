@@ -13,8 +13,8 @@ object LikhtarDimens {
     /** Горизонтальні поля екрана: --pad прототипів, 96 px → 48 dp. */
     val ScreenPadding = 48.dp
 
-    /** Висота верхнього меню: 96px → 48dp. */
-    val TopMenuHeight = 40.dp
+    /** Висота верхнього меню: комфортна висота для 3 м і окремих пігулок. */
+    val TopMenuHeight = 72.dp
     val TopMenuGap = 14.dp
 
     /**
@@ -99,8 +99,8 @@ object LikhtarDimens {
     val FocusHaloWidth = 5.dp
     val FocusHaloGap = 5.dp
 
-    /** Скільки місця треба лишити навколо картки, щоб кільце й ореол не зрізало. */
-    val FocusBleed = FocusHaloGap + FocusHaloWidth
+    /** Скільки місця треба лишити навколо картки, щоб збільшення, кільце й ореол не зрізало. */
+    val FocusBleed = 16.dp
 
     // Шкала скруглень — одна на весь лаунчер (було 15 різних значень від 2 до 24 dp).
     /** Піктограми, смужки прогресу, дрібні позначки. */

@@ -14,7 +14,7 @@
     <string name="ds_save">Save</string>
     <string name="ds_cancel">Cancel</string>
     <string name="ds_clear">Clear</string>
-    <string name="ds_preparing_title">Connecting to the torrent…</string>
+    <string name="ds_preparing_title">Connecting…</string>
     <string name="ds_preparing_subtitle">Looking for a source that delivers its quality</string>
     <!-- Фрази лоадера за замовчуванням: без «завантажую», про те, що справді відбувається. -->
     <string-array name="ds_loader_phrases">
@@ -33,4 +33,10 @@
     <string name="ds_support_bmc_note">A coffee, any amount</string>
     <string name="ds_support_mono">Monobank jar</string>
     <string name="ds_support_mono_note">Card, Apple Pay, Google Pay</string>
+    <string name="ds_notifications">Notifications</string>
+    <string name="ds_my_home">Smart home</string>
+    <string name="ds_weather">Weather</string>
+    <string name="ds_settings">Settings</string>
+    <string name="ds_profile">Who\'s watching</string>
+    <string name="ds_badge_ukr">UKR</string>
 </resources>

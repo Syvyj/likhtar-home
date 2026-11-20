@@ -15,6 +15,20 @@
     плейлист свого провайдера, а він майже завжди http (на емуляторі публічна збірка мовчки
     не вантажила M3U: «Cleartext HTTP traffic not permitted»).
 -->
-<network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config
+        cleartextTrafficPermitted="true"
+        tools:ignore="InsecureBaseConfiguration" />
+    <!--
+        Відео заставки «з висоти» — з серверів Apple, а їхній сертифікат підписано власним
+        кореневим центром Apple, якого в Android немає. Довіряємо йому лише для цього домену,
+        поруч із системними.
+    -->
+    <domain-config>
+        <domain includeSubdomains="false">sylvan.apple.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/apple_root_ca" />
+        </trust-anchors>
+    </domain-config>
 </network-security-config>

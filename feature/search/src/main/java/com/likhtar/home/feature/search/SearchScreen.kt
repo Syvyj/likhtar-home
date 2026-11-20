@@ -104,6 +104,8 @@ fun SearchScreen(
     onOpenTitle: (CatalogItem) -> Unit,
     /** Наше шоу відкривається сторінкою «Реаліті», а не сторінкою Кінозалу. */
     onOpenShow: (String) -> Unit,
+    /** «Повний календар ›» у кінці «Цього тижня». */
+    onOpenCalendar: () -> Unit = {},
     viewModel: SearchViewModel = hiltViewModel(),
     companion: CompanionViewModel = hiltViewModel(),
     advisorModel: AdvisorViewModel = hiltViewModel(),
@@ -117,8 +119,18 @@ fun SearchScreen(
     val voiceOnTv by companion.voiceOnTv.collectAsStateWithLifecycle()
     val canAsk by viewModel.canAsk.collectAsStateWithLifecycle()
     val personal by companion.personal.collectAsStateWithLifecycle()
+    val game by companion.game.state.collectAsStateWithLifecycle()
     val shelves = Shelves(history.orEmpty(), bookmarks, advice, personal)
-    val res = LocalContext.current.resources
+    val shows by companion.shows.collectAsStateWithLifecycle()
+    val week by companion.week.collectAsStateWithLifecycle()
+    val hero by companion.hero.collectAsStateWithLifecycle()
+    val askWatched by companion.askWatched.collectAsStateWithLifecycle()
+    val today by companion.today.collectAsStateWithLifecycle()
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        companion.onResumed()
+        onPauseOrDispose { }
+    }
+    val res = androidx.compose.ui.platform.LocalResources.current
 
     val menuFocusRequester = remember { FocusRequester() }
     val queryFocusRequester = remember { FocusRequester() }
@@ -261,7 +273,39 @@ fun SearchScreen(
             playCard = playCard,
             onForget = { forgetting = it },
             onBookmark = companion::toggleBookmark,
+            shows = shows,
+            week = week,
+            today = today,
+            hero = hero,
+            onHeroPlay = { pick ->
+                when (pick) {
+                    is HeroPick.NewEpisode -> {
+                        // Домашня збірка вмикає серію з «Продовжити»; публічна — сторінка тайтла, а після — «Подивились?».
+                        val card = history.orEmpty().firstOrNull { it.continueItem?.tmdbId == pick.show.item.tmdbId }
+                        if (card != null) {
+                            playCard(card)
+                        } else {
+                            companion.watchingFromHero(pick.show)
+                            open(pick.show.item)
+                        }
+                    }
+                    is HeroPick.Continue ->
+                        history.orEmpty().firstOrNull { it.continueItem?.id == pick.item.id }?.let(playCard) ?: open(pick.item.asCatalogItem())
+                    is HeroPick.Advice -> open(pick.item)
+                }
+            },
+            onShow = { open(it.item) },
+            // «Переглянуто до» — остання серія, що вже вийшла, а не наступна, якої ще немає.
+            onShowLong = { companion.marks.openAt(it.item, it.lastSeason, it.lastEpisode) },
+            onEvent = { open(it.item) },
+            onCalendar = onOpenCalendar,
+            logoOf = companion::logoOf,
+            game = game,
+            onGameAnswer = { companion.game.answer(it) },
+            onGameNext = { companion.game.next() },
         )
+        com.likhtar.home.feature.cinema.RowMarkPanel(companion.marks, onOpen = onOpenTitle)
+        askWatched?.let { show -> WatchedPrompt(show, companion::answerWatched) }
         // Меню поверх сторінки: її розміри відраховані від верху екрана, як у прототипі.
         LikhtarScreenScaffold(
             section = LikhtarSection.SEARCH,

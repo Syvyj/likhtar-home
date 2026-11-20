@@ -157,8 +157,10 @@ class LocalAdb private constructor(private val socket: Socket) : Closeable {
          * З'єднання й автентифікація. Якщо телевізор ще не знає нашого ключа — чекає до
          * [approvalMs], поки людина погодиться на екрані; [onApproval] — саме тоді.
          * [host] — інша адреса, коли з'єднуємось не з себе (інсталятор на телефоні).
+         * [offerKey] = false — тихий виклик у фоні: незнайомий ключ не пропонуємо (інакше на
+         * екрані щоразу «Дозволити налагодження?»), а одразу [Reason.NOT_APPROVED].
          */
-        fun connect(context: Context, approvalMs: Int, onApproval: () -> Unit = {}, host: String = LOOPBACK): LocalAdb {
+        fun connect(context: Context, approvalMs: Int, onApproval: () -> Unit = {}, host: String = LOOPBACK, offerKey: Boolean = true): LocalAdb {
             val keys = keys(context)
             val socket = Socket()
             try {
@@ -192,18 +194,21 @@ class LocalAdb private constructor(private val socket: Socket) : Closeable {
                         }
                         m.command == STLS -> throw Failure(Reason.WIRELESS_TLS)
                         m.command != AUTH || m.arg0 != AUTH_TOKEN -> throw Failure(Reason.PROTOCOL)
-                        !signed -> {
-                            adb.send(AUTH, AUTH_SIGNATURE, 0, sign(keys.private, m.data))
-                            signed = true
+                        else -> when (authStep(signed, offeredKey, offerKey)) {
+                            AuthStep.SIGN -> {
+                                adb.send(AUTH, AUTH_SIGNATURE, 0, sign(keys.private, m.data))
+                                signed = true
+                            }
+                            AuthStep.OFFER_KEY -> {
+                                // Ключ незнайомий: шлемо відкритий — телевізор питає «Дозволити налагодження?».
+                                adb.send(AUTH, AUTH_RSAPUBLICKEY, 0, publicKeyBlob(keys.public))
+                                offeredKey = true
+                                onApproval()
+                                socket.soTimeout = approvalMs
+                            }
+                            AuthStep.NOT_APPROVED -> throw Failure(Reason.NOT_APPROVED)
+                            AuthStep.REJECTED -> throw Failure(Reason.REJECTED)
                         }
-                        !offeredKey -> {
-                            // Ключ незнайомий: шлемо відкритий — телевізор питає «Дозволити налагодження?».
-                            adb.send(AUTH, AUTH_RSAPUBLICKEY, 0, publicKeyBlob(keys.public))
-                            offeredKey = true
-                            onApproval()
-                            socket.soTimeout = approvalMs
-                        }
-                        else -> throw Failure(Reason.REJECTED)
                     }
                 }
             } catch (e: Exception) {
@@ -275,4 +280,14 @@ class LocalAdb private constructor(private val socket: Socket) : Closeable {
             if (!tmp.renameTo(file)) throw IOException("could not save ${file.name}")
         }
     }
+}
+
+internal enum class AuthStep { SIGN, OFFER_KEY, NOT_APPROVED, REJECTED }
+
+/** Відповідь на черговий AUTH-токен adbd: підписати, запропонувати ключ чи здатися. */
+internal fun authStep(signed: Boolean, offeredKey: Boolean, offerKey: Boolean): AuthStep = when {
+    !signed -> AuthStep.SIGN
+    offeredKey -> AuthStep.REJECTED
+    offerKey -> AuthStep.OFFER_KEY
+    else -> AuthStep.NOT_APPROVED
 }

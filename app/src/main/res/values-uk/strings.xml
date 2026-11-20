@@ -2,8 +2,8 @@
 <resources>
     <string name="app_open_with">Чим відкрити</string>
     <string name="drop_title">Передати на приставку з телефона</string>
-    <string name="new_episodes_title">Нові серії</string>
-    <string name="new_episodes_hint">За два тижні — із серіалів, які дивитесь чи зберегли</string>
+    <string name="new_episodes_title">Нове для вас</string>
+    <string name="new_episodes_hint">Нові серії серіалів, які дивитесь чи зберегли, і новини закладок — за два тижні</string>
     <string name="drop_no_network">Приставка не в домашній мережі — QR-код нікуди вести.</string>
     <string name="drop_step1">1. Наведіть камеру телефона на код</string>
     <string name="drop_step2">2. Виберіть файл або вставте посилання</string>
@@ -19,6 +19,7 @@
     <string name="drop_saved">Збережено в %1$s</string>
     <string name="drop_open_link">Відкрити</string>
     <string name="drop_close">Закрити</string>
+    <string name="now_playing_listener_label">LIKHTAR: що грає</string>
     <string name="home_key_service_label">LIKHTAR: кнопка «Дім»</string>
     <string name="home_key_service_description">Кнопка «Дім» на пульті відкриває LIKHTAR. Служба бачить лише натискання «Дім» і нічого не читає з екрана.</string>
     <string name="assistant_listening">Слухаю. Питай що завгодно: погоду, факт, «відкрий ТБ Ефір»</string>
@@ -36,4 +37,17 @@
     <string name="assistant_no_time">Не зрозумів, о котрій нагадати.</string>
     <string name="assistant_service_off">Увімкни службу кнопок пульта в Налаштуваннях — без неї я цього не вмію.</string>
     <string name="live_reminder_text">%1$s о %2$s — «%3$s»</string>
+    <string name="wallpaper_provider_aerial">З висоти (відео)</string>
+    <string name="wallpaper_provider_fresh">Нове з моїх сервісів</string>
+    <string name="screensaver_new_on">Нове на %1$s</string>
+    <string name="screensaver_open_hint">OK — відкрити</string>
+    <string name="screensaver_aerial_source">з висоти · Apple</string>
+    <string name="profiles_title">Хто дивиться</string>
+    <string name="profiles_hint">Закладки, «Продовжити» й поради — у кожного свої</string>
+    <string name="profiles_kids">дитячий</string>
+    <string name="notifications_title">Сповіщення</string>
+    <string name="notifications_clear">Прибрати</string>
+    <string name="notifications_mute_app">Сховати від застосунку</string>
+    <string name="bell_news_service">Тепер на %1$s</string>
+    <string name="bell_news_trailer">Новий трейлер · %1$s</string>
 </resources>

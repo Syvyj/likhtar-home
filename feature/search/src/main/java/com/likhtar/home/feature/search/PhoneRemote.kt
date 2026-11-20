@@ -51,7 +51,11 @@ sealed interface PhoneCommand {
  * більше не треба.
  */
 @Singleton
-class PhoneRemote @Inject constructor(@ApplicationContext private val context: Context) {
+class PhoneRemote @Inject constructor(
+    @ApplicationContext private val context: Context,
+    /** Вкладка «Пульт»: кнопки й текст на весь телевізор через ADB (Nottilo, lounge). */
+    private val tv: com.likhtar.home.core.data.TvRemote,
+) {
     private val token = ByteArray(6).also { SecureRandom().nextBytes(it) }
         .joinToString("") { "%02x".format(it) }
 
@@ -101,6 +105,16 @@ class PhoneRemote @Inject constructor(@ApplicationContext private val context: C
                 Triple(200, "text/html", page())
             }
             method == "GET" && path.startsWith(prefix + "state") -> Triple(200, "application/json", stateJson())
+            // Пульт: окремо й легко — без стану Ліхтарика, бо натискань багато.
+            method == "POST" && path.startsWith(prefix + "key") -> {
+                val json = runCatching { JSONObject(body) }.getOrNull()
+                val ok = when {
+                    json == null -> false
+                    json.has("text") -> tv.type(json.optString("text"))
+                    else -> tv.press(json.optString("button"))
+                }
+                Triple(200, "application/json", JSONObject().put("ok", ok).toString())
+            }
             method == "POST" && path.startsWith(prefix + "cmd") -> {
                 command(body)
                 Triple(200, "application/json", stateJson())

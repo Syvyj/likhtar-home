@@ -17,4 +17,9 @@ class NewEpisodesTest {
         assertFalse(NewEpisodes.watched(aired(3, 1), 2 to 5))
         assertFalse(NewEpisodes.watched(aired(1, 1), null))
     }
+
+    @Test fun `дзвіночок — лише серіали, які трекер вважає новими`() {
+        val ids = NewEpisodes.onlyNew(listOf(1, 2, 3, 4), mapOf(1 to ShowState.NEW, 2 to ShowState.DROPPED, 3 to ShowState.WAITING_EPISODE))
+        org.junit.Assert.assertEquals(listOf(1), ids)
+    }
 }

@@ -4,9 +4,10 @@ import android.content.Context
 import android.content.res.Configuration
 import android.util.DisplayMetrics
 import java.util.Locale
+import androidx.core.content.edit
 
 /**
- * Мова інтерфейсу. Окремо від DataStore навмисно: її треба прочитати
+ * Мова інтерфейсу (крок 3в). Окремо від DataStore навмисно: її треба прочитати
  * синхронно ще в `attachBaseContext`, до першого кадру, а DataStore — асинхронний.
  *
  * Системний вибір мови застосунку є лише з Android 13, а приставки стоять і на 9–12, тому
@@ -23,7 +24,7 @@ object AppLanguage {
     /** `true` — мова змінилась, екран треба перестворити. */
     fun set(context: Context, language: String): Boolean {
         if (get(context) == language) return false
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, language).commit()
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit(commit = true) { putString(KEY, language) }
         return true
     }
 

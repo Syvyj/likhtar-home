@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Свідомі винятки: кожен — з причиною. Решта попереджень виправляються в коді. -->
+<lint>
+    <!-- <queries> у маніфесті оголошено (замість QUERY_ALL_PACKAGES); lint не пов'язує його з викликами. -->
+    <issue id="QueryPermissionsNeeded" severity="ignore" />
+    <!-- Розповсюджуємо APK (сайт/GitHub), не app bundle: мовні спліти не ріжуться. -->
+    <issue id="AppBundleLocaleChanges" severity="ignore" />
+    <!-- Картинки лише xhdpi/xxxhdpi: приставки — xhdpi/tvdpi, система масштабує без втрат. -->
+    <issue id="IconMissingDensityFolder" severity="ignore" />
+    <!-- targetSdk 36: образу Android 17 для перевірки немає, піднімати наосліп не будемо. -->
+    <issue id="OldTargetApi" severity="ignore" />
+</lint>

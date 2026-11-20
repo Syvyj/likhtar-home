@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import androidx.core.content.edit
 
 /**
  * Позначка тайтла з кнопки «Позначити»: переглянуто, пропустити, не рекомендувати.
@@ -51,6 +52,51 @@ class TitleMarksRepository @Inject constructor(
     private suspend fun localKey(item: CatalogItem) =
         "${settings.settings.first().activeProfileId}:${item.kind.tmdbPath}:${item.tmdbId}"
 
+    private suspend fun droppedKey() = "dropped:${settings.settings.first().activeProfileId}"
+
+    private suspend fun likedKey() = "liked:${settings.settings.first().activeProfileId}"
+
+    /** Вподобане (like) — найсвіжіше першим; для рядів «Бо сподобалось» у Кінозалі ([updateLiked]). */
+    suspend fun likedTitles(): List<CatalogItem> = withContext(Dispatchers.IO) {
+        runCatching {
+            val arr = org.json.JSONArray(local.getString(likedKey(), "[]"))
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                CatalogItem(
+                    tmdbId = o.getInt("id"),
+                    kind = if (o.optString("kind") == TitleKind.TV.tmdbPath) TitleKind.TV else TitleKind.MOVIE,
+                    title = o.optString("title"),
+                    year = o.optString("year"),
+                )
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    private suspend fun noteLiked(item: CatalogItem, liked: Boolean) {
+        val next = updateLiked(likedTitles(), item, liked)
+        val arr = org.json.JSONArray()
+        next.forEach { arr.put(org.json.JSONObject().put("id", it.tmdbId).put("kind", it.kind.tmdbPath).put("title", it.title).put("year", it.year)) }
+        local.edit { putString(likedKey(), arr.toString()) }
+    }
+
+    /**
+     * Кинуті серіали (позначка hide) — список на приставці. Сервер кинуте з прогресу прибирає, а
+     * списку позначок не віддає; без цього «Кинуті» в Ліхтарику не було б звідки взяти. Пише сюди
+     * кожна позначка, де б її не поставили (Ліхтарик, сторінка тайтла, ряди).
+     */
+    suspend fun droppedShows(): List<CatalogItem> = withContext(Dispatchers.IO) {
+        local.getStringSet(droppedKey(), emptySet()).orEmpty().mapNotNull { it.toIntOrNull() }
+            .map { CatalogItem(tmdbId = it, kind = TitleKind.TV, title = "", year = "") }
+    }
+
+    private suspend fun noteDropped(item: CatalogItem, dropped: Boolean) {
+        if (item.kind != TitleKind.TV) return
+        val key = droppedKey()
+        val ids = local.getStringSet(key, emptySet()).orEmpty().toMutableSet()
+        if (dropped) ids += item.tmdbId.toString() else ids -= item.tmdbId.toString()
+        local.edit { putStringSet(key, ids) }
+    }
+
     suspend fun markOf(item: CatalogItem): TitleMark? = withContext(Dispatchers.IO) {
         val base = config.homeOnlyUrl()
             ?: return@withContext local.getString(localKey(item), null)?.let { runCatching { parse(JSONObject(it)) }.getOrNull() }
@@ -72,7 +118,9 @@ class TitleMarksRepository @Inject constructor(
         val base = config.homeOnlyUrl() ?: run {
             val json = JSONObject().put("mark", mark).put("scope", scope).put("reason", reason)
                 .put("rating", rating).put("season", season).put("episode", episode)
-            local.edit().putString(localKey(item), json.toString()).apply()
+            local.edit { putString(localKey(item), json.toString()) }
+            noteDropped(item, mark == "hide")
+            noteLiked(item, rating == "like")
             TitleMarksRevision.changedAt = System.currentTimeMillis()
             return@withContext parse(json)
         }
@@ -92,6 +140,8 @@ class TitleMarksRepository @Inject constructor(
                 .toString()
             val reply = httpPostJson("$base/api/marks", payload, SAVE_TIMEOUT_MS)
             if (!reply.ok) return@runCatching null
+            noteDropped(item, mark == "hide")
+            noteLiked(item, rating == "like")
             TitleMarksRevision.changedAt = System.currentTimeMillis()
             parse(JSONObject(reply.body.orEmpty()))
         }.getOrNull()
@@ -99,12 +149,18 @@ class TitleMarksRepository @Inject constructor(
 
     suspend fun clearMark(item: CatalogItem): Boolean = withContext(Dispatchers.IO) {
         val base = config.homeOnlyUrl() ?: run {
-            local.edit().remove(localKey(item)).apply()
+            local.edit { remove(localKey(item)) }
+            noteDropped(item, false)
+            noteLiked(item, false)
             TitleMarksRevision.changedAt = System.currentTimeMillis()
             return@withContext true
         }
         val ok = runCatching { httpDelete("$base/api/marks?${query(item)}", TIMEOUT_MS) in 200..299 }.getOrDefault(false)
-        if (ok) TitleMarksRevision.changedAt = System.currentTimeMillis()
+        if (ok) {
+            noteDropped(item, false)
+            noteLiked(item, false)
+            TitleMarksRevision.changedAt = System.currentTimeMillis()
+        }
         ok
     }
 

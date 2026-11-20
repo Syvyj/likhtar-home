@@ -14,6 +14,7 @@ import com.likhtar.home.feature.settings.TextField
 import com.likhtar.home.feature.settings.GroupTitle
 import com.likhtar.home.feature.settings.ToggleRow
 import com.likhtar.home.feature.settings.ValueRow
+import com.likhtar.home.feature.settings.MultiChoiceDialog
 import com.likhtar.home.feature.settings.ChoiceRow
 import com.likhtar.home.feature.settings.Note
 import com.likhtar.home.core.model.LikhtarSection
@@ -26,6 +27,9 @@ internal fun HomeSection(
     viewModel: SettingsViewModel,
     editedRowFocusRequester: FocusRequester,
 ) {
+    HomeLaunchGroup(state, viewModel)
+    LocaleRows(state, viewModel)
+
     GroupTitle(stringResource(R.string.settings_home_weather_group))
     ToggleRow(
         text = stringResource(R.string.settings_home_show_weather),
@@ -50,21 +54,14 @@ internal fun HomeSection(
         }
     }
 
-    // Що лишити в доці: прибраний розділ відкривається з меню вгорі, тож нічого не губиться.
-    GroupTitle(stringResource(R.string.settings_home_dock_group))
-    listOf(
-        LikhtarSection.CINEMA to R.string.settings_home_dock_cinema,
-        LikhtarSection.LIVE_TV to R.string.settings_home_dock_live_tv,
-        LikhtarSection.REALITY to R.string.settings_home_dock_reality,
-        LikhtarSection.SEARCH to R.string.settings_home_dock_search,
-        LikhtarSection.APPS to R.string.settings_home_dock_apps,
-    ).forEach { (section, label) ->
-        ToggleRow(
-            text = stringResource(label),
-            checked = section.route !in state.settings.hiddenDockSections,
-            onToggle = { viewModel.toggleDockSection(section.route) },
-        )
-    }
+    // Розділи Ліхтаря («Від Ліхтаря») приховати не можна; керуємо лише виглядом рядів та додатковими розділами.
+    GroupTitle(stringResource(R.string.settings_home_layout_group))
+    ToggleRow(
+        text = stringResource(R.string.settings_home_combined_rows),
+        subtitle = stringResource(R.string.settings_home_combined_rows_hint),
+        checked = state.settings.homeCombinedRows,
+        onToggle = viewModel::toggleHomeCombinedRows,
+    )
     // «Ігри» — цілий розділ, а не лише плитка: вимкнено, доки людина не ввімкне сама.
     ToggleRow(
         text = stringResource(R.string.settings_home_games),
@@ -72,6 +69,21 @@ internal fun HomeSection(
         checked = state.settings.gamesEnabled,
         onToggle = viewModel::toggleGames,
     )
+    // Панель сповіщень Android (lounge): системну панель Google TV при Ліхтарі попереду не видно.
+    ToggleRow(
+        text = stringResource(R.string.settings_home_notifications),
+        subtitle = stringResource(R.string.settings_home_notifications_subtitle),
+        checked = state.settings.notificationFeed,
+        onToggle = viewModel::toggleNotificationFeed,
+    )
+    if (state.settings.notificationFeed && state.settings.mutedNotificationApps.isNotEmpty()) {
+        ValueRow(
+            text = stringResource(R.string.settings_home_notifications_muted),
+            value = state.settings.mutedNotificationApps.size.toString(),
+            onClick = viewModel::unmuteNotificationApps,
+            subtitle = stringResource(R.string.settings_home_notifications_muted_subtitle),
+        )
+    }
     if (state.settings.gamesEnabled) {
         // Дозвіл дають у системі — після повернення перечитуємо.
         var readable by remember { mutableStateOf(viewModel.roms.canReadAll) }
@@ -111,11 +123,20 @@ internal fun HomeSection(
     if (state.recentChannels.isEmpty()) {
         Note(stringResource(R.string.settings_home_channels_empty))
     } else {
-        state.recentChannels.forEach { channel ->
-            ChoiceRow(
-                text = channel.name,
-                selected = channel.url in state.settings.pinnedChannels,
-                onSelect = { viewModel.togglePinnedChannel(channel.url) },
+        var pinOpen by remember { mutableStateOf(false) }
+        val pinned = state.recentChannels.count { it.url in state.settings.pinnedChannels }
+        ValueRow(
+            text = stringResource(R.string.settings_home_channels_pinned),
+            value = if (pinned == 0) stringResource(R.string.settings_not_set) else "$pinned",
+            onClick = { pinOpen = true },
+        )
+        if (pinOpen) {
+            MultiChoiceDialog(
+                title = stringResource(R.string.settings_home_channels_pinned),
+                options = state.recentChannels.map { it.url to it.name },
+                selected = state.settings.pinnedChannels,
+                onToggle = viewModel::togglePinnedChannel,
+                onDismiss = { pinOpen = false },
             )
         }
     }
@@ -132,19 +153,4 @@ internal fun HomeSection(
         value = "${state.settings.homeAppsCount}",
         onClick = viewModel::cycleHomeAppsCount,
     )
-
-    GroupTitle(stringResource(R.string.settings_home_calm_group))
-    ValueRow(
-        text = stringResource(R.string.settings_home_ambient),
-        value = ambientLabel(state.settings.ambientTimeoutSeconds),
-        onClick = viewModel::cycleAmbientTimeout,
-        subtitle = stringResource(R.string.settings_home_ambient_subtitle),
-    )
-}
-
-@Composable
-private fun ambientLabel(seconds: Int): String = when (seconds) {
-    0 -> stringResource(R.string.settings_never)
-    in 1..119 -> stringResource(R.string.settings_seconds, seconds)
-    else -> stringResource(R.string.settings_minutes, seconds / 60)
 }

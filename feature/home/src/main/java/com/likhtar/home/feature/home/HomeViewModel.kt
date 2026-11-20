@@ -34,6 +34,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flow
@@ -59,6 +61,14 @@ data class HomeUiState(
     val showWeather: Boolean = true,
     val tiles: List<HomeTile> = emptyList(),
     val pinnedApps: List<LauncherApp> = emptyList(),
+    val allHomeApps: List<LauncherApp> = emptyList(),
+    val homeHiddenApps: Set<String> = emptySet(),
+    val homeAppsRowHidden: Boolean = false,
+    val homeCombinedRows: Boolean = false,
+    val homeShowResume: Boolean = false,
+    val homeShowGames: Boolean = false,
+    val homeSectionsFirst: Boolean = false,
+    val homeRowPosition: com.likhtar.home.core.data.HomeRowPosition = com.likhtar.home.core.data.HomeRowPosition.TOP,
     /** Контекстний ряд «Ігор»: останні запущені ігри першими. */
     val games: List<LauncherApp> = emptyList(),
     val resume: List<ResumeCard> = emptyList(),
@@ -149,19 +159,17 @@ class HomeViewModel @Inject constructor(
     private val preparing = MutableStateFlow(false)
 
     private val apps = combine(appsRepository.apps, appStateRepository.states) { all, states ->
-        val pinned = all.filter { it.id in states.pinnedToHome }
+        val visible = all.filterNot { it.id in states.hidden }
+        val pinned = visible.filter { it.id in states.pinnedToHome }
         // Закріплені йдуть першими, але не перетворюють вертикальний перемикач на одну
         // кнопку: доповнюємо його іншими встановленими відеозастосунками до п'яти.
-        val video = all.filter { it.id !in states.pinnedToHome && it.isVideo }
+        val video = visible.filter { it.id !in states.pinnedToHome && it.isVideo }
             .sortedBy { if (it.packageName in com.likhtar.home.core.model.StreamingService.YOUTUBE.packages) 0 else 1 }
-        val remaining = all.filter { app ->
+        val remaining = visible.filter { app ->
             app.id !in states.pinnedToHome && video.none { it.id == app.id }
         }
         (pinned + video + remaining)
             .distinctBy { it.id }
-            // Стеля, а не остаточна кількість: скільки саме показати, вирішує ряд за
-            // налаштуванням, і йому може знадобитися сім.
-            .take(APPS_MAX)
     }
 
     /** Ігри для ряду над плиткою «Ігри»: категорія з урахуванням ручної зміни, без прихованих. */
@@ -184,9 +192,19 @@ class HomeViewModel @Inject constructor(
         // ON_RESUME приходить раніше, ніж прогрес після плеєра доходить до сервера: ряд
         // лишався на старій серії. Перечитуємо, щойно запис закінчено.
         viewModelScope.launch { continuePlayback.saved.collect { refreshResume() } }
+        // Інший профіль у верхньому меню — свій «Продовжити».
+        viewModelScope.launch {
+            settingsRepository.settings.map { it.activeProfileId }.distinctUntilChanged().drop(1).collect { refreshResume() }
+        }
     }
 
+    /** Ряд «Пристрої»: входи телевізора; на приставці порожньо. */
+    val inputs = MutableStateFlow<List<TvInputTile>>(emptyList())
+
+    fun openInput(input: TvInputTile): Boolean = TvInputs.open(context, input)
+
     fun refreshResume() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) { inputs.value = TvInputs.list(context) }
         viewModelScope.launch {
             continueWatching.value = resumeRows.cinema(CONTINUE_MAX)
             showsWatching.value = resumeRows.reality().take(CONTINUE_MAX)
@@ -300,6 +318,7 @@ class HomeViewModel @Inject constructor(
             resumeSourcesFlow,
             contextSources,
         ) { core: HomeCoreState, sources: ResumeSources, context: ContextSources ->
+            val orderedApps = orderedHomeApps(core.dockApps, context.recentApps, core.settings)
             HomeUiState(
                 time = com.likhtar.home.core.designsystem.clockTime(core.now.time),
                 date = DATE_FORMAT.format(core.now).replaceFirstChar { it.uppercase() },
@@ -308,12 +327,21 @@ class HomeViewModel @Inject constructor(
                 tiles = tiles()
                     .filter { it.section != LikhtarSection.SMART_HOME || core.smartHomeEnabled }
                     .filter { it.section != LikhtarSection.GAMES || core.settings.gamesEnabled }
-                    .filter { it.section.route !in core.settings.hiddenDockSections }
                     .let { tiles ->
                         val order = LikhtarSection.ordered(tiles.map { it.section }, core.settings.sectionOrder)
                         tiles.sortedBy { order.indexOf(it.section) }
                     },
-                pinnedApps = appsRow(core.dockApps, context.recentApps, core.settings),
+                pinnedApps = orderedApps
+                    .filterNot { it.id in core.settings.homeHiddenApps }
+                    .take(core.settings.homeAppsCount),
+                allHomeApps = orderedApps,
+                homeHiddenApps = core.settings.homeHiddenApps,
+                homeAppsRowHidden = core.settings.homeAppsRowHidden,
+                homeCombinedRows = core.settings.homeCombinedRows,
+                homeShowResume = core.settings.homeShowResume,
+                homeShowGames = core.settings.homeShowGames,
+                homeSectionsFirst = core.settings.homeSectionsFirst,
+                homeRowPosition = core.settings.homeRowPosition,
                 games = appsRow(
                     core.games,
                     context.recentApps,
@@ -382,6 +410,85 @@ class HomeViewModel @Inject constructor(
         return appsRepository.launch(app)
     }
 
+    fun toggleSmartDevice(device: SmartDevice) {
+        viewModelScope.launch { smartHomeRepository.toggle(device) }
+    }
+
+    fun toggleHomeShowResume() {
+        viewModelScope.launch { settingsRepository.toggleHomeShowResume() }
+        // Ряд щойно ввімкнули — недодивлене збираємо зараз, а не на наступному поверненні.
+        refreshResume()
+    }
+
+    fun toggleHomeShowGames() {
+        viewModelScope.launch { settingsRepository.toggleHomeShowGames() }
+    }
+
+    fun setHomeCombinedRows(combined: Boolean) {
+        viewModelScope.launch { settingsRepository.setHomeCombinedRows(combined) }
+    }
+
+    fun setHomeRowPosition(position: com.likhtar.home.core.data.HomeRowPosition) {
+        viewModelScope.launch { settingsRepository.setHomeRowPosition(position) }
+    }
+
+    fun toggleHomeSectionsFirst() {
+        viewModelScope.launch { settingsRepository.toggleHomeSectionsFirst() }
+    }
+
+    fun toggleHomeAppsRowHidden() {
+        viewModelScope.launch { settingsRepository.toggleHomeAppsRowHidden() }
+    }
+
+    fun toggleHomeAppHidden(appId: String) {
+        viewModelScope.launch { settingsRepository.toggleHomeHiddenApp(appId) }
+    }
+
+    fun unhideAllHomeApps() {
+        viewModelScope.launch { settingsRepository.unhideAllHomeApps() }
+    }
+
+    /**
+     * Порядок, який людина щойно склала, — поки запис у DataStore не повернувся в [uiState].
+     * Обмін рахується від нього, а не від стану: швидкі ←/→ (утримання, автоповтори пульта)
+     * інакше міняли б ту саму пару двічі й губили кроки.
+     */
+    private var localOrder: List<String>? = null
+    private var orderWrite: kotlinx.coroutines.Job? = null
+
+    fun moveHomeApp(appId: String, earlier: Boolean) {
+        val s = uiState.value
+        val known = s.allHomeApps.map { it.id }
+        val current = localOrder?.filter { it in known }?.let { it + known.filterNot(it::contains) } ?: known
+        val visible = current.filterNot { it in s.homeHiddenApps }.take(s.pinnedApps.size)
+        val from = visible.indexOf(appId)
+        val to = if (earlier) from - 1 else from + 1
+        if (from < 0 || to !in visible.indices) return
+        val order = current.toMutableList()
+        val i = order.indexOf(appId)
+        val j = order.indexOf(visible[to])
+        order[i] = visible[to]
+        order[j] = appId
+        localOrder = order
+        // Пише останній порядок: попередній запис, що ще не встиг, більше не потрібен.
+        orderWrite?.cancel()
+        orderWrite = viewModelScope.launch { settingsRepository.setHomeAppsOrder(order) }
+    }
+
+    /** Переставити розділ Ліхтаря на Головній на одну позицію (довге OK → ← →). */
+    fun moveSection(section: LikhtarSection, earlier: Boolean) {
+        val order = uiState.value.tiles.map { it.section }.toMutableList()
+        val visible = order.filterNot { it in FIXED_SECTIONS }
+        val from = visible.indexOf(section)
+        val to = if (earlier) from - 1 else from + 1
+        if (from < 0 || to !in visible.indices) return
+        val i = order.indexOf(section)
+        val j = order.indexOf(visible[to])
+        order[i] = visible[to]
+        order[j] = section
+        viewModelScope.launch { settingsRepository.setSectionOrder(order.map { it.route }) }
+    }
+
     /**
      * Ряд каналів: закріплені завжди першими й ніколи не витісняються історією.
      *
@@ -402,16 +509,33 @@ class HomeViewModel @Inject constructor(
      * закріплених достатньо взяти їх як є. Для режиму «останні» переставляємо той самий
      * список у порядку історії запусків.
      */
+    private fun orderedHomeApps(
+        dockApps: List<LauncherApp>,
+        recentIds: List<String>,
+        settings: LikhtarSettings,
+    ): List<LauncherApp> {
+        val byId = dockApps.associateBy { it.id }
+        val base = if (settings.homeAppsPinned) {
+            dockApps
+        } else {
+            val recent = recentIds.mapNotNull(byId::get)
+            (recent + dockApps.filterNot { it.id in recentIds }).distinctBy { it.id }
+        }
+        // Ручний порядок — лише для сталого ряду: у режимі «останні» перемикач мусить діяти.
+        if (!settings.homeAppsPinned || settings.homeAppsOrder.isEmpty()) return base
+        val ordered = settings.homeAppsOrder.mapNotNull(byId::get)
+        val orderedIds = ordered.map { it.id }.toSet()
+        return ordered + base.filterNot { it.id in orderedIds }
+    }
+
     private fun appsRow(
         dockApps: List<LauncherApp>,
         recentIds: List<String>,
         settings: LikhtarSettings,
     ): List<LauncherApp> {
-        val limit = settings.homeAppsCount
-        if (settings.homeAppsPinned) return dockApps.take(limit)
-        val byId = dockApps.associateBy { it.id }
-        val recent = recentIds.mapNotNull(byId::get)
-        return (recent + dockApps.filterNot { it.id in recentIds }).distinctBy { it.id }.take(limit)
+        return orderedHomeApps(dockApps, recentIds, settings)
+            .filterNot { it.id in settings.homeHiddenApps }
+            .take(settings.homeAppsCount)
     }
 
     /**
@@ -433,6 +557,8 @@ class HomeViewModel @Inject constructor(
     }
 
     private companion object {
+        /** Розділи, яких у ряду Ліхтаря на Головній немає (див. ModernHomeContent). */
+        val FIXED_SECTIONS = setOf(LikhtarSection.HOME, LikhtarSection.REALITY, LikhtarSection.SMART_HOME, LikhtarSection.APPS)
         const val CLOCK_INTERVAL_MS = 10_000L
         const val STOP_TIMEOUT_MS = 5_000L
         /** Стеля запиту недодивленого: ряд може просити щонайбільше сім карток. */

@@ -132,16 +132,16 @@ internal fun LiveChannelCard(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val res = LocalContext.current.resources
+    val res = androidx.compose.ui.platform.LocalResources.current
     val image = cardImage(card)
     FocusableSurface(
         onClick = onClick,
         onLongClick = onLongClick,
-        modifier = modifier.width(228.dp).onFocusChanged { if (it.hasFocus) onFocused() }.focusGlow(8.dp),
-        shape = RoundedCornerShape(8.dp),
+        modifier = modifier.width(228.dp).onFocusChanged { if (it.hasFocus) onFocused() }.focusGlow(12.dp),
+        shape = RoundedCornerShape(12.dp),
         background = LikhtarColors.Surface,
-        focusedBackground = LikhtarColors.Surface,
-        borderColor = Color.Transparent,
+        focusedBackground = LikhtarColors.Border,
+        borderColor = LikhtarColors.GlassDivider,
         focusLighten = 0f,
         focusedScale = LikhtarDimens.CardFocusScale,
     ) { focused ->
@@ -153,7 +153,7 @@ internal fun LiveChannelCard(
             Column(Modifier.padding(start = 10.dp, end = 10.dp, top = 3.dp, bottom = 9.dp)) {
                 Text(
                     channelLabel(card.link.name),
-                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
+                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp),
                     color = LikhtarColors.TextDim,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -172,7 +172,7 @@ internal fun LiveChannelCard(
                     horizontalArrangement = Arrangement.spacedBy(7.dp),
                     modifier = Modifier.padding(top = 5.dp).height(14.dp),
                 ) {
-                    val small = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
+                    val small = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp)
                     if (card.bare) {
                         Text(if (card.link.packageName.isBlank()) res.getString(R.string.cinema_live_bare_hint) else res.getString(R.string.cinema_live_youtube_hint), style = small, color = LikhtarColors.TextDim, maxLines = 1)
                     } else if (card.startMillis > now) {
@@ -247,7 +247,7 @@ internal fun LiveGuide(
     /** Росте, коли закрилось меню каналу: фокус — назад у список. */
     refocus: Int = 0,
 ) {
-    val res = LocalContext.current.resources
+    val res = androidx.compose.ui.platform.LocalResources.current
     var groupsOpen by remember { mutableStateOf(false) }
     // Пошук каналу: назва вводиться системною клавіатурою, результати — як ще одна «група».
     var query by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
@@ -361,9 +361,20 @@ internal fun LiveGuide(
     val shift by animateDpAsState(if (groupsOpen) 144.dp else 0.dp, move, label = "shift")
     val listAlpha by animateFloatAsState(if (groupsOpen) 0.55f else 1f, tween(250), label = "dim")
 
-    Box(Modifier.fillMaxSize().background(LikhtarColors.Background)) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(LikhtarColors.Background)
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(LikhtarColors.HeroGlowCalendar, Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(1520f, 180f),
+                    radius = 760f,
+                ),
+            ),
+    ) {
         // Список і заголовок.
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.offset(x = 89.dp + shift, y = 44.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.offset { androidx.compose.ui.unit.IntOffset((89.dp + shift).roundToPx(), 44.dp.roundToPx()) }) {
             Text(
                 when (group) {
                     GuideAll -> res.getString(R.string.cinema_live_all_channels)
@@ -374,14 +385,14 @@ internal fun LiveGuide(
                 color = Color.White,
                 modifier = Modifier.alignByBaseline(),
             )
-            Text("${list.size}", style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 11.sp), color = LikhtarColors.TextDim, modifier = Modifier.alignByBaseline())
+            Text("${list.size}", style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 11.5.sp), color = LikhtarColors.TextDim, modifier = Modifier.alignByBaseline())
         }
         LazyColumn(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(5.dp),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 4.dp, bottom = 200.dp),
             modifier = Modifier
-                .offset(x = 80.dp + shift, y = 71.dp)
+                .offset { androidx.compose.ui.unit.IntOffset((80.dp + shift).roundToPx(), 71.dp.roundToPx()) }
                 .width(320.dp)
                 .fillMaxHeight()
                 .graphicsLayer { alpha = listAlpha }
@@ -498,7 +509,7 @@ private fun GuidePreview(
     onSchedule: (LiveCard) -> Unit,
     onOpenTitle: (com.likhtar.home.core.catalog.CatalogItem) -> Unit,
 ) {
-    val res = LocalContext.current.resources
+    val res = androidx.compose.ui.platform.LocalResources.current
     val c = list.getOrNull(focused.intValue) ?: list.firstOrNull() ?: return
     Column(Modifier.offset(x = 425.dp + shift, y = 75.dp).width(463.dp - shift)) {
         Box(Modifier.fillMaxWidth().height(280.dp).clip(RoundedCornerShape(11.dp)).background(LikhtarColors.BackgroundDeep)) {
@@ -509,7 +520,7 @@ private fun GuidePreview(
                     // Передача ще не почалась (пауза в ефірі каналу) — «на X · о 03:40», а не «зараз на X».
                     if (c.startMillis > now) res.getString(R.string.cinema_live_on, channelLabel(c.link.name)) + " · " + res.getString(R.string.cinema_live_at, clockTime(c.startMillis))
                     else res.getString(R.string.cinema_live_now_on, channelLabel(c.link.name)) + if (c.bare) "" else " · " + shortLeft(res, c.endMillis, now),
-                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.sp),
+                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp),
                     color = LikhtarColors.Glow,
                     maxLines = 1,
                 )
@@ -529,7 +540,7 @@ private fun GuidePreview(
                 next.forEach { p ->
                     Column(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(LikhtarColors.Paper.copy(alpha = 0.06f)).padding(horizontal = 10.dp, vertical = 9.dp)) {
                         Text(res.getString(R.string.cinema_live_at, clockTime(p.startMillis)), style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 9.sp), color = LikhtarColors.TextDim)
-                        Text(cleanProgramme(c.link, p.title), style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.sp), color = LikhtarColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+                        Text(cleanProgramme(c.link, p.title), style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp), color = LikhtarColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
                     }
                 }
             }
@@ -554,7 +565,7 @@ private fun GuidePreview(
 /** Рядок списку (.it): 92 px, знак 96×56 px, назва каналу 19 px, передача 24 px, смужка 4 px. */
 @Composable
 private fun GuideRow(card: LiveCard, now: Long, onFocused: () -> Unit, onClick: () -> Unit, onLongClick: () -> Unit, onLeft: () -> Unit, onRight: () -> Unit, onUp: (() -> Unit)?, modifier: Modifier = Modifier) {
-    val res = LocalContext.current.resources
+    val res = androidx.compose.ui.platform.LocalResources.current
     FocusableSurface(
         onClick = onClick,
         onLongClick = onLongClick,
@@ -632,7 +643,7 @@ private fun GroupItem(
                 modifier = Modifier.size(15.dp),
             )
             if (open) {
-                Text(title, style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.sp), color = if (focused) LikhtarColors.Background else if (selected) Color.White else LikhtarColors.TextDim, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text(title, style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp), color = if (focused) LikhtarColors.Background else if (selected) Color.White else LikhtarColors.TextDim, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 if (count != null) Text("$count", style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 9.sp), color = if (focused) LikhtarColors.Background else LikhtarColors.TextDim)
             }
         }
@@ -677,7 +688,7 @@ internal fun LiveChannelMenu(
     onRemind: () -> Unit = {},
     onSchedule: () -> Unit = {},
 ) {
-    val res = LocalContext.current.resources
+    val res = androidx.compose.ui.platform.LocalResources.current
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         withFrameNanos { }
@@ -720,7 +731,7 @@ internal fun LiveChannelMenu(
  */
 @Composable
 internal fun GuidePeek(groups: List<String>, modifier: Modifier = Modifier) {
-    val res = LocalContext.current.resources
+    val res = androidx.compose.ui.platform.LocalResources.current
     Column(modifier) {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.offset(x = (-11).dp)) {
             (listOf(GuideAll) + groups).take(8).forEachIndexed { i, g ->
@@ -752,7 +763,7 @@ internal val PlayerOnPlay = "Just Player" to "com.brouken.player"
 /** Канал плейлиста, а відеоплеєра немає: пояснюємо й пропонуємо встановити [PlayerOnPlay]. */
 @Composable
 internal fun NeedPlayerDialog(onInstallTv: () -> Unit, onInstall: () -> Unit, onDismiss: () -> Unit) {
-    val res = LocalContext.current.resources
+    val res = androidx.compose.ui.platform.LocalResources.current
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         withFrameNanos { }
@@ -771,6 +782,29 @@ internal fun NeedPlayerDialog(onInstallTv: () -> Unit, onInstall: () -> Unit, on
                 MarkOptionSpec(null, res.getString(R.string.cinema_live_free_install, PlayerOnPlay.first), res.getString(R.string.cinema_live_need_player_why)) { onInstall(); onDismiss() },
                 Modifier,
             )
+        }
+    }
+}
+
+/** Стоїть стара збірка «Ліхтар ТБ»: оновити зараз чи дивитись у нинішній. Back — те саме, що «Пізніше». */
+@Composable
+internal fun UpdateTvPlayerDialog(onUpdate: () -> Unit, onLater: () -> Unit) {
+    val res = androidx.compose.ui.platform.LocalResources.current
+    val first = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        runCatching { first.requestFocus() }
+    }
+    com.likhtar.home.core.designsystem.LikhtarDialog(onDismiss = onLater, width = 460.dp, side = true, armed = true) {
+        Text(res.getString(R.string.cinema_live_update_tv), style = LikhtarType.SectionTitle, color = LikhtarColors.TextPrimary)
+        Text(res.getString(R.string.cinema_live_update_tv_hint), style = LikhtarType.Body1, color = LikhtarColors.TextPrimary)
+        Spacer(Modifier.height(24.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            MarkOption(
+                MarkOptionSpec(null, res.getString(R.string.cinema_live_update_tv_now), res.getString(R.string.cinema_live_install_tv_why)) { onUpdate() },
+                Modifier.focusRequester(first),
+            )
+            MarkOption(MarkOptionSpec(null, res.getString(R.string.cinema_live_update_tv_later), res.getString(R.string.cinema_live_update_tv_later_why)) { onLater() }, Modifier)
         }
     }
 }
@@ -798,7 +832,7 @@ internal fun ChannelScheduleDialog(
     onWatch: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val res = LocalContext.current.resources
+    val res = androidx.compose.ui.platform.LocalResources.current
     val first = remember { FocusRequester() }
     val items = remember(schedule, now / 60_000) { programmesAhead(schedule, now) }
     LaunchedEffect(Unit) {
@@ -853,7 +887,7 @@ private fun GroupMenu(
     onShowHidden: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val res = LocalContext.current.resources
+    val res = androidx.compose.ui.platform.LocalResources.current
     val top = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         withFrameNanos { }
@@ -907,7 +941,7 @@ private fun PreviewButton(label: String, modifier: Modifier, onLeft: (() -> Unit
     ) { focused ->
         Text(
             label,
-            style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.sp),
+            style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp),
             color = if (focused) LikhtarColors.Background else LikhtarColors.TextPrimary,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
         )

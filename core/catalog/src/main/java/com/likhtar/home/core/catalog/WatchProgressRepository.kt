@@ -129,7 +129,7 @@ class WatchProgressRepository @Inject constructor(
     private val tmdb: TmdbClient,
     private val deviceId: DeviceId,
     private val settings: SettingsRepository,
-    private val ownTorrentServer: OwnTorrentServer,
+    private val ownStreamServer: OwnStreamServer,
 ) {
     /**
      * Де зупинились, у мілісекундах. Ключ — тайтл разом із серією: у серіалі кожна серія
@@ -278,7 +278,7 @@ class WatchProgressRepository @Inject constructor(
     /**
      * Запуск того, що продовжуємо: сервер сам вибирає джерело, яке реально тягне.
      *
-     * Це той самий ендпойнт, що й прогрів роздачі, тому окремий `prepare` тут не потрібен.
+     * Це той самий ендпойнт, що й підготовка джерела, тому окремий `prepare` тут не потрібен.
      * Порожня відповідь означає «нема чого вмикати» — для серіалу це кінець сезону, і
      * саме за цим сигналом тайтл зникає з ряду.
      */
@@ -291,7 +291,7 @@ class WatchProgressRepository @Inject constructor(
                 val serial = item.kind == TitleKind.TV
                 val url = buildString {
                     append(base).append("/api/play?wait=").append(waitSeconds)
-                    if (ownTorrentServer.url != null) append("&own_ts=1") // див. LikhtarStreams.playVoice
+                    append(ownStreamServer.attemptFlag)
                     if (!DolbyVision.supported) append("&nodv=1")
                     // Хто і з чого дивиться: сервер сам пише кожен запуск у
                     // `playback_attempts`, але без цих двох не може сказати, чий саме
@@ -315,7 +315,7 @@ class WatchProgressRepository @Inject constructor(
                 val body = httpGet(url, (waitSeconds + 5) * 1_000) ?: return@runCatching null
                 val json = JSONObject(body)
                 // Джерело віддаємо разом із посиланням: його треба переслати назад у
-                // `/api/attempt`, інакше сервер не знає, якої якості була роздача.
+                // `/api/attempt`, інакше сервер не знає, якої якості був варіант.
                 PlayResult(
                     url = json.optString("url"),
                     name = json.optString("name"),
@@ -366,13 +366,13 @@ class WatchProgressRepository @Inject constructor(
                     // під це колонка, і розбирати рядок — зайва ланка, яка може розійтися
                     // з нашим форматом.
                     .put("player", player)
-                    // `ref` сервер перетворює на якість роздачі — без нього розріз
+                    // `ref` сервер перетворює на якість варіанта — без нього розріз
                     // «який плеєр тягне 2160p» не збирається взагалі, і дірка тиха:
                     // ніде не падає, просто відповіді немає назавжди.
                     .put("ref", ref)
                     .put("source", source)
                     // Число, а не рядок: сервер бере спершу те, що сказав клієнт, і лише
-                    // без нього виводить якість із роздачі за `ref`.
+                    // без нього виводить якість варіанта за `ref`.
                     .put("quality", quality)
                     .put("played_ms", playedMs)
                     .toString()
@@ -437,7 +437,7 @@ class WatchProgressRepository @Inject constructor(
         const val TIMEOUT_MS = 10_000
         const val LIMIT = 20
 
-        /** Той самий запас, що й у прогріві роздачі: жива віддає за 0.5–2 с. */
+        /** Той самий запас, що й у підготовці джерела: живе віддає за 0.5–2 с. */
         const val WAIT_S = 25
     }
 }

@@ -17,6 +17,9 @@
     <string name="fsmarthome_link_opened">Телефон відкрив сторінку — увійдіть у HA…</string>
     <string name="fsmarthome_link_done">Підключено ✓</string>
     <string name="fsmarthome_link_failed">Не вийшло: %1$s</string>
+    <string name="fsmarthome_google_home">Google Home</string>
+    <string name="fsmarthome_google_home_needs_gtv">Панель Google Home працює лише з увімкненим Google TV: вона бере з нього акаунт. Увімкніть Google TV у налаштуваннях застосунків.</string>
+    <string name="fsmarthome_google_home_unavailable">Панель Google Home недоступна на цьому пристрої.</string>
     <string name="fsmarthome_voice">Голосом</string>
     <string name="fsmarthome_voice_prompt">Скажіть команду для дому</string>
     <string name="fsmarthome_connecting">Підключаюся…</string>
@@ -31,4 +34,14 @@
     <string name="fsmarthome_reading_air">повітря</string>
     <string name="fsmarthome_reading_humidity">вологість</string>
     <string name="fsmarthome_unit_ugm3">мкг/м³</string>
+    <string name="fsmarthome_tv">Телевізор</string>
+    <string name="fsmarthome_tv_woken">Телевізор увімкнено й перемкнено на приставку</string>
+    <string name="fsmarthome_tv_failed">Немає доступу до телевізора (налагодження ADB) — нічого не надіслано</string>
+    <string name="fsmarthome_tv_devices">На HDMI: %1$s</string>
+    <string name="fsmarthome_tv_device_tv">телевізор</string>
+    <string name="fsmarthome_tv_device_audio">аудіосистема</string>
+    <string name="fsmarthome_tv_wake">Увімкнути ТВ і перемкнути на приставку</string>
+    <string name="fsmarthome_tv_volume_on">Гучність пульта: через HDMI-CEC ✓</string>
+    <string name="fsmarthome_tv_volume_off">Гучність пульта: фіксована (OK — через HDMI-CEC)</string>
+    <string name="fsmarthome_tv_volume_note">Кнопки гучності пульта приставки керують телевізором чи саундбаром через HDMI-CEC.</string>
 </resources>

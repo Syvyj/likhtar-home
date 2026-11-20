@@ -1,5 +1,10 @@
 package com.likhtar.home.feature.cinema
 
+import com.likhtar.home.core.designsystem.RailRestore
+import com.likhtar.home.core.designsystem.leave
+import com.likhtar.home.core.designsystem.returnPoint
+import com.likhtar.home.core.designsystem.ScrollRailTo
+
 import androidx.compose.foundation.layout.Arrangement
 import com.likhtar.home.core.designsystem.LikhtarColors
 import androidx.compose.foundation.layout.fillMaxSize
@@ -74,6 +79,8 @@ internal fun TileRail(
                     title = tile.title,
                     subtitle = tile.subtitle,
                     brand = tile.brand,
+                    packageName = com.likhtar.home.core.model.StreamingService.entries
+                        .firstOrNull { it.key == tile.key }?.packages?.firstOrNull(),
                     onClick = tileClick,
                     modifier = tileModifier,
                 )

@@ -55,6 +55,17 @@ import com.likhtar.home.core.designsystem.ProtoButton
 import com.likhtar.home.core.designsystem.R as DsR
 import androidx.compose.ui.focus.FocusRequester
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.tv.material3.Icon
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.border
 
 /**
  * Шапка картки: постер ліворуч, усе про фільм праворуч.
@@ -95,6 +106,8 @@ internal fun PosterHead(
     quality: String = "",
     /** Наступна серія, що визирає з другої сцени: кадр і підпис; `null` — без неї. */
     peekEpisode: Pair<String?, String>? = null,
+    /** Дотик по вкладці, що визирає знизу: відкрити другу сцену з нею (на пульті це ↓). */
+    onPeekTab: ((TitleTab) -> Unit)? = null,
     /** «З медіатеки» — є свій файл (DLNA/SMB); `null` — кнопки немає. */
     localLabel: String? = null,
     onLocal: () -> Unit = {},
@@ -130,38 +143,48 @@ internal fun PosterHead(
                 alignment = Alignment.CenterStart,
             )
 
-            // .chips: порядок лаунчера — озвучка, якість, рік, тип, вік, оцінка, статус, жанри.
+            // Мета одним рядком, як в Apple TV: рік · тип · тривалість · жанри · оцінка · статус.
+            val series = item.kind == TitleKind.TV
+            val runtime = if (details.runtimeMinutes > 0) {
+                val hours = details.runtimeMinutes / 60
+                val mins = details.runtimeMinutes % 60
+                if (hours > 0) stringResource(R.string.cinema_hours_minutes_short, hours, mins) else stringResource(R.string.cinema_minutes_short, mins)
+            } else ""
+            val status = when (details.scan?.status) {
+                "Returning Series" -> stringResource(R.string.cinema_status_returning)
+                "Ended" -> stringResource(R.string.cinema_status_ended)
+                "Canceled" -> stringResource(R.string.cinema_status_canceled)
+                else -> ""
+            }
+            Text(
+                text = listOf(
+                    item.year,
+                    kindLabel ?: stringResource(if (series) R.string.cinema_kind_series else R.string.cinema_kind_movie),
+                    runtime,
+                    details.genres.take(2).joinToString(", "),
+                    if (item.rating > 0) "★ " + String.format(java.util.Locale.US, "%.1f", item.rating) else "",
+                    status,
+                ).filter { it.isNotBlank() }.joinToString("  ·  "),
+                style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium, fontSize = 14.5.sp),
+                color = LikhtarColors.WarmStone,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.width(460.dp),
+            )
+            // Плашки — монохромні контури (вік, якість), українське — бурштином: озвучка видна одразу.
             FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-                modifier = Modifier.width(400.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.width(460.dp),
             ) {
+                com.likhtar.home.core.designsystem.OutlineBadge(details.ageRating)
+                quality.split("·").map { it.trim() }.filter { it.isNotEmpty() }.forEach { com.likhtar.home.core.designsystem.OutlineBadge(it) }
                 if (uaAudio) {
                     ProtoUaChip(
                         label = listOf("UA").plus(uaProof.takeIf { voices.isEmpty() }.orEmpty().map { it.uppercase() }).joinToString(" · "),
                     )
                 }
-                voices.forEach { ProtoChip(it) }
-                quality.takeIf { it.isNotEmpty() }?.let { ProtoChip(it, mono = true) }
-                ProtoChip(item.year, mono = true)
-                val series = item.kind == TitleKind.TV
-                ProtoChip(
-                    kindLabel ?: stringResource(if (series) R.string.cinema_kind_series else R.string.cinema_kind_movie),
-                    icon = if (series) DsR.drawable.ic_solar_tv else DsR.drawable.ic_solar_clapper,
-                )
-                if (details.runtimeMinutes > 0) {
-                    val hours = details.runtimeMinutes / 60
-                    val mins = details.runtimeMinutes % 60
-                    ProtoChip(if (hours > 0) stringResource(R.string.cinema_hours_minutes_short, hours, mins) else stringResource(R.string.cinema_minutes_short, mins), mono = true)
-                }
-                ProtoChip(details.ageRating, mono = true)
-                if (item.rating > 0) ProtoChip(String.format(java.util.Locale.US, "%.1f", item.rating), mono = true, icon = DsR.drawable.ic_solar_star)
-                when (details.scan?.status) {
-                    "Returning Series" -> ProtoChip(stringResource(R.string.cinema_status_returning), dot = true)
-                    "Ended" -> ProtoChip(stringResource(R.string.cinema_status_ended), dot = true)
-                    "Canceled" -> ProtoChip(stringResource(R.string.cinema_status_canceled), dot = true)
-                }
-                details.genres.take(3).forEach { ProtoChip(it) }
+                voices.forEach { com.likhtar.home.core.designsystem.OutlineBadge(it, amber = true) }
             }
 
             // .lead: 28 px / 1.42, білий з тінню, до 760 px.
@@ -183,8 +206,11 @@ internal fun PosterHead(
                 .sortedBy { it.kind.ordinal }
                 .distinctBy { it.launch?.packageName ?: it.label }
 
-            // .actions: gap 16 px, margin-top 8 px; кнопки — .btn (76 px, поле 36, 26 px).
-            HeroActions(narrow = 400.dp, gap = 8.dp, modifier = Modifier.padding(top = 4.dp)) {
+            // Дії як в Apple TV: одна велика головна кнопка, решта — круглі значки з підписом у фокусі;
+            // сервіси — рядком «Також у …» під ними (коли є своя головна дія).
+            val hasPlay = TitleActions.PLAY in actionsOrder
+            var roundHint by remember { mutableStateOf<String?>(null) }
+            HeroActions(narrow = 460.dp, gap = 12.dp, modifier = Modifier.padding(top = 6.dp)) {
                 // Початковий фокус — на першу кнопку, яка справді є: у публічній збірці «Дивитись»
                 // немає, і сторінка стояла зовсім без фокуса — пульт нічого не робив.
                 var firstTaken = false
@@ -202,15 +228,19 @@ internal fun PosterHead(
                                 onClick = onPlay,
                                 onLongClick = onPick,
                                 modifier = first(),
-                                // .btn.main img: знак Ліхтаря 40 px.
-                                leading = { focused -> LikhtarIcons.Lantern(size = 20.dp, onLight = focused) },
+                                height = 48.dp,
+                                padding = 24.dp,
+                                fontSize = 16.5.sp,
+                                bold = true,
+                                // .btn.main img: знак Ліхтаря.
+                                leading = { focused -> LikhtarIcons.Lantern(size = 22.dp, onLight = focused) },
                             )
                             if (localLabel != null) {
                                 ProtoButton(label = localLabel, onClick = onLocal, icon = DsR.drawable.ic_solar_folder)
                             }
                         }
 
-                        TitleActions.SERVICES -> services.forEach { option ->
+                        TitleActions.SERVICES -> if (!hasPlay) services.forEach { option ->
                             val serviceName = option.service.ifBlank { option.label }
                             val brand = StreamingBrand.fromTitle(serviceName)
                             ProtoButton(
@@ -231,24 +261,56 @@ internal fun PosterHead(
                         TitleActions.SOURCES -> Unit
 
                         TitleActions.WATCHLIST -> {
-                            ProtoButton(
-                                // Галочку й плюс малює значок — зі ✓/＋ у самому підписі вони двоїлись.
-                                label = stringResource(if (inWatchlist) R.string.cinema_in_watchlist else R.string.cinema_add_to_watchlist).removePrefix("✓").removePrefix("＋").trim(),
+                            val listLabel = stringResource(if (inWatchlist) R.string.cinema_in_watchlist else R.string.cinema_add_to_watchlist).removePrefix("✓").removePrefix("＋").trim()
+                            RoundAction(
+                                label = listLabel,
                                 onClick = onWatchlist,
+                                onHint = { roundHint = it },
                                 modifier = first(),
-                                icon = if (inWatchlist) DsR.drawable.ic_solar_check_read else DsR.drawable.ic_solar_add_circle,
-                            )
-                            if (uaWaitLabel != null) ProtoButton(label = uaWaitLabel, onClick = onUaWait, icon = DsR.drawable.ic_solar_bell)
-                            if (mark != null) ProtoButton(
-                                label = mark.second,
-                                onClick = onMark,
-                                leading = { focused ->
-                                    MarkGlyph(mark.first, if (focused) LikhtarColors.AmberOnPaper else LikhtarColors.Glow, size = 16.dp)
-                                },
-                            )
+                            ) { focused ->
+                                Icon(painterResource(if (inWatchlist) DsR.drawable.ic_solar_check_read else DsR.drawable.ic_solar_add_circle), null,
+                                    tint = if (focused) LikhtarColors.AmberOnPaper else LikhtarColors.Paper, modifier = Modifier.size(20.dp))
+                            }
+                            if (uaWaitLabel != null) RoundAction(label = uaWaitLabel, onClick = onUaWait, onHint = { roundHint = it }) { focused ->
+                                Icon(painterResource(DsR.drawable.ic_solar_bell), null,
+                                    tint = if (focused) LikhtarColors.AmberOnPaper else LikhtarColors.Paper, modifier = Modifier.size(20.dp))
+                            }
+                            if (mark != null) RoundAction(label = mark.second, onClick = onMark, onHint = { roundHint = it }) { focused ->
+                                MarkGlyph(mark.first, if (focused) LikhtarColors.AmberOnPaper else LikhtarColors.Paper, size = 20.dp)
+                            }
                         }
 
                         TitleActions.FRANCHISE -> Unit
+                    }
+                }
+            }
+            // Підпис круглої дії, на якій фокус: значок без слова на ТБ не читається.
+            Text(
+                text = roundHint.orEmpty(),
+                style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 13.sp),
+                color = LikhtarColors.WarmStone,
+                maxLines = 1,
+            )
+            if (hasPlay && services.isNotEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.cinema_also_on), style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontSize = 13.sp), color = LikhtarColors.WarmMuted)
+                    services.forEach { option ->
+                        val serviceName = option.service.ifBlank { option.label }
+                        ProtoButton(
+                            label = StreamingBrand.fromTitle(serviceName)?.title ?: serviceName,
+                            onClick = { onOpenElsewhere(option) },
+                            enabled = option.kind != WatchOption.OptionKind.INFO,
+                            icon = null,
+                            height = 32.dp,
+                            padding = 14.dp,
+                            fontSize = 13.sp,
+                            bold = true,
+                            trailing = when (option.audio) {
+                                "uk" -> { { VoiceBadge() } }
+                                "subs" -> { { QualityBadge(stringResource(R.string.cinema_badge_subs)) } }
+                                else -> null
+                            },
+                        )
                     }
                 }
             }
@@ -268,6 +330,7 @@ internal fun PosterHead(
                 tabs = titleTabs(details),
                 active = titleTabs(details).firstOrNull(),
                 modifier = Modifier.offset(x = (-11).dp),
+                onTap = onPeekTab,
             )
             Box(Modifier.fillMaxWidth().height(1.dp).background(LikhtarColors.Paper.copy(alpha = 0.2f)))
             peekEpisode?.let { (still, title) ->
@@ -404,3 +467,31 @@ private fun HeroActions(narrow: Dp, gap: Dp, modifier: Modifier = Modifier, cont
 
 /** Скільки знизу займає друга сцена, що визирає (вкладки й лінія): шапка живе над нею. */
 private val HeroTabsPeek = 80.dp
+
+/** Кругла дія сторінки тайтлу (tvOS): значок у колі; підпис віддає наверх у фокусі ([onHint]). */
+@Composable
+internal fun RoundAction(
+    label: String,
+    onClick: () -> Unit,
+    onHint: (String?) -> Unit,
+    modifier: Modifier = Modifier,
+    icon: @Composable (focused: Boolean) -> Unit,
+) {
+    FocusableSurface(
+        onClick = onClick,
+        modifier = modifier
+            .size(48.dp)
+            .semantics { contentDescription = label }
+            .onFocusChanged { if (it.isFocused) onHint(label) else onHint(null) },
+        shape = CircleShape,
+        background = LikhtarColors.Surface.copy(alpha = 0.85f),
+        focusedBackground = LikhtarColors.Paper,
+        // Контур — щоб коло читалось і на темному кадрі, не лише значок у порожнечі.
+        borderColor = LikhtarColors.PillBorderHighContrast,
+        focusedScale = 1.08f,
+        instantFill = true,
+    ) { focused ->
+        Box(Modifier.align(Alignment.Center)) { icon(focused) }
+    }
+}
+

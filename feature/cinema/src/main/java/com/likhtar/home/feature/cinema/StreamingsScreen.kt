@@ -70,7 +70,7 @@ fun StreamingsScreen(
             .cachedScrim(dim = Color.Transparent) { listOf(ListingBackground) },
     )
 
-    val res = LocalContext.current.resources
+    val res = androidx.compose.ui.platform.LocalResources.current
     val streamingsTitle = stringResource(R.string.cinema_streamings)
     val channelsTitle = stringResource(R.string.cinema_tv_channels)
     val myStudiosTitle = stringResource(R.string.cinema_my_studios)

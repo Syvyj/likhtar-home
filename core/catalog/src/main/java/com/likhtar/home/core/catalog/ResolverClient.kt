@@ -29,7 +29,7 @@ data class ResolvedOption(
     val deeplink: String,
     /** `FLATRATE`, `RENT`, `BUY`, `ADS`, `FREE`. Порожньо для megogo та sweet.tv. */
     val monetization: String = "",
-    /** `official`, `own`, `torrent` — група від сервера. */
+    /** Група від сервера: `official` — офіційні сервіси, решта — джерела збірки. */
     val group: String = "official",
     /** Що на цьому сервісі українською: `uk` | `subs` | порожньо — не знаємо. */
     val audio: String = "",
@@ -56,9 +56,8 @@ data class ResolvedOption(
  * claim'ить жоден застосунок, крім вбудованого браузера sweet.tv, тож веб-адреса megogo
  * виглядала б робочою й вела на сайт.
  *
- * Рядки груп `own` і `torrent` тут відкидаються: у них немає адреси для відтворення, лише
- * `ref` (сторінка сайту або хеш роздачі). Прямі потоки й далі готує [LikhtarStreams] — саме
- * він знає про прогрів роздачі й плейлисти серій.
+ * Рядки без адреси для відтворення тут відкидаються: у них лише `ref` для сервера. Прямі
+ * потоки готує [LikhtarStreams] — саме він знає про підготовку джерела й плейлисти серій.
  */
 /**
  * Іменовані студії озвучки з тієї самої відповіді.
@@ -73,7 +72,7 @@ internal fun parseDubStudios(body: String): List<String> {
     for (index in 0 until array.length()) {
         val raw = array.optJSONObject(index) ?: continue
         if (raw.optString("group") != "dub") continue
-        // Підпис торента має вигляд «DniproFilm · 1080p» — на кнопці потрібна лише студія.
+        // Підпис має вигляд «DniproFilm · 1080p» — на кнопці потрібна лише студія.
         val label = raw.optString("label").substringBefore(" ·").trim()
         if (label.isNotBlank()) out += label
     }
@@ -122,7 +121,7 @@ internal fun parseWatch(body: String): List<ResolvedOption> {
  * сервер відповісти не може: що з цього відкриється **на цьому** пристрої.
  *
  * Порожня адреса означає «сервер не налаштований» — сторінка фільму просто лишається з
- * тими варіантами, які лаунчер знає сам (рядок TMDB).
+ * тими варіантами, які лаунчер знає сам (рядок TMDB і застосунки збірки).
  */
 /**
  * Що сервер знає про тайтл, окремо від того, що знайшов.
@@ -206,7 +205,7 @@ class ResolverClient @Inject constructor(
             // сервер шукав би фільм із номером серіала.
             append("&kind=").append(if (item.kind == TitleKind.TV) "tv" else "movie")
             append("&country=").append(country)
-            // Збірка для магазину — лише офіційні сервіси: без сайтів і роздач.
+            // Публічна збірка — лише офіційні сервіси.
             if (com.likhtar.home.core.model.Distribution.store) append("&groups=official")
             // Для тайтлів поза каталогом сервера це єдина назва, за якою він може спитати
             // JustWatch — і заразом те, що змушує його перевірити тайтл негайно, не чекаючи
@@ -257,7 +256,7 @@ class ResolverClient @Inject constructor(
         val understood = json.optJSONArray("countries")
             ?.let { list -> (0 until list.length()).joinToString(",", transform = list::optString) }
         val counts = json.optJSONObject("counts")
-            ?.let { c -> "офіційних ${c.optInt("official")}, наших ${c.optInt("own")}, торентів ${c.optInt("torrent")}" }
+            ?.let { c -> c.keys().asSequence().joinToString(", ") { k -> "$k ${c.optInt(k)}" } }
         return "просили $asked, сервер зрозумів ${understood ?: "?"}; ${counts ?: "без counts"}"
     }
 

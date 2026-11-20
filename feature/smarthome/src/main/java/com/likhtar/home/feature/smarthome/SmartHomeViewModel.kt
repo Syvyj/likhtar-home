@@ -34,7 +34,40 @@ class SmartHomeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: SmartHomeRepository,
     settingsRepository: SettingsRepository,
+    private val cec: com.likhtar.home.core.data.TvCec,
 ) : ViewModel() {
+
+    /**
+     * Телевізор через HDMI-CEC (lounge): `null` — ADB телевізора недоступний чи CEC вимкнено, тоді
+     * кнопки «Телевізор» немає зовсім. Читаємо фоном: ADB — мережа.
+     */
+    val tv = MutableStateFlow<com.likhtar.home.core.data.CecState?>(null)
+
+    init {
+        refreshTv()
+    }
+
+    private fun refreshTv() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            tv.value = cec.state()?.takeIf { it.enabled && it.devices.isNotEmpty() }
+        }
+    }
+
+    /** Увімкнути ТВ і перемкнути на приставку. */
+    fun wakeTv() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            message.value = context.getString(if (cec.wakeTv()) R.string.fsmarthome_tv_woken else R.string.fsmarthome_tv_failed)
+        }
+    }
+
+    /** Гучність пульта приставки — через CEC на ТВ/аудіосистему чи ні. */
+    fun toggleTvVolume() {
+        val on = tv.value?.volumeControl != true
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            if (!cec.setVolumeControl(on)) message.value = context.getString(R.string.fsmarthome_tv_failed)
+            refreshTv()
+        }
+    }
 
     private val message = MutableStateFlow<String?>(null)
 
@@ -113,6 +146,14 @@ class SmartHomeViewModel @Inject constructor(
 
     fun onVoiceUnavailable() {
         message.value = context.getString(R.string.fsmarthome_voice_unavailable)
+    }
+
+    fun onGoogleHomeNeedsGoogleTv() {
+        message.value = context.getString(R.string.fsmarthome_google_home_needs_gtv)
+    }
+
+    fun onGoogleHomeUnavailable() {
+        message.value = context.getString(R.string.fsmarthome_google_home_unavailable)
     }
 
     fun testConnection() {

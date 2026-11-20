@@ -1,5 +1,6 @@
 plugins {
     id("likhtar.android.library.compose")
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -22,6 +23,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.androidx.navigation.compose)
 
     testImplementation(libs.junit)
 }

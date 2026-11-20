@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 data class CatalogListUiState(
     val loading: Boolean = true,
@@ -52,6 +54,7 @@ class CatalogListViewModel @Inject constructor(
     private val apps: com.likhtar.home.core.data.AppsRepository,
     marks: com.likhtar.home.core.catalog.TitleMarksRepository,
     private val subscriptions: com.likhtar.home.core.catalog.StudioSubscriptions,
+    private val watchlist: com.likhtar.home.core.catalog.WatchlistRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -95,7 +98,13 @@ class CatalogListViewModel @Inject constructor(
     }
 
     private suspend fun load(kind: CatalogListingKind) {
-        val listing = applyUaRule(catalog.listing(kind, key))
+        val loaded = applyUaRule(catalog.listing(kind, key))
+        loadShowcase(loaded)
+        // Тайтли вітрини в першому ряду не повторюємо: інакше та сама картка стоїть і вгорі, і першою під нею.
+        val shownIds = showcaseItems.value.map { it.id }.toSet()
+        val listing = if (shownIds.isEmpty()) loaded else loaded.copy(
+            rows = loaded.rows.mapIndexed { i, row -> if (i == 0) row.copy(items = row.items.filterNot { it.id in shownIds }) else row },
+        )
         // Саме `update`, а не присвоєння нового стану.
         //
         // `state.value = CatalogListUiState(...)` будує стан із нуля й затирає
@@ -111,6 +120,41 @@ class CatalogListViewModel @Inject constructor(
                 focused = it.focused ?: listing.rows.firstOrNull()?.items?.firstOrNull(),
             )
         }
+    }
+
+    /** Сторінка стрімінгу (Netflix, Disney+…) — шапка-вітрина з «Дивитись у …»; інакше `null`. */
+    val service: com.likhtar.home.core.model.StreamingService? by lazy {
+        com.likhtar.home.core.model.StreamingService.entries.firstOrNull { it.key != null && it.key == key }
+            ?.takeIf { kind == CatalogListingKind.STUDIO }
+    }
+
+    /** Франшиза чи хронологія: у шапці прогрес і «Далі». */
+    val progressHead: Boolean get() = kind == CatalogListingKind.FRANCHISE || kind == CatalogListingKind.CHRONOLOGY
+
+    /** Тайтли вітрини (до п'яти з першого ряду) з описом; у самому ряду їх уже не повторюємо. */
+    private val showcaseItems = MutableStateFlow<List<CatalogItem>>(emptyList())
+    val showcase: StateFlow<List<CatalogItem>> = showcaseItems.asStateFlow()
+
+    private fun loadShowcase(listing: CatalogListing) {
+        if (service == null || showcaseItems.value.isNotEmpty()) return
+        val pool = listing.rows.firstOrNull()?.items.orEmpty().filter { it.backdropPath != null }.take(5)
+        if (pool.isEmpty()) return
+        showcaseItems.value = pool
+        viewModelScope.launch { showcaseItems.value = runCatching { catalog.withOverview(pool) }.getOrDefault(pool) }
+    }
+
+    /** Що в «Моєму списку» — для круглої кнопки вітрини. */
+    val inList: kotlinx.coroutines.flow.StateFlow<Set<String>> = watchlist.items
+        .map { items -> items.map { it.id }.toSet() }
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    fun toggleList(item: CatalogItem) {
+        viewModelScope.launch { watchlist.toggle(item) }
+    }
+
+    /** Кругла «Відкрити Netflix»: сам застосунок сервісу, перший встановлений із його пакетів. */
+    fun openService() {
+        service?.packages?.firstOrNull { apps.launchPackage(it) }
     }
 
     fun toggleSubscription() {

@@ -39,9 +39,9 @@ class SystemTvSource @Inject constructor(
                 while (c.moveToNext()) add(Row(c.getLong(0), c.getString(1).orEmpty(), c.getString(2).orEmpty(), c.getString(3).orEmpty(), c.getString(4).orEmpty(), c.getString(5).orEmpty()))
             }
         }.orEmpty()
-        Log.i(TAG, "каналів у TvProvider: ${all.size}, за типом ${all.groupingBy { it.type }.eachCount()}, канали ${all.filter { it.type != TvContract.Channels.TYPE_PREVIEW }.map { "${it.name} (${it.input})" }}")
+        Log.i(TAG, "каналів у TvProvider: ${all.size}, за типом ${all.groupingBy { it.type }.eachCount()}, канали ${all.filter { it.type != PREVIEW_TYPE }.map { "${it.name} (${it.input})" }}")
         return all
-            .filter { it.type != TvContract.Channels.TYPE_PREVIEW && it.name.isNotBlank() && it.pkg != context.packageName }
+            .filter { it.type != PREVIEW_TYPE && it.name.isNotBlank() && it.pkg != context.packageName }
             .map { r ->
                 // Посилання застосунку на сам канал — першим: на Google TV системного ТВ-застосунку,
                 // що відкриває адресу каналу, немає (перевірено на приставці), лишився б застосунок
@@ -113,3 +113,6 @@ class SystemTvSource @Inject constructor(
         const val HOUR_MS = 60 * 60 * 1000L
     }
 }
+
+/** `TvContract.Channels.TYPE_PREVIEW` (API 26) — рядок, тож на 24–25 просто ні з чим не збігається. */
+private const val PREVIEW_TYPE = "TYPE_PREVIEW"

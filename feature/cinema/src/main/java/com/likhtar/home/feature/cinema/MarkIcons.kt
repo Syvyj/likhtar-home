@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 enum class MarkIcon { WATCHED, SKIP, HIDE, LIKE, OK, DISLIKE, CLEAR, BELL, BOOKMARK, PHONE }
 
 @Composable
-fun MarkGlyph(icon: MarkIcon, tint: Color, size: Dp = 22.dp, modifier: Modifier = Modifier) {
+fun MarkGlyph(icon: MarkIcon, tint: Color, modifier: Modifier = Modifier, size: Dp = 22.dp) {
     Canvas(modifier.size(size)) {
         val u = this.size.minDimension / 24f
         val stroke = Stroke(width = 2.1f * u, cap = StrokeCap.Round, join = StrokeJoin.Round)

@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
@@ -111,6 +112,14 @@ import com.likhtar.home.core.designsystem.LikhtarType
 import com.likhtar.home.core.designsystem.ProtoButton
 import com.likhtar.home.core.designsystem.SectionTitle
 import com.likhtar.home.core.designsystem.rememberInitialFocusRequester
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.Key
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.size
 
 /**
  * Сторінка добірки: уся курація сервісу, хронологія всесвіту або частини франшизи.
@@ -138,7 +147,20 @@ fun CatalogListScreen(
         item.opensListing?.let { (kind, key) -> onOpenListing(kind, key) } ?: onOpenTitle(item)
     }
 
+    val inList by viewModel.inList.collectAsStateWithLifecycle()
+    val showcaseItems by viewModel.showcase.collectAsStateWithLifecycle()
     ListingPage(
+        showcase = viewModel.service?.takeIf { showcaseItems.isNotEmpty() }?.let { svc ->
+            Showcase(
+                service = svc,
+                items = showcaseItems,
+                onOpen = open,
+                inList = inList,
+                onOpenService = viewModel::openService,
+                onToggleList = viewModel::toggleList,
+            )
+        },
+        progressHead = viewModel.progressHead,
         listing = listing,
         loading = state.loading,
         hideWatched = state.hideWatched,
@@ -183,11 +205,15 @@ internal fun ListingPage(
     onOpenAll: ((CatalogRow) -> Unit)? = null,
     /** Кнопка під заголовком (підписка на студію). */
     headerAction: (@Composable () -> Unit)? = null,
+    /** Сторінка стрімінгу: шапка-вітрина замість кадру з назвою. */
+    showcase: Showcase? = null,
+    /** Франшиза чи хронологія — у шапці «Переглянуто X з N» і «Далі». */
+    progressHead: Boolean = false,
 ) {
     CompositionLocalProvider(LocalLongOpen provides marks::open) {
-        ListingPageBody(listing, loading, hideWatched, watched, uaAudio, onItemFocused, open, onOpenAll, headerAction)
+        ListingPageBody(listing, loading, hideWatched, watched, uaAudio, onItemFocused, open, onOpenAll, headerAction, showcase, progressHead)
     }
-    RowMarkPanel(marks)
+    RowMarkPanel(marks, onOpen = open)
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -202,6 +228,8 @@ private fun ListingPageBody(
     open: (CatalogItem) -> Unit,
     onOpenAll: ((CatalogRow) -> Unit)?,
     headerAction: (@Composable () -> Unit)?,
+    showcase: Showcase? = null,
+    progressHead: Boolean = false,
 ) {
     // Пам'ять фокуса: Back з тайтла чи з «Відкрити всі» повертає на ту саму картку. Досі
     // сторінка просила першу картку, а список уже стояв прокручений — фокус губився.
@@ -209,9 +237,13 @@ private fun ListingPageBody(
     val restoreFocus = remember { FocusRequester() }
     val firstCardFocus = remember { FocusRequester() }
     val returning = remember { Snapshot.withoutReadObservation { lastFocus.value } != null }
+    // Вітрина стрімінгу: перший фокус — на «Дивитись у …», як на сторінці фільму.
+    val showcaseFocus = remember { FocusRequester() }
+    val hasShowcase = showcase != null && showcase.items.isNotEmpty()
     LaunchedEffect(listing.rows.isNotEmpty()) {
         if (listing.rows.isEmpty()) return@LaunchedEffect
         if (returning && restoreFocus.requestWithRetry()) return@LaunchedEffect
+        if (hasShowcase && showcaseFocus.requestWithRetry()) return@LaunchedEffect
         firstCardFocus.requestWithRetry()
     }
     val memory = remember { FocusMemory(lastFocus, restoreFocus) }
@@ -234,6 +266,18 @@ private fun ListingPageBody(
     var focusedItem by remember { mutableIntStateOf(-1) }
     LaunchedEffect(focusedItem, pinRows) {
         if (pinRows && focusedItem >= 0) listState.centerItem(focusedItem)
+    }
+    // ↓ з вітрини в перший ряд — вітрина їде вгору цілком, ряд стає на екран («у рядах»).
+    LaunchedEffect(focusedItem, hasShowcase) {
+        if (hasShowcase && focusedItem == 1) listState.animateScrollToItem(1)
+    }
+    // Back з рядів стрімінгу — нагору, до вітрини (як ряди Кінозалу → герой); з вітрини — назад.
+    val backScope = rememberCoroutineScope()
+    androidx.activity.compose.BackHandler(enabled = hasShowcase && focusedItem > 0) {
+        backScope.launch {
+            listState.scrollToItem(0)
+            showcaseFocus.requestWithRetry()
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -267,7 +311,22 @@ private fun ListingPageBody(
                 bottom = 120.dp,
             ),
         ) {
-            if (listing.backdropPath != null) item(key = "head") { FranchiseHead(listing) }
+            if (hasShowcase && showcase != null) item(key = "head") {
+                StreamingShowcase(
+                    showcase = showcase,
+                    firstFocus = showcaseFocus,
+                    downFocus = firstCardFocus,
+                    modifier = Modifier.onFocusChanged { if (it.hasFocus) focusedItem = 0 },
+                )
+            } else if (listing.backdropPath != null) item(key = "head") {
+                FranchiseHead(
+                    listing = listing,
+                    watched = watched,
+                    onOpen = open,
+                    progress = progressHead,
+                    modifier = Modifier.onFocusChanged { if (it.hasFocus) focusedItem = 0 },
+                )
+            }
             // Поки назви ще немає — жодного заголовка: лише ліхтар по центру.
             else if (listing.title.isNotBlank() || !loading) item(key = "head") {
                 Column(Modifier.onFocusChanged { if (it.hasFocus) focusedItem = 0 }) {
@@ -621,8 +680,25 @@ internal val ListingBackground = Brush.verticalGradient(0f to LikhtarColors.Univ
  * Кадр прокручується разом із головою, а знизу тане в рівне тло сторінки.
  */
 @Composable
-private fun FranchiseHead(listing: CatalogListing) {
-    Box(modifier = Modifier.fullBleed().height(FranchiseHeadHeight)) {
+private fun FranchiseHead(
+    listing: CatalogListing,
+    watched: Set<String> = emptySet(),
+    onOpen: (CatalogItem) -> Unit = {},
+    /** Франшиза чи хронологія: «Переглянуто X з N» і «Далі». Жанр, мовник — лише назва. */
+    progress: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    // Частини — по всіх рядах сторінки (всесвіт має кілька рядів), без повторів.
+    val parts = listing.rows.flatMap { it.items }.distinctBy { it.id }
+        .takeIf { progress && listing.backdropPath != CatalogListing.NEUTRAL_BACKDROP && it.size > 1 }
+        .orEmpty()
+    val seen = parts.count { it.id in watched }
+    val next = parts.firstOrNull { it.id !in watched }
+    // Знак першого фільму на кадрі всього всесвіту — неправда (Поттер на кадрі «Фантастичних звірів»):
+    // для сторінки з кількома рядами — назва текстом.
+    val logo = listing.logoPath?.takeIf { listing.rows.size <= 1 }
+    val brand = StreamingBrand.fromTitle(listing.title)
+    Box(modifier = modifier.fullBleed().height(FranchiseHeadHeight)) {
         if (listing.backdropPath == CatalogListing.NEUTRAL_BACKDROP) {
             // Спільно-кіношний кадр — зал із кріслами, без жодного тайтлу (Commons, Author0612,
             // CC BY-SA 4.0; атрибуція в NOTICE.md).
@@ -637,42 +713,77 @@ private fun FranchiseHead(listing: CatalogListing) {
                 model = TmdbImages.backdrop(listing.backdropPath),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                // Від верху кадру: по центру шапка зрізала героям голови.
+                alignment = Alignment.TopCenter,
                 modifier = Modifier.fillMaxSize(),
             )
         }
         Box(modifier = Modifier.fillMaxSize().background(HeadFade))
-        val brand = StreamingBrand.fromTitle(listing.title)
-        if (listing.logoPath != null) {
-            AsyncImage(
-                model = TmdbImages.logo(listing.logoPath),
-                contentDescription = listing.title,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.align(Alignment.Center).height(120.dp).fillMaxWidth(0.45f),
-            )
-        } else if (brand != null) {
-            // Стрімінг — його wordmark фірмовим кольором, як на плитці, тільки великим.
-            Text(
-                text = brand.wordmark,
-                style = TextStyle(
-                    fontFamily = LikhtarType.DisplayFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = (brand.fontSize * 4).sp,
-                    shadow = Shadow(color = Color.Black.copy(alpha = 0.6f), offset = Offset(0f, 3f), blurRadius = 16f),
-                ),
-                color = brand.color,
-                modifier = Modifier.align(Alignment.Center),
-            )
-        } else {
-            Text(
-                text = listing.title.uppercase(),
-                style = TextStyle(fontFamily = LikhtarType.Poster, fontSize = 54.sp, letterSpacing = 1.sp),
-                color = LikhtarColors.TextPrimary,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                modifier = Modifier.align(Alignment.Center),
-            )
+        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to UniverseTone.copy(alpha = 0.85f), 0.45f to UniverseTone.copy(alpha = 0.35f), 0.7f to Color.Transparent)))
+        // Усе — однією колонкою ліворуч унизу, як у тайтлу й стрімінгу.
+        Column(
+            modifier = Modifier.align(Alignment.BottomStart).padding(start = LikhtarDimens.ScreenPadding, bottom = 24.dp).width(520.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            when {
+                logo != null -> AsyncImage(
+                    model = TmdbImages.logo(logo),
+                    contentDescription = listing.title,
+                    contentScale = ContentScale.Fit,
+                    alignment = Alignment.CenterStart,
+                    modifier = Modifier.height(110.dp).fillMaxWidth(0.9f),
+                )
+                brand != null -> Text(
+                    text = brand.wordmark,
+                    style = TextStyle(fontFamily = LikhtarType.DisplayFamily, fontWeight = FontWeight.Bold, fontSize = (brand.fontSize * 3).sp),
+                    color = brand.color,
+                )
+                else -> Text(
+                    text = listing.title.uppercase(),
+                    style = TextStyle(fontFamily = LikhtarType.Poster, fontSize = 48.sp, letterSpacing = 1.sp),
+                    color = LikhtarColors.TextPrimary,
+                    maxLines = 2,
+                )
+            }
+            if (parts.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.cinema_franchise_kicker, parts.size),
+                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, letterSpacing = 1.5.sp),
+                    color = LikhtarColors.Glow,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Доріжка видна й при нулі — не темне на темному.
+                    Box(Modifier.width(180.dp).height(5.dp).clip(RoundedCornerShape(3.dp)).background(LikhtarColors.BorderMuted)) {
+                        Box(Modifier.fillMaxWidth(seen.toFloat() / parts.size).fillMaxSize().background(LikhtarColors.Glow))
+                    }
+                    Text(
+                        text = stringResource(R.string.cinema_franchise_seen, seen, parts.size),
+                        style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 13.5.sp),
+                        color = LikhtarColors.TextPrimary,
+                    )
+                }
+                next?.let { item ->
+                    ProtoButton(
+                        // Коротко: повна назва робила кнопку на пів екрана.
+                        label = stringResource(R.string.cinema_franchise_next, shortTitle(item.title)),
+                        onClick = { onOpen(item) },
+                        height = 42.dp,
+                        padding = 20.dp,
+                        fontSize = 15.sp,
+                        bold = true,
+                    )
+                }
+            } else if (listing.subtitle.isNotBlank()) {
+                Text(listing.subtitle, style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 13.5.sp), color = LikhtarColors.TextPrimary, maxLines = 1)
+            }
         }
     }
+}
+
+/** Назва для кнопки «Далі: …» — до трьох слів, далі «…». */
+private fun shortTitle(title: String): String {
+    val words = title.split(' ').filter { it.isNotBlank() }
+    return if (words.size <= 3) title else words.take(3).joinToString(" ") + "…"
 }
 
 /**
@@ -708,7 +819,9 @@ fun TitleSpotlight(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(TitleSpotlightHeight)
+            // Не нижче за макет, але й не обрізає: логотип із назвою плашкою, мета, опис і кнопка
+            // з шрифтами 11,5 sp не вміщались у 230 dp, і кнопку зрізало навпіл.
+            .heightIn(min = TitleSpotlightHeight)
             .clip(RoundedCornerShape(12.dp))
             .background(LikhtarColors.Surface)
             .onFocusChanged { focused = it.hasFocus },
@@ -718,17 +831,17 @@ fun TitleSpotlight(
             contentDescription = null,
             contentScale = ContentScale.Crop,
             alignment = BiasAlignment(0f, -0.56f),
-            modifier = Modifier.fillMaxSize().graphicsLayer {
+            modifier = Modifier.matchParentSize().graphicsLayer {
                 scaleX = zoom
                 scaleY = zoom
             },
         )
-        Box(modifier = Modifier.fillMaxSize().background(SpotlightScrim))
+        Box(modifier = Modifier.matchParentSize().background(SpotlightScrim))
         // .in: 64 px від лівого краю, 52 px від низу, 760 px завширшки.
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 32.dp, bottom = 26.dp)
+                .padding(start = 32.dp, top = 22.dp, bottom = 26.dp)
                 .width(380.dp),
         ) {
             // .mark img: до 520×110 px; чужий знак — з назвою плашкою.
@@ -788,6 +901,7 @@ fun TitleSpotlight(
  * Широка секція Реаліті (.spot прототипу reality): панель 1728×440 px, кадр 1150 px праворуч
  * тане в --deep, ліворуч «Шоу · канал · рік», назва 60 px, опис у 3 рядки й «Відкрити».
  */
+@Suppress("ModifierParameter") // buttonModifier — модифікатор кнопки (фокус), не кореня
 @Composable
 private fun RealitySpot(
     item: CatalogItem,
@@ -824,7 +938,7 @@ private fun RealitySpot(
             val kind = kindLabel ?: stringResource(R.string.cinema_kind_documentary)
             Text(
                 listOf(kind, item.channel, item.year).filter(String::isNotBlank).joinToString(" · "),
-                style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.sp),
+                style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp),
                 color = LikhtarColors.TextDim,
                 maxLines = 1,
             )
@@ -1034,3 +1148,140 @@ private val SpotlightScrim = Brush.horizontalGradient(
 /** Фрази очікування добірки: що справді відбувається, без «завантажую». */
 @Composable
 internal fun collectionPhrases(): List<String> = stringArrayResource(R.array.cinema_collection_phrases).toList()
+
+
+/** Дії вітрини сторінки стрімінгу. */
+internal class Showcase(
+    val service: com.likhtar.home.core.model.StreamingService,
+    /** Тайтли вітрини (з описом); у першому ряду їх уже немає. */
+    val items: List<CatalogItem>,
+    /** Головна кнопка — сторінка тайтлу (там і вибір, де дивитись), а не одразу сервіс. */
+    val onOpen: (CatalogItem) -> Unit,
+    val inList: Set<String>,
+    val onOpenService: () -> Unit,
+    val onToggleList: (CatalogItem) -> Unit,
+)
+
+/**
+ * Шапка-вітрина сторінки стрімінгу (як канал в Apple TV): кадр тайтлу з «Нового» на весь екран,
+ * ліворуч знак сервісу, назва, мета й зачин; «Дивитись у …» відкриває сам тайтл у застосунку,
+ * круглі — «У список» і «Відкрити …». ←/→ з крайніх кнопок гортає до п'яти тайтлів.
+ */
+@Composable
+private fun androidx.compose.foundation.lazy.LazyItemScope.StreamingShowcase(
+    showcase: Showcase,
+    firstFocus: FocusRequester,
+    downFocus: FocusRequester,
+    modifier: Modifier = Modifier,
+) {
+    val pool = showcase.items
+    var index by rememberSaveable { mutableIntStateOf(0) }
+    val item = pool[index.mod(pool.size)]
+    val brand = StreamingBrand.fromTitle(showcase.service.title)
+    var hint by remember { mutableStateOf<String?>(null) }
+    Box(modifier = modifier.fullBleed().height(ShowcaseHeight)) {
+        AsyncImage(
+            model = TmdbImages.backdrop(item.backdropPath),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        // Тон сторінки (UniverseTone), а не тло лаунчера: інакше під кадром лишався видимий шов.
+        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to UniverseTone.copy(alpha = 0.96f), 0.36f to UniverseTone.copy(alpha = 0.8f), 0.68f to Color.Transparent)))
+        Box(Modifier.fillMaxSize().background(HeadFade))
+        Column(
+            modifier = Modifier.align(Alignment.BottomStart).padding(start = LikhtarDimens.ScreenPadding, bottom = 26.dp).width(480.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = brand?.wordmark ?: showcase.service.title,
+                    style = TextStyle(fontFamily = LikhtarType.DisplayFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp),
+                    color = brand?.color ?: LikhtarColors.TextPrimary,
+                )
+            }
+            TitleLogoArea(
+                logoPath = item.logoPath,
+                title = item.title,
+                height = 104.dp,
+                widthFraction = 0.9f,
+                modifier = Modifier.width(470.dp),
+                alignment = Alignment.CenterStart,
+            )
+            Text(
+                text = listOfNotNull(
+                    item.year.takeIf { it.isNotBlank() },
+                    stringResource(if (item.kind == TitleKind.TV) R.string.cinema_kind_series else R.string.cinema_kind_movie),
+                    item.rating.takeIf { it > 0 }?.let { "★ " + String.format(java.util.Locale.US, "%.1f", it) },
+                ).joinToString("  ·  "),
+                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Medium, fontSize = 14.5.sp),
+                color = LikhtarColors.WarmStone,
+            )
+            if (item.overview.isNotBlank()) Text(
+                text = leadSentences(item.overview),
+                style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 14.sp, lineHeight = 20.sp),
+                color = LikhtarColors.TextPrimary,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
+                ProtoButton(
+                    // «Netflix» уже є знаком над назвою — на кнопці його не повторюємо.
+                    label = stringResource(R.string.cinema_watch),
+                    onClick = { showcase.onOpen(item) },
+                    height = 48.dp,
+                    padding = 24.dp,
+                    fontSize = 16.5.sp,
+                    bold = true,
+                    modifier = Modifier
+                        .focusRequester(firstFocus)
+                        .focusProperties { down = downFocus }
+                        .onPreviewKeyEvent { e ->
+                            if (e.type == KeyEventType.KeyDown && e.key == Key.DirectionLeft && pool.size > 1) {
+                                index = (index - 1).mod(pool.size); true
+                            } else false
+                        },
+                )
+                val listed = item.id in showcase.inList
+                RoundAction(
+                    label = stringResource(if (listed) R.string.cinema_in_watchlist else R.string.cinema_add_to_watchlist).removePrefix("✓").removePrefix("＋").trim(),
+                    onClick = { showcase.onToggleList(item) },
+                    onHint = { hint = it },
+                    modifier = Modifier.focusProperties { down = downFocus },
+                ) { focused ->
+                    androidx.tv.material3.Icon(
+                        painterResource(if (listed) com.likhtar.home.core.designsystem.R.drawable.ic_solar_check_read else com.likhtar.home.core.designsystem.R.drawable.ic_solar_add_circle),
+                        null, tint = if (focused) LikhtarColors.AmberOnPaper else LikhtarColors.Paper, modifier = Modifier.size(20.dp),
+                    )
+                }
+                RoundAction(
+                    label = stringResource(R.string.cinema_open_app, showcase.service.title),
+                    onClick = showcase.onOpenService,
+                    onHint = { hint = it },
+                    modifier = Modifier.focusProperties { down = downFocus }.onPreviewKeyEvent { e ->
+                        if (e.type == KeyEventType.KeyDown && e.key == Key.DirectionRight && pool.size > 1) {
+                            index = (index + 1).mod(pool.size); true
+                        } else false
+                    },
+                ) { focused ->
+                    androidx.tv.material3.Icon(
+                        painterResource(com.likhtar.home.core.designsystem.R.drawable.ic_solar_play_circle),
+                        null, tint = if (focused) LikhtarColors.AmberOnPaper else LikhtarColors.Paper, modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                pool.indices.forEach { i ->
+                    Box(Modifier.height(4.dp).width(if (i == index.mod(pool.size)) 20.dp else 4.dp).clip(RoundedCornerShape(2.dp))
+                        .background(if (i == index.mod(pool.size)) LikhtarColors.Paper else LikhtarColors.Paper.copy(alpha = 0.4f)))
+                }
+                Text(hint.orEmpty(), style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 13.sp), color = LikhtarColors.WarmStone, modifier = Modifier.padding(start = 10.dp))
+            }
+        }
+    }
+}
+
+private const val SHOWCASE_SIZE = 5
+
+/** Вітрина — майже весь екран: знизу визирає лише перший ряд. */
+private val ShowcaseHeight = 430.dp

@@ -17,6 +17,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeoutOrNull
+import androidx.core.net.toUri
 
 /**
  * Пошук матеріалу у **встановлених** застосунках через стандартний контракт Android TV.
@@ -79,8 +80,8 @@ class InstalledAppSearch @Inject constructor(
     private fun tmdbCards(item: CatalogItem): List<WatchOption> {
         if (item.tmdbId <= 0 || item.opens.isNotBlank()) return emptyList()
         val manager = context.packageManager
-        val link = Uri.parse("https://www.themoviedb.org/${item.kind.tmdbPath}/${item.tmdbId}")
-        val browsers = manager.queryIntentActivities(Intent(Intent.ACTION_VIEW, Uri.parse(ANY_SITE)), 0)
+        val link = "https://www.themoviedb.org/${item.kind.tmdbPath}/${item.tmdbId}".toUri()
+        val browsers = manager.queryIntentActivities(Intent(Intent.ACTION_VIEW, ANY_SITE.toUri()), 0)
             .map { it.activityInfo.packageName }.toSet()
         return manager.queryIntentActivities(Intent(Intent.ACTION_VIEW, link).addCategory(Intent.CATEGORY_BROWSABLE), 0)
             .asSequence()
@@ -142,7 +143,7 @@ class InstalledAppSearch @Inject constructor(
                 // Плеєри (Nova, ViMu) мають пошук, але лише по своїх файлах — фільму там немає.
                 // Пізнаємо їх за `video/*`: жоден застосунок-джерело файли не відкриває.
                 tvAppsCache -= context.packageManager
-                    .queryIntentActivities(Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse("file:///x.mkv"), "video/*"), 0)
+                    .queryIntentActivities(Intent(Intent.ACTION_VIEW).setDataAndType("file:///x.mkv".toUri(), "video/*"), 0)
                     .map { it.activityInfo.packageName }.toSet()
                 tvAppsAt = now
             }
@@ -251,7 +252,7 @@ class InstalledAppSearch @Inject constructor(
 
         val intent = Intent(action).apply {
             setPackage(packageName)
-            setData(Uri.parse(target))
+            setData(target.toUri())
             cursor.string(SearchManager.SUGGEST_COLUMN_INTENT_EXTRA_DATA)?.let {
                 putExtra(SearchManager.EXTRA_DATA_KEY, it)
             }

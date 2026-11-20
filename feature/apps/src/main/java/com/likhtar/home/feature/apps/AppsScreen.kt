@@ -1,7 +1,13 @@
 package com.likhtar.home.feature.apps
+import com.likhtar.home.core.designsystem.CloudColors
 
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.likhtar.home.core.designsystem.tryFocus
+import com.likhtar.home.core.designsystem.RailRestore
+import com.likhtar.home.core.designsystem.ScrollRailTo
+import com.likhtar.home.core.designsystem.leave
+import com.likhtar.home.core.designsystem.rememberRailRestore
+import com.likhtar.home.core.designsystem.returnPoint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxHeight
 import com.likhtar.home.core.designsystem.BrandColors
@@ -18,6 +24,7 @@ import com.likhtar.home.core.designsystem.FocusRing
 import com.likhtar.home.core.designsystem.FocusableSurface
 import com.likhtar.home.core.designsystem.focusGlow
 import com.likhtar.home.core.data.RetroGame
+import com.likhtar.home.core.data.cloud.toCloudGame
 import com.likhtar.home.core.model.AppCategory
 import com.likhtar.home.core.model.LauncherApp
 import androidx.compose.ui.res.pluralStringResource
@@ -66,8 +73,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -93,6 +103,7 @@ import com.likhtar.home.core.designsystem.onWallpaper
 import com.likhtar.home.core.designsystem.focusDirections
 import com.likhtar.home.core.designsystem.PinPadDialog
 import com.likhtar.home.core.designsystem.rememberInitialFocusRequester
+import com.likhtar.home.core.designsystem.requestWithRetry
 import com.likhtar.home.core.designsystem.rememberAppArtwork
 import com.likhtar.home.core.model.LikhtarSection
 import com.likhtar.home.core.model.LauncherAppWithState
@@ -112,18 +123,45 @@ import kotlinx.coroutines.withContext
 fun AppsScreen(
     onSelectSection: (LikhtarSection) -> Unit,
     games: Boolean = false,
+    /** Хмарні ігри: сторінка каталогу ([search] — одразу з пошуком) і картка гри. */
+    onOpenCloudCatalog: (search: Boolean, mine: Boolean) -> Unit = { _, _ -> },
+    onOpenCloudGame: (String) -> Unit = {},
+    /** «Які сервіси в тебе є?»: [first] — перший запуск. */
+    onOpenCloudSetup: (first: Boolean) -> Unit = {},
+    /** «Відкрити всі» з ряду приставки. */
+    onOpenRetroSystem: (String) -> Unit = {},
     viewModel: AppsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val hasApps = if (games) state.apps.any { it.isGame } || state.roms.isNotEmpty() else state.apps.isNotEmpty()
+    // Хмарний каталог лише в «Іграх»: у «Застосунках» він не потрібен і не вантажиться.
+    val cloudModel: com.likhtar.home.feature.apps.cloud.CloudGamesViewModel? = if (games) hiltViewModel() else null
+    // Хмарні ігри разом з образами з теки ROMs — у тих самих рядах.
+    val cloudAll = cloudModel?.games?.collectAsStateWithLifecycle()?.value.orEmpty()
+    val library = cloudModel?.library?.collectAsStateWithLifecycle()?.value ?: com.likhtar.home.core.data.cloud.CloudLibrary()
+    // Видно лише ігри підключених сервісів («Мої сервіси»).
+    val cloud = remember(cloudAll, library.services) { cloudAll.filter(library::visible) }
+    var cloudFocus by remember { mutableStateOf<com.likhtar.home.feature.apps.cloud.CloudHomeFocus>(com.likhtar.home.feature.apps.cloud.CloudHomeFocus.Actions) }
+    var cloudMenu by remember { mutableStateOf<com.likhtar.home.core.data.cloud.CloudGame?>(null) }
+    // Перший запуск хмарних ігор — «Які сервіси в тебе є?» (макет: #setup).
+    LaunchedEffect(cloudAll.any { it.rom == null }, library.setupDone) { if (cloudAll.any { it.rom == null } && !library.setupDone) onOpenCloudSetup(true) }
+    val hasApps = if (games) state.apps.any { it.isGame } || state.roms.isNotEmpty() || cloud.isNotEmpty() else state.apps.isNotEmpty()
     // Образи перечитуємо щоразу, як розділ на екрані: щойно скопійовані й дозвіл, даний у системі.
     if (games) androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
         viewModel.refreshRoms()
         onPauseOrDispose { }
     }
     val context = LocalContext.current
-    val menuFocusRequester = rememberInitialFocusRequester(!hasApps)
-    val firstAppFocusRequester = rememberInitialFocusRequester(hasApps)
+    // Кожен — лише у своєму випадку: зі спільним ключем на зміні (хмарний каталог дочитався пізніше)
+    // перезапускались обидва, і меню перехоплювало фокус у першого ряду.
+    val menuFocusRequester = remember { FocusRequester() }
+    val firstAppFocusRequester = remember { FocusRequester() }
+    // І коли дочитався хмарний каталог: ряди зсуваються («Граю зараз» стає першим), фокус з ретро-ряду
+    // губився й падав у меню (холодний старт).
+    // Повернення з картки гри, «Відкрити всі» тощо — на ту саму картку, спільним RailRestore, як у
+    // Кінозалі (його ставить AppsPage); тоді перший ряд не просимо — він уже за краєм, і фокус падав у меню.
+    val returnTile = rememberSaveable { mutableStateOf<String?>(null) }
+    val restore = rememberRailRestore(returnTile) { it != null }
+    LaunchedEffect(hasApps, cloud.isNotEmpty()) { if (!restore.pending) (if (hasApps) firstAppFocusRequester else menuFocusRequester).requestWithRetry() }
 
     Box(
         modifier = Modifier
@@ -158,6 +196,24 @@ fun AppsScreen(
                 )
             },
     ) {
+        // Тепле тло likhtar-apps-modern.html / likhtar-games-modern.html від самого верху під меню.
+        if (cloud.isNotEmpty()) {
+            Box(Modifier.fillMaxSize().background(LikhtarColors.Background))
+            com.likhtar.home.feature.apps.cloud.CloudHomeBackdrop((cloudFocus as? com.likhtar.home.feature.apps.cloud.CloudHomeFocus.Game)?.game)
+        } else {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(LikhtarColors.Background)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(if (games) LikhtarColors.HeroGlowGames else LikhtarColors.HeroGlowApps, Color.Transparent),
+                            center = androidx.compose.ui.geometry.Offset(1440f, 160f),
+                            radius = 780f,
+                        ),
+                    ),
+            )
+        }
         LikhtarScreenScaffold(
             section = if (games) LikhtarSection.GAMES else LikhtarSection.APPS,
             onSelectSection = onSelectSection,
@@ -179,8 +235,20 @@ fun AppsScreen(
                 onCloudClick = { cloud ->
                     viewModel.openCloud(cloud)?.let { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show() }
                 },
+                cloudGames = cloud,
+                cloudLibrary = library,
+                cloudFocus = cloudFocus,
+                onCloudFocus = { cloudFocus = it },
+                onCloudMenu = { cloudMenu = it },
+                onOpenCloudCatalog = onOpenCloudCatalog,
+                onOpenCloudGame = onOpenCloudGame,
+                onOpenCloudSetup = { onOpenCloudSetup(false) },
+                onOpenRetroSystem = onOpenRetroSystem,
+                restore = restore,
             )
         }
+
+        cloudMenu?.let { g -> if (cloudModel != null) com.likhtar.home.feature.apps.cloud.CloudGameMenu(g, cloudModel, onDismiss = { cloudMenu = null }) }
 
         state.selected?.takeIf { state.actionsOpen }?.let { entry ->
             ActionsDialog(
@@ -207,34 +275,23 @@ fun AppsScreen(
  * Заголовок займає весь рядок сітки (`span`), тому картки під ним лишаються рівно в тих
  * самих шести колонках — групи не ламають вертикальну навігацію.
  */
-/** Заголовок рядка: назва, тонка лінійка на всю ширину й лічильник праворуч. */
+/** Заголовок рядка в стилі likhtar-apps-modern.html: назва та тихий лічильник поруч. */
 @Composable
 private fun SectionHeader(title: String, count: Int, modifier: Modifier = Modifier) {
-    // .sec h3 прототипу: 26 px / 600 приглушено, лінія, «N шт.» моно 20 px.
     Row(
-        modifier = modifier.fillMaxWidth().padding(bottom = 6.dp),
+        modifier = modifier.fillMaxWidth().padding(bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(9.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
             text = title,
-            style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
-            color = SectionTitleInk,
-        )
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(1.dp)
-                .background(
-                    androidx.compose.ui.graphics.Brush.horizontalGradient(
-                        listOf(Color.White.copy(alpha = 0.16f), Color.White.copy(alpha = 0f)),
-                    ),
-                ),
+            style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 16.sp),
+            color = LikhtarColors.GlassActive,
         )
         Text(
-            text = pluralStringResource(R.plurals.apps_count, count, count),
-            style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 10.sp),
-            color = SectionCountInk,
+            text = count.toString(),
+            style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Normal, fontSize = 12.sp),
+            color = LikhtarColors.WarmMuted,
         )
     }
 }
@@ -258,7 +315,21 @@ private fun AppsPage(
     onGameClick: (RetroGame) -> Unit = {},
     onFileAccess: () -> Unit = {},
     onCloudClick: (CloudGame) -> Unit = {},
+    cloudGames: List<com.likhtar.home.core.data.cloud.CloudGame> = emptyList(),
+    cloudLibrary: com.likhtar.home.core.data.cloud.CloudLibrary = com.likhtar.home.core.data.cloud.CloudLibrary(),
+    cloudFocus: com.likhtar.home.feature.apps.cloud.CloudHomeFocus = com.likhtar.home.feature.apps.cloud.CloudHomeFocus.Actions,
+    onCloudFocus: (com.likhtar.home.feature.apps.cloud.CloudHomeFocus) -> Unit = {},
+    onCloudMenu: (com.likhtar.home.core.data.cloud.CloudGame) -> Unit = {},
+    onOpenCloudCatalog: (Boolean, Boolean) -> Unit = { _, _ -> },
+    onOpenCloudGame: (String) -> Unit = {},
+    onOpenCloudSetup: () -> Unit = {},
+    onOpenRetroSystem: (String) -> Unit = {},
+    restore: RailRestore,
 ) {
+    val cloudMode = games && cloudGames.isNotEmpty()
+    val actionsFocus = remember { FocusRequester() }
+    var contentTop by remember { mutableStateOf(0.dp) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
     // «Усі застосунки»: той самий екран, але без груп — усе встановлене за абеткою (і приховане,
     // притемнене), рядами по шість. BACK — назад до груп.
     var showAll by rememberSaveable { mutableStateOf(false) }
@@ -267,13 +338,28 @@ private fun AppsPage(
     val rows = if (games) buildList {
         // Ігрова кімната, а не бібліотека: що грали — згори, далі хмара, образи за приставками,
         // а встановлені ігри й емулятори (нещодавні першими) — унизу.
+        // Хмарні ігри — верхній блок «Ігор» (docs/cloud-games-design.md): пошук, усі ігри, популярні.
+        if (cloudGames.isNotEmpty()) {
+            // «Мої ігри» — безкоштовні, Game Pass і «У мене є»; далі мої списки.
+            val byKey = cloudGames.associateBy { it.key }
+            // Зниклий образ (витягли флешку) лишається в списку тьмяною карткою, а не зникає мовчки.
+            fun resolve(key: String) = byKey[key] ?: com.likhtar.home.core.data.cloud.missingRom(key)
+            val now = cloudLibrary.playing.mapNotNull(::resolve)
+            val fav = cloudLibrary.favorites.mapNotNull(::resolve)
+            val mine = cloudGames.filter(cloudLibrary::isMine).sortedByDescending { it.popularity }
+            // «Мої ігри» першими: вони є з першого дня (безкоштовні, Game Pass), а «Граю зараз» і
+            // «Улюблене» новачкові порожні — розділ не має відкриватися порожнечею.
+            add(AppSection(stringResource(R.string.cloud_mine), emptyList(), cloudGames = mine, cloudKind = "mine", count = mine.size))
+            add(AppSection(stringResource(R.string.cloud_now), emptyList(), cloudGames = now, cloudKind = "now", count = now.size))
+            add(AppSection(stringResource(R.string.cloud_favorites), emptyList(), cloudGames = fav, cloudKind = "fav", count = fav.size))
+        }
         if (state.recentRoms.isNotEmpty()) add(AppSection(stringResource(R.string.apps_games_continue), emptyList(), state.recentRoms))
         add(AppSection(stringResource(R.string.apps_games_cloud), emptyList(), clouds = CloudGame.entries))
         // Кілька образів — одним рядом; велика колекція — рядами за приставками.
         if (state.roms.size <= ONE_ROW_ROMS) {
             if (state.roms.isNotEmpty()) add(AppSection(stringResource(R.string.apps_games_retro), emptyList(), state.roms))
         } else {
-            state.roms.groupBy { it.system }.forEach { (system, list) -> add(AppSection(system.title, emptyList(), list)) }
+            state.roms.groupBy { it.system }.forEach { (system, list) -> add(AppSection(system.title, emptyList(), list, system = system.title)) }
         }
         val cloudPackages = CloudGame.entries.flatMap { it.packages }.toSet()
         val recentIds = state.recent.map { it.app.id }
@@ -288,29 +374,47 @@ private fun AppsPage(
         if (state.recent.isNotEmpty()) add(AppSection(stringResource(R.string.apps_section_recent), state.recent))
         addAll(state.sections)
     }
-    val lead = if (games) (stringResource(R.string.apps_games_file_access) to onFileAccess).takeIf { !state.romsReadable }
-    else if (showAll) stringResource(R.string.apps_by_groups) to { showAll = false }
-    else allTitle to { showAll = true }
+    val lead = if (games) (stringResource(R.string.apps_games_file_access) to onFileAccess).takeIf { !state.romsReadable } else null
+    val viewToggleFocusRequester = remember { FocusRequester() }
+    val gridToggleFocusRequester = remember { FocusRequester() }
+    val heroToggle = lead.takeIf { !cloudMode }
     val list = rememberLazyListState()
     val scope = rememberCoroutineScope()
     // Гра у фокусі — шапка про неї; фокус на застосунку повертає шапку застосунку.
     var focusedGame by remember { mutableStateOf<RetroGame?>(null) }
     var focusedCloud by remember { mutableStateOf<CloudGame?>(null) }
     val installedPackages = remember(state.apps) { state.apps.map { it.app.packageName }.toSet() }
+    val installedApps = remember(state.apps) { state.apps.associate { it.app.packageName to it.app } }
     // Вхід кожного ряду — його перша плитка. ↑/↓ ведемо самі: стандартний пошук фокуса
     // тут водив ↓ уздовж ряду.
     val entries = remember(rows.size) { List(rows.size) { i -> if (i == 0) firstAppFocusRequester else FocusRequester() } }
     fun go(to: Int): Boolean {
-        if (to < 0) return menuFocusRequester.tryFocus()
+        if (to < 0) return when {
+            cloudMode -> actionsFocus.tryFocus()
+            !games -> (if (showAll) gridToggleFocusRequester else viewToggleFocusRequester).tryFocus()
+            heroToggle != null -> viewToggleFocusRequester.tryFocus()
+            else -> menuFocusRequester.tryFocus()
+        }
         if (to > rows.lastIndex) return true
+        // Фокус — одразу, ряд доїжджає під ним (centerItem з фокусу плитки), як у Кінозалі.
+        // Спершу докрутка з чеканням кінця руху давала рамці запізнитись.
         scope.launch {
-            list.centerItem(to, topUntil = 0)
-            withFrameNanos { }
-            runCatching { entries[to].requestFocus() }
+            if (list.layoutInfo.visibleItemsInfo.none { it.index == to } || !entries[to].tryFocus()) {
+                list.scrollToItem(to)
+                withFrameNanos { }
+                entries[to].tryFocus()
+            }
         }
         return true
     }
-    Box(modifier = Modifier.fillMaxSize().background(LikhtarColors.Background)) {
+    // Повернулись на екран — фокус на картку, з якої пішли; не знайшлась — на перший ряд.
+    LaunchedEffect(rows.isNotEmpty()) {
+        if (rows.isNotEmpty()) restore.restore(list) { entries.firstOrNull()?.requestWithRetry() }
+    }
+    Box(
+        modifier = Modifier.fillMaxSize()
+            .onGloballyPositioned { contentTop = with(density) { it.positionInRoot().y.toDp() } },
+    ) {
         if (rows.isEmpty()) {
             Text(
                 text = stringResource(R.string.apps_games_empty) + "\n\n" + stringResource(R.string.apps_games_roms_hint) +
@@ -322,25 +426,163 @@ private fun AppsPage(
             )
             return@Box
         }
-        when {
-            focusedGame != null -> GameHero(focusedGame!!)
-            focusedCloud != null -> CloudHero(focusedCloud!!, installed = focusedCloud!!.packages.any { it in installedPackages })
-            else -> state.selected?.let { AppsHero(entry = it, hero = state.hero) }
+        if (games && !cloudMode) {
+            when {
+                focusedGame != null -> GameHero(focusedGame!!)
+                focusedCloud != null -> CloudHero(focusedCloud!!, installed = focusedCloud!!.packages.any { it in installedPackages })
+                else -> state.selected?.let { AppsHero(entry = it, hero = state.hero, games = true) }
+            }
         }
         Column(modifier = Modifier.fillMaxSize()) {
-            Spacer(modifier = Modifier.height(HeroHeight))
+            if (cloudMode) {
+                com.likhtar.home.feature.apps.cloud.CloudHomeHeader(
+                    focus = cloudFocus,
+                    total = cloudGames.size,
+                    contentTop = contentTop,
+                    actionsFocus = actionsFocus,
+                    onSearch = { onOpenCloudCatalog(true, false) },
+                    onAll = { onOpenCloudCatalog(false, false) },
+                    onServices = onOpenCloudSetup,
+                    onDownFromActions = { go(0) },
+                    library = cloudLibrary,
+                )
+            } else if (!games) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = LikhtarDimens.ScreenPadding, end = LikhtarDimens.ScreenPadding, top = 16.dp, bottom = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = allTitle,
+                            style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 22.sp),
+                            color = LikhtarColors.GlassActive,
+                        )
+                        Text(
+                            text = stringResource(R.string.apps_hero_hint),
+                            style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp),
+                            color = LikhtarColors.WarmMuted,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(99.dp))
+                            .background(LikhtarColors.SurfaceDeep.copy(alpha = 0.72f))
+                            .border(1.dp, LikhtarColors.PillBorder, RoundedCornerShape(99.dp))
+                            .padding(3.dp),
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        FocusableSurface(
+                            onClick = { showAll = false },
+                            modifier = Modifier
+                                .focusRequester(viewToggleFocusRequester)
+                                .onPreviewKeyEvent { ev ->
+                                    if (ev.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                                    when (ev.key) {
+                                        Key.DirectionUp -> menuFocusRequester.tryFocus()
+                                        Key.DirectionDown -> firstAppFocusRequester.tryFocus()
+                                        Key.DirectionRight -> gridToggleFocusRequester.tryFocus()
+                                        else -> false
+                                    }
+                                },
+                            shape = RoundedCornerShape(99.dp),
+                            background = if (!showAll) LikhtarColors.BorderStrong.copy(alpha = 0.69f) else Color.Transparent,
+                            focusedBackground = LikhtarColors.GlassActive,
+                            borderColor = Color.Transparent,
+                            focusedScale = 1.04f,
+                        ) { focused ->
+                            Text(
+                                text = stringResource(R.string.apps_by_groups),
+                                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp),
+                                color = when {
+                                    focused -> LikhtarColors.OnGlassActive
+                                    !showAll -> Color.White
+                                    else -> LikhtarColors.WarmInkSoft
+                                },
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                            )
+                        }
+                        FocusableSurface(
+                            onClick = { showAll = true },
+                            modifier = Modifier
+                                .focusRequester(gridToggleFocusRequester)
+                                .onPreviewKeyEvent { ev ->
+                                    if (ev.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                                    when (ev.key) {
+                                        Key.DirectionUp -> menuFocusRequester.tryFocus()
+                                        Key.DirectionDown -> firstAppFocusRequester.tryFocus()
+                                        Key.DirectionLeft -> viewToggleFocusRequester.tryFocus()
+                                        else -> false
+                                    }
+                                },
+                            shape = RoundedCornerShape(99.dp),
+                            background = if (showAll) LikhtarColors.BorderStrong.copy(alpha = 0.69f) else Color.Transparent,
+                            focusedBackground = LikhtarColors.GlassActive,
+                            borderColor = Color.Transparent,
+                            focusedScale = 1.04f,
+                        ) { focused ->
+                            Text(
+                                text = stringResource(R.string.apps_view_grid),
+                                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp),
+                                color = when {
+                                    focused -> LikhtarColors.OnGlassActive
+                                    showAll -> Color.White
+                                    else -> LikhtarColors.WarmInkSoft
+                                },
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                            )
+                        }
+                    }
+                }
+            } else {
+                Box(modifier = Modifier.fillMaxWidth().height(HeroHeight)) {
+                    heroToggle?.let { (toggleLabel, onToggle) ->
+                        FocusableSurface(
+                            onClick = onToggle,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = LikhtarDimens.ScreenPadding, bottom = 36.dp)
+                                .focusRequester(viewToggleFocusRequester)
+                                .onPreviewKeyEvent { ev ->
+                                    if (ev.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                                    when (ev.key) {
+                                        Key.DirectionUp -> menuFocusRequester.tryFocus()
+                                        Key.DirectionDown -> firstAppFocusRequester.tryFocus()
+                                        else -> false
+                                    }
+                                },
+                            shape = RoundedCornerShape(99.dp),
+                            background = LikhtarColors.SurfaceAlt,
+                            focusedBackground = LikhtarColors.GlassActive,
+                            borderColor = LikhtarColors.PillBorder,
+                            focusedScale = 1.05f,
+                        ) { focused ->
+                            Text(
+                                text = toggleLabel,
+                                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp),
+                                color = if (focused) LikhtarColors.OnGlassActive else LikhtarColors.GlassActive,
+                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+                            )
+                        }
+                    }
+                }
+            }
             // Колонка сама фокус не доганяє — ряд у фокусі ставить centerItem, як у Кінозалі.
             CompositionLocalProvider(LocalBringIntoViewSpec provides NoBringIntoView) {
                 LazyColumn(
                     state = list,
                     modifier = Modifier.fillMaxSize().clipToBounds().padding(horizontal = LikhtarDimens.ScreenPadding),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(bottom = 60.dp),
                 ) {
                     itemsIndexed(rows, key = { i, row -> "$showAll-$i-${row.title}" }) { rowIndex, row ->
                         AppsRail(
                             row = row,
-                            lead = lead.takeIf { rowIndex == 0 },
+                            // Плитка «Образи з флешки» — лише в хмарному режимі Ігор; у Застосунках перемикач живе в шапці.
+                            lead = if (cloudMode) lead.takeIf { rowIndex == rows.indexOfFirst { it.cloudKind.isEmpty() } } else null,
                             enter = entries.getOrElse(rowIndex) { firstAppFocusRequester },
                             onVertical = { down -> go(if (down) rowIndex + 1 else rowIndex - 1) },
                             onFocused = { id ->
@@ -352,18 +594,32 @@ private fun AppsPage(
                             onClick = onClick,
                             onLongClick = onLongClick,
                             onGameFocused = { game ->
+                                // Хмарна головна — герой про образ у фокусі, як про хмарну гру.
+                                if (cloudMode) onCloudFocus(com.likhtar.home.feature.apps.cloud.CloudHomeFocus.Game(game.toCloudGame(), play = true))
                                 focusedGame = game
                                 focusedCloud = null
                                 scope.launch { list.centerItem(rowIndex, topUntil = 0) }
                             },
                             onGameClick = onGameClick,
                             installedPackages = installedPackages,
+                            installedApps = installedApps,
+                            onOpenRetroSystem = onOpenRetroSystem,
                             onCloudFocused = { cloud ->
                                 focusedCloud = cloud
                                 focusedGame = null
                                 scope.launch { list.centerItem(rowIndex, topUntil = 0) }
                             },
                             onCloudClick = onCloudClick,
+                            onCloudFocus = { f ->
+                                onCloudFocus(f)
+                                scope.launch { list.centerItem(rowIndex, topUntil = 0) }
+                            },
+                            onCloudMenu = onCloudMenu,
+                            cloudServices = cloudLibrary.services,
+                            onOpenCloudGame = onOpenCloudGame,
+                            onOpenCloudCatalog = onOpenCloudCatalog,
+                            restore = restore,
+                            rowIndex = rowIndex,
                         )
                     }
                 }
@@ -386,13 +642,42 @@ private fun AppsRail(
     onGameFocused: (RetroGame) -> Unit = {},
     onGameClick: (RetroGame) -> Unit = {},
     installedPackages: Set<String> = emptySet(),
+    installedApps: Map<String, com.likhtar.home.core.model.LauncherApp> = emptyMap(),
+    onOpenRetroSystem: (String) -> Unit = {},
     onCloudFocused: (CloudGame) -> Unit = {},
     onCloudClick: (CloudGame) -> Unit = {},
+    onCloudFocus: (com.likhtar.home.feature.apps.cloud.CloudHomeFocus) -> Unit = {},
+    onCloudMenu: (com.likhtar.home.core.data.cloud.CloudGame) -> Unit = {},
+    cloudServices: Set<com.likhtar.home.core.data.cloud.CloudService> = com.likhtar.home.core.data.cloud.CloudService.entries.toSet(),
+    onOpenCloudGame: (String) -> Unit = {},
+    onOpenCloudCatalog: (Boolean, Boolean) -> Unit = { _, _ -> },
+    restore: RailRestore,
+    rowIndex: Int,
 ) {
+    // Точка повернення — ключ елемента ряду з назвою ряду: та сама гра буває в «Граю зараз» і «Моїх».
+    fun rk(key: String) = "${row.title}|$key"
+    fun Modifier.back(key: String) = returnPoint(restore, rk(key), rowIndex)
+    fun leaving(key: String, action: () -> Unit): () -> Unit = { restore.leave(rk(key)); action() }
     // Вхід у ряд — на першу плитку, як у рядах Кінозалу.
     // Ряд, з якого пішли, — знову на початок: інакше перша плитка вже не скомпонована, і
     // вхід у ряд (↓ з меню, ↑/↓ з сусіднього) мовчки не спрацьовував — як у Кінозалі.
     val railState = rememberLazyListState()
+    val retroShown = if (row.system != null) row.games.take(RETRO_ROW) else row.games
+    // Порядок ключів — як у LikhtarRail нижче: ряд докручується до точки повернення.
+    restore.ScrollRailTo(railState) { tile ->
+        buildList {
+            if (lead != null) add("lead")
+            if (row.cloudKind.isNotEmpty()) {
+                row.cloudGames.take(CLOUD_ROW).forEach { add("cloud-" + it.key) }
+                if (row.cloudGames.size > CLOUD_ROW) add("cloud-more")
+                if (row.cloudKind != "mine") add("cloud-add")
+            }
+            row.clouds.forEach { add(row.title + it.name) }
+            retroShown.forEach { add(row.title + it.path) }
+            if (row.system != null && row.games.size > RETRO_ROW) add("retro-more")
+            row.apps.forEach { add(row.title + it.app.id) }
+        }.map(::rk).indexOf(tile)
+    }
     var reset by remember { mutableStateOf(false) }
     LaunchedEffect(reset) {
         if (reset) {
@@ -402,7 +687,9 @@ private fun AppsRail(
     }
     Column(
         modifier = Modifier
-            .onFocusChanged { if (!it.hasFocus) reset = true }
+            // Не під час повернення: перша подія фокуса (ще без фокуса) скидала ряд на початок
+            // поверх докрутки до точки повернення.
+            .onFocusChanged { if (!it.hasFocus && !restore.pending) reset = true }
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (event.key) {
@@ -416,43 +703,82 @@ private fun AppsRail(
         LikhtarRail(state = railState) {
             lead?.let { (label, onLead) ->
                 item(key = "lead") {
-                    LeadTile(label, onLead, Modifier.padding(horizontal = 6.dp, vertical = 6.dp).focusRequester(enter))
+                    LeadTile(label, leaving("lead", onLead), Modifier.padding(horizontal = 6.dp, vertical = 6.dp).focusRequester(enter).back("lead"))
+                }
+            }
+            if (row.cloudKind.isNotEmpty()) {
+                val cardPad = Modifier.padding(horizontal = 6.dp, vertical = 8.dp)
+                itemsIndexed(row.cloudGames.take(CLOUD_ROW), key = { _, g -> "cloud-" + g.key }) { index, g ->
+                    com.likhtar.home.feature.apps.cloud.CloudCard(
+                        g, com.likhtar.home.feature.apps.cloud.CardShape.POSTER, leaving("cloud-" + g.key) { onOpenCloudGame(g.key) },
+                        cardPad.then(if (index == 0 && lead == null) Modifier.focusRequester(enter) else Modifier)
+                            .back("cloud-" + g.key)
+                            .onFocusChanged { if (it.isFocused) onCloudFocus(com.likhtar.home.feature.apps.cloud.CloudHomeFocus.Game(g)) },
+                        onLongClick = leaving("cloud-" + g.key) { onCloudMenu(g) },
+                        services = cloudServices,
+                    )
+                }
+                if (row.cloudGames.size > CLOUD_ROW) item(key = "cloud-more") {
+                    com.likhtar.home.feature.apps.cloud.OpenAllCard(
+                        row.count, com.likhtar.home.feature.apps.cloud.CardShape.POSTER, leaving("cloud-more") { onOpenCloudCatalog(false, row.cloudKind == "mine") },
+                        cardPad.back("cloud-more").onFocusChanged { if (it.isFocused) onCloudFocus(com.likhtar.home.feature.apps.cloud.CloudHomeFocus.List(row.title, row.count, openAll = true)) },
+                    )
+                }
+                if (row.cloudKind != "mine") item(key = "cloud-add") {
+                    com.likhtar.home.feature.apps.cloud.AddToListCard(
+                        if (row.cloudGames.isEmpty()) stringResource(R.string.cloud_empty_list, row.title) else stringResource(R.string.cloud_add),
+                        leaving("cloud-add") { onOpenCloudCatalog(false, false) },
+                        cardPad.then(if (row.cloudGames.isEmpty() && lead == null) Modifier.focusRequester(enter) else Modifier)
+                            .back("cloud-add")
+                            .onFocusChanged { if (it.isFocused) onCloudFocus(com.likhtar.home.feature.apps.cloud.CloudHomeFocus.List(row.title, row.count, openAll = false)) },
+                    )
                 }
             }
             itemsIndexed(row.clouds, key = { _, cloud -> row.title + cloud.name }) { index, cloud ->
                 CloudTile(
                     cloud = cloud,
-                    installed = cloud.packages.any { it in installedPackages },
-                    onClick = { onCloudClick(cloud) },
+                    app = cloud.packages.firstNotNullOfOrNull { installedApps[it] },
+                    onClick = leaving(row.title + cloud.name) { onCloudClick(cloud) },
                     modifier = Modifier
                         .padding(horizontal = 6.dp, vertical = 6.dp)
+                        .back(row.title + cloud.name)
                         .onFocusChanged { if (it.isFocused) onCloudFocused(cloud) }
                         .then(if (index == 0 && lead == null) Modifier.focusRequester(enter) else Modifier),
                 )
             }
-            itemsIndexed(row.games, key = { _, game -> row.title + game.path }) { index, game ->
+            itemsIndexed(retroShown, key = { _, game -> row.title + game.path }) { index, game ->
                 GameTile(
                     game = game,
-                    onClick = { onGameClick(game) },
+                    onClick = leaving(row.title + game.path) { onGameClick(game) },
                     modifier = Modifier
                         .padding(horizontal = 6.dp, vertical = 6.dp)
+                        .back(row.title + game.path)
                         .onFocusChanged { if (it.isFocused) onGameFocused(game) }
                         .then(if (index == 0 && lead == null) Modifier.focusRequester(enter) else Modifier),
+                )
+            }
+            if (row.system != null && row.games.size > RETRO_ROW) item(key = "retro-more") {
+                com.likhtar.home.feature.apps.cloud.OpenAllCard(
+                    row.games.size, com.likhtar.home.feature.apps.cloud.CardShape.POSTER, leaving("retro-more") { onOpenRetroSystem(row.system) },
+                    Modifier.padding(horizontal = 6.dp, vertical = 6.dp).size(GameTileWidth, GameTileHeight).back("retro-more"),
                 )
             }
             itemsIndexed(row.apps, key = { _, entry -> row.title + entry.app.id }) { index, entry ->
                 ProtoAppTile(
                     app = entry.app,
+                    categoryLabel = stringResource(entry.effectiveCategory.titleRes),
+                    pinnedToHome = entry.state.pinnedToHome,
                     locked = entry.state.locked,
                     dimmed = entry.state.hidden,
                     tags = buildList {
                         if (entry.state.pinnedToCinema) add(stringResource(R.string.apps_tag_cinema))
                         if (entry.state.pinnedToLiveTv) add(stringResource(R.string.apps_tag_live_tv))
                     },
-                    onClick = { onClick(entry) },
+                    onClick = leaving(row.title + entry.app.id) { onClick(entry) },
                     onLongClick = { onLongClick(entry) },
                     modifier = Modifier
                         .padding(horizontal = 6.dp, vertical = 6.dp)
+                        .back(row.title + entry.app.id)
                         .onFocusChanged { if (it.isFocused) onFocused(entry.app.id) }
                         .then(if (index == 0 && lead == null) Modifier.focusRequester(enter) else Modifier),
                 )
@@ -462,84 +788,60 @@ private fun AppsRail(
 }
 
 /**
- * Шапка (.hero прототипу) — вікно застосунку у фокусі: у сервісу Кінозалу — кадр його
- * хіта праворуч, у решти — його знак великим на темній плитці, а шапка ледь тоне в кольорі марки.
- * Назва — знаком марки її кольором; під нею категорія, хіт і підказка.
+ * Шапка в стилі likhtar-apps-modern.html: бурштиновий eyebrow, великий заголовок застосунку
+ * кольором марки, категорія / статус і коротка підказка дій.
  */
 @Composable
-private fun AppsHero(entry: LauncherAppWithState, hero: AppHero) {
+private fun AppsHero(entry: LauncherAppWithState, hero: AppHero, games: Boolean = false) {
     val artwork = rememberAppArtwork(entry.app.packageName, entry.app.activityName)
     val brand = appBrand(entry.app)
-    val tone = brand?.color ?: artwork?.backdrop ?: Color(entry.app.accent)
-    // color-mix(тон 34 %, тло) — перехід кольору шапки за .45s (єдиний рух сторінки).
-    val bg by androidx.compose.animation.animateColorAsState(
-        if (hero.backdrop != null) LikhtarColors.Background else androidx.compose.ui.graphics.lerp(LikhtarColors.Background, tone, 0.34f),
-        androidx.compose.animation.core.tween(450),
-        label = "heroTone",
-    )
-    Box(modifier = Modifier.fillMaxWidth().height(HeroHeight + 30.dp).background(bg)) {
+    Box(modifier = Modifier.fillMaxWidth().height(HeroHeight + 20.dp)) {
         if (hero.backdrop != null) {
             AsyncImage(
                 model = hero.backdrop,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.align(Alignment.TopEnd).width(620.dp).fillMaxHeight(),
+                modifier = Modifier.align(Alignment.TopEnd).width(560.dp).fillMaxHeight(),
             )
-        } else {
-            // .mark: 532×300 px, 180 px від правого краю, 170 від верху, темна плитка.
-            Box(
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(end = 90.dp, top = 30.dp)
-                    .size(266.dp, 150.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(LikhtarColors.TileFloor),
-                contentAlignment = Alignment.Center,
-            ) {
-                AppMark(entry.app, brand, artwork, wordmarkSize = 48.sp, iconHeight = 58.dp)
-            }
+            Box(modifier = Modifier.fillMaxSize().background(HeroSideScrim))
+            Box(modifier = Modifier.fillMaxSize().background(HeroBottomFade))
         }
-        Box(modifier = Modifier.fillMaxSize().background(HeroSideScrim))
-        Box(modifier = Modifier.fillMaxSize().background(HeroBottomFade))
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = LikhtarDimens.ScreenPadding, bottom = 44.dp)
-                .width(500.dp),
+                .padding(start = LikhtarDimens.ScreenPadding, bottom = 36.dp)
+                .width(540.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             Text(
+                text = stringResource(if (games) R.string.apps_games_eyebrow else R.string.apps_eyebrow),
+                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, letterSpacing = 1.4.sp),
+                color = LikhtarColors.LanternAmber,
+            )
+            Text(
                 text = brand?.wordmark ?: entry.app.label,
-                style = (brand?.style ?: TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold))
-                    .copy(fontSize = 38.sp, lineHeight = 38.sp),
-                color = brand?.color ?: Color.White,
+                style = (brand?.style ?: TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.ExtraBold))
+                    .copy(fontSize = 40.sp, lineHeight = 42.sp, letterSpacing = (-1).sp),
+                color = brand?.color ?: LikhtarColors.GlassActive,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = listOfNotNull(
                     stringResource(entry.effectiveCategory.titleRes),
+                    hero.note,
                     stringResource(R.string.apps_state_locked).takeIf { entry.state.locked },
                     stringResource(R.string.apps_state_hidden).takeIf { entry.state.hidden },
                 ).joinToString(" · "),
-                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
-                color = LikhtarColors.TextDim,
-                modifier = Modifier.padding(top = 7.dp),
+                style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Medium, fontSize = 14.sp),
+                color = LikhtarColors.WarmMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            hero.note?.let {
-                Text(
-                    text = it,
-                    style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 14.sp),
-                    color = LikhtarColors.TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 7.dp),
-                )
-            }
             Text(
                 text = stringResource(R.string.apps_hero_hint),
-                style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 10.sp),
-                color = LikhtarColors.TextPrimary.copy(alpha = 0.45f),
-                modifier = Modifier.padding(top = 6.dp),
+                style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp),
+                color = LikhtarColors.WarmMuted,
             )
         }
     }
@@ -637,15 +939,16 @@ private fun AppMark(
 }
 
 /**
- * Плитка (.tile прототипу): 300×169 px, темна, знак марки 44 px чи іконка з назвою; замок —
- * бурштином угорі праворуч, мітки «Кінозал / ТВ Ефір» — унизу; приховані — .42.
- * Фокус — 1.07 з кільцем і теплою тінню.
+ * Плитка в стилі likhtar-apps-modern.html: 146×82 dp (aspect-ratio 1.78), #1A1815, скруглення 14 dp,
+ * легка рамка #18FFFFFF; бурштинова крапка для закріплених на Головній і замок угорі праворуч.
  */
 @Composable
 private fun ProtoAppTile(
     app: LauncherApp,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    categoryLabel: String = "",
+    pinnedToHome: Boolean = false,
     onLongClick: (() -> Unit)? = null,
     locked: Boolean = false,
     dimmed: Boolean = false,
@@ -658,27 +961,59 @@ private fun ProtoAppTile(
         onClick = onClick,
         onLongClick = onLongClick,
         modifier = modifier
-            .size(150.dp, 84.5.dp)
+            .size(154.dp, 86.dp)
             .onFocusChanged { focused = it.isFocused }
-            .graphicsLayer { alpha = if (dimmed && !focused) 0.42f else 1f }
-            .focusGlow(9.dp),
-        shape = RoundedCornerShape(9.dp),
-        background = LikhtarColors.TileFloor,
-        focusedBackground = LikhtarColors.TileFloor,
-        borderColor = Color.Transparent,
-        focusedScale = LikhtarDimens.CardFocusScale,
+            .graphicsLayer { alpha = if (dimmed && !focused) 0.48f else 1f }
+            .focusGlow(14.dp),
+        shape = RoundedCornerShape(14.dp),
+        background = LikhtarColors.PanelFloor,
+        focusedBackground = LikhtarColors.Panel,
+        borderColor = LikhtarColors.GlassDivider,
+        focusedScale = 1.045f,
         focusLighten = 0f,
-    ) { hasFocus ->
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            AppMark(app, brand, artwork, wordmarkSize = 22.sp, iconHeight = 27.dp)
+    ) { _ ->
+        if (artwork?.banner == true) {
+            AppMark(app, brand, artwork, wordmarkSize = 20.sp, iconHeight = 26.dp)
+        } else {
+            Column(
+                Modifier.fillMaxSize().padding(horizontal = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterVertically),
+            ) {
+                AppMark(app, brand, artwork, wordmarkSize = 20.sp, iconHeight = 24.dp)
+                if (categoryLabel.isNotEmpty()) {
+                    Text(
+                        text = categoryLabel,
+                        style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp),
+                        color = LikhtarColors.WarmMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
-        if (locked) {
-            androidx.tv.material3.Icon(
-                androidx.compose.ui.res.painterResource(com.likhtar.home.core.designsystem.R.drawable.ic_solar_lock),
-                null,
-                tint = LikhtarColors.Glow,
-                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(13.dp),
-            )
+        if (pinnedToHome || locked) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = 7.dp, end = 9.dp),
+            ) {
+                if (pinnedToHome) {
+                    Text(
+                        text = "●",
+                        style = TextStyle(fontSize = 9.sp),
+                        color = LikhtarColors.LanternAmber,
+                    )
+                }
+                if (locked) {
+                    androidx.tv.material3.Icon(
+                        androidx.compose.ui.res.painterResource(com.likhtar.home.core.designsystem.R.drawable.ic_solar_lock),
+                        null,
+                        tint = LikhtarColors.LanternAmber,
+                        modifier = Modifier.size(12.dp),
+                    )
+                }
+            }
         }
         if (tags.isNotEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.align(Alignment.BottomStart).padding(6.dp)) {
@@ -686,13 +1021,12 @@ private fun ProtoAppTile(
                     Text(
                         it,
                         style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 7.5.sp),
-                        color = LikhtarColors.TextDim,
-                        modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(LikhtarColors.Paper.copy(alpha = 0.12f)).padding(horizontal = 5.dp, vertical = 1.5.dp),
+                        color = LikhtarColors.WarmMuted,
+                        modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(LikhtarColors.GlassActive.copy(alpha = 0.14f)).padding(horizontal = 5.dp, vertical = 1.5.dp),
                     )
                 }
             }
         }
-        FocusRing(hasFocus, 9.dp)
     }
 }
 
@@ -727,7 +1061,13 @@ private fun LeadTile(label: String, onClick: () -> Unit, modifier: Modifier = Mo
     }
 }
 
-private const val ALL_PER_ROW = 6
+private const val ALL_PER_ROW = 5
+
+/** Скільки популярних хмарних ігор у ряду «Ігор»; далі — «Відкрити всі». */
+private const val CLOUD_ROW = 10
+
+/** Ряд приставки на «Іграх» — десять образів і «Відкрити всі». */
+const val RETRO_ROW = 10
 
 private val HeroHeight = 200.dp
 // .scrim: 90deg .92 → .6 на 45 % → 0; 180deg .35 → 0 на 30 %, 0 на 55 % → тло.
@@ -770,51 +1110,51 @@ private fun ActionsDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DialogScrim),
+            .background(LikhtarColors.CardBlack.copy(alpha = 0.93f)),
         contentAlignment = Alignment.Center,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 60.dp),
-            horizontalArrangement = Arrangement.spacedBy(28.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .width(640.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(LikhtarColors.Surface)
+                .border(1.dp, LikhtarColors.PillBorder, RoundedCornerShape(20.dp))
+                .padding(24.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
+            verticalAlignment = Alignment.Top,
         ) {
-            // .who: знак 380×214 px, назва 44 px / 700, категорія 24 px.
             Column(
-                modifier = Modifier.width(190.dp),
+                modifier = Modifier.width(180.dp),
                 horizontalAlignment = Alignment.Start,
             ) {
                 Box(
                     modifier = Modifier
-                        .size(190.dp, 107.dp)
+                        .fillMaxWidth()
+                        .height(100.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(LikhtarColors.TileFloor),
+                        .background(LikhtarColors.PanelFloor),
                     contentAlignment = Alignment.Center,
                 ) {
-                    AppMark(entry.app, appBrand(entry.app), artwork, wordmarkSize = 30.sp, iconHeight = 40.dp)
+                    AppMark(entry.app, appBrand(entry.app), artwork, wordmarkSize = 26.sp, iconHeight = 36.dp)
                 }
                 Text(
                     text = entry.app.label,
-                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 22.sp),
-                    color = Color.White,
+                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 20.sp),
+                    color = LikhtarColors.GlassActive,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 12.dp, bottom = 3.dp),
+                    modifier = Modifier.padding(top = 14.dp, bottom = 5.dp),
                 )
                 Text(
                     text = listOfNotNull(stringResource(entry.effectiveCategory.titleRes), sizeLabel).joinToString(" · "),
                     style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 12.sp),
-                    color = LikhtarColors.TextDim,
+                    color = LikhtarColors.WarmMuted,
                 )
             }
 
-            // .list: 760 px, поле 14 px, скруглення 30 px, тло .9 з тонкою рамкою.
             Column(
-                modifier = Modifier
-                    .width(380.dp)
-                    .clip(RoundedCornerShape(15.dp))
-                    .background(LikhtarColors.Surface.copy(alpha = 0.9f))
-                    .border(0.75.dp, LikhtarColors.Faint, RoundedCornerShape(15.dp))
-                    .padding(7.dp),
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 AppsViewModel.ACTIONS.forEachIndexed { index, action ->
                     val (title, subtitle) = when (action) {
@@ -854,21 +1194,27 @@ private fun ActionsDialog(
         Text(
             text = stringResource(R.string.apps_actions_back_hint),
             style = LikhtarType.MonoSmall,
-            color = LikhtarColors.TextTertiary,
+            color = LikhtarColors.WarmMuted,
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(start = LikhtarDimens.ScreenPadding, bottom = 24.dp)
                 .clip(RoundedCornerShape(LikhtarDimens.CornerPill))
-                .background(LikhtarColors.Glass)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+                .background(LikhtarColors.Surface)
+                .border(1.dp, LikhtarColors.PillBorder, RoundedCornerShape(LikhtarDimens.CornerPill))
+                .padding(horizontal = 12.dp, vertical = 6.dp),
         )
 
         message?.let {
             Text(
                 text = it,
-                style = LikhtarType.Body2,
-                color = LikhtarColors.TextSecondary,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 26.dp),
+                style = LikhtarType.Body2.copy(fontWeight = FontWeight.SemiBold),
+                color = LikhtarColors.OnGlassActive,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(LikhtarColors.GlassActive)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
     }
@@ -882,27 +1228,26 @@ private fun ActionRow(
     danger: Boolean = false,
 ) {
     Column(
-        // .act: поле 14×24 px, скруглення 20 px; вибраний — тепла біла.
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (selected) LikhtarColors.Paper else Color.Transparent)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
+            .clip(RoundedCornerShape(9.dp))
+            .background(if (selected) LikhtarColors.GlassActive else LikhtarColors.Panel)
+            .padding(horizontal = 13.dp, vertical = 8.dp),
     ) {
         Text(
             text = title,
             style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp),
             color = when {
                 selected && danger -> DangerOnLight
-                selected -> LikhtarColors.Background
-                danger -> Danger
-                else -> LikhtarColors.TextPrimary
+                selected -> LikhtarColors.OnGlassActive
+                danger -> LikhtarColors.DangerMuted
+                else -> LikhtarColors.GlassActive
             },
         )
         Text(
             text = subtitle,
-            style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 10.sp),
-            color = if (selected) LikhtarColors.Background.copy(alpha = 0.62f) else LikhtarColors.TextDim,
+            style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp),
+            color = if (selected) LikhtarColors.OnGlassActive.copy(alpha = 0.65f) else LikhtarColors.WarmMuted,
         )
     }
 }
@@ -972,13 +1317,13 @@ private fun GameTile(game: RetroGame, onClick: () -> Unit, modifier: Modifier = 
                     color = Color.White.copy(alpha = 0.75f),
                     modifier = Modifier.align(Alignment.TopStart),
                 )
-                Text(
-                    text = gameName(game.title),
-                    style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Bold, fontSize = 13.sp, lineHeight = 15.sp),
-                    color = Color.White,
+                // Назва знаком посередині — як у Кінозалі там, де немає логотипа.
+                com.likhtar.home.feature.apps.cloud.GameTitle(
+                    gameName(game.title),
+                    LikhtarType.HeroTitle.copy(fontSize = 13.sp, lineHeight = 13.5.sp),
                     maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.align(Alignment.BottomStart),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.Center),
                 )
             }
         } else {
@@ -996,7 +1341,10 @@ private fun GameTile(game: RetroGame, onClick: () -> Unit, modifier: Modifier = 
 
 /** Хмарний сервіс — плиткою в кольорі марки; невстановлений позначений «Встановити». */
 @Composable
-private fun CloudTile(cloud: CloudGame, installed: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun CloudTile(cloud: CloudGame, app: com.likhtar.home.core.model.LauncherApp?, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val installed = app != null
+    // Встановлений сервіс — його справжній TV-банер, як у «Застосунках»; наша плитка — запасна.
+    val artwork = app?.let { rememberAppArtwork(it.packageName, it.activityName) }
     FocusableSurface(
         onClick = onClick,
         modifier = modifier.size(CloudTileHeight * 16 / 9, CloudTileHeight).focusGlow(9.dp),
@@ -1007,7 +1355,9 @@ private fun CloudTile(cloud: CloudGame, installed: Boolean, onClick: () -> Unit,
         focusedScale = 1.06f,
         focusLighten = 0f,
     ) { hasFocus ->
-        Box(
+        if (artwork?.banner == true) {
+            Image(artwork.image, contentDescription = cloud.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        } else Box(
             Modifier.fillMaxSize()
                 .background(Brush.linearGradient(listOf(Color.White.copy(alpha = 0.18f), Color.Black.copy(alpha = 0.35f))))
                 .padding(12.dp),
@@ -1045,15 +1395,15 @@ private fun gameName(title: String): String {
 
 /** Колір приставки — для плиток без обкладинки й шапки без кадру. */
 private fun systemColor(system: com.likhtar.home.core.data.RetroSystem): Color = when (system) {
-    com.likhtar.home.core.data.RetroSystem.GB -> Color(0xFF5E7A1F)
-    com.likhtar.home.core.data.RetroSystem.GBC -> Color(0xFF6B3FA0)
-    com.likhtar.home.core.data.RetroSystem.GBA -> Color(0xFF3F3FA8)
-    com.likhtar.home.core.data.RetroSystem.NES, com.likhtar.home.core.data.RetroSystem.N64 -> Color(0xFFB3282D)
-    com.likhtar.home.core.data.RetroSystem.SNES -> Color(0xFF5B4FA6)
+    com.likhtar.home.core.data.RetroSystem.GB -> CloudColors.RetroGb
+    com.likhtar.home.core.data.RetroSystem.GBC -> CloudColors.RetroGbc
+    com.likhtar.home.core.data.RetroSystem.GBA -> CloudColors.RetroGba
+    com.likhtar.home.core.data.RetroSystem.NES, com.likhtar.home.core.data.RetroSystem.N64 -> CloudColors.RetroNintendo
+    com.likhtar.home.core.data.RetroSystem.SNES -> CloudColors.RetroSnes
     com.likhtar.home.core.data.RetroSystem.MEGA_DRIVE, com.likhtar.home.core.data.RetroSystem.MASTER_SYSTEM,
-    com.likhtar.home.core.data.RetroSystem.GAME_GEAR -> Color(0xFF1F4FA8)
-    com.likhtar.home.core.data.RetroSystem.PC_ENGINE -> Color(0xFFC0602A)
-    com.likhtar.home.core.data.RetroSystem.PLAYSTATION, com.likhtar.home.core.data.RetroSystem.PSP -> Color(0xFF3A4A66)
+    com.likhtar.home.core.data.RetroSystem.GAME_GEAR -> CloudColors.RetroGameGear
+    com.likhtar.home.core.data.RetroSystem.PC_ENGINE -> CloudColors.RetroPcEngine
+    com.likhtar.home.core.data.RetroSystem.PLAYSTATION, com.likhtar.home.core.data.RetroSystem.PSP -> CloudColors.RetroPlayStation
 }
 
 private fun Color.compositeOverDark(): Color = compositeOver(LikhtarColors.Background)
@@ -1099,7 +1449,7 @@ private fun GameHero(game: RetroGame) {
         ) {
             Text(
                 text = game.system.title.uppercase(),
-                style = TextStyle(fontFamily = LikhtarType.Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.2.sp),
+                style = TextStyle(fontFamily = LikhtarType.Mono, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, letterSpacing = 1.2.sp),
                 color = LikhtarColors.Glow,
             )
             Text(
@@ -1112,7 +1462,7 @@ private fun GameHero(game: RetroGame) {
             )
             Text(
                 text = stringResource(R.string.apps_games_hero_hint),
-                style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 10.sp),
+                style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 11.5.sp),
                 color = LikhtarColors.TextPrimary.copy(alpha = 0.55f),
                 modifier = Modifier.padding(top = 8.dp),
             )
@@ -1141,7 +1491,7 @@ private fun CloudHero(cloud: CloudGame, installed: Boolean) {
         ) {
             Text(
                 text = stringResource(R.string.apps_games_cloud).uppercase(),
-                style = TextStyle(fontFamily = LikhtarType.Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.2.sp),
+                style = TextStyle(fontFamily = LikhtarType.Mono, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, letterSpacing = 1.2.sp),
                 color = LikhtarColors.Glow,
             )
             Text(
@@ -1158,7 +1508,7 @@ private fun CloudHero(cloud: CloudGame, installed: Boolean) {
             )
             Text(
                 text = stringResource(if (installed) R.string.apps_cloud_open else R.string.apps_cloud_get),
-                style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 10.sp),
+                style = TextStyle(fontFamily = LikhtarType.Mono, fontSize = 11.5.sp),
                 color = LikhtarColors.TextPrimary.copy(alpha = 0.55f),
                 modifier = Modifier.padding(top = 8.dp),
             )

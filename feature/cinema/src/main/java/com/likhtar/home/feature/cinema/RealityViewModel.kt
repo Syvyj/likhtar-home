@@ -8,7 +8,6 @@ import com.likhtar.home.core.catalog.CatalogItem
 import com.likhtar.home.core.catalog.ResumeCard
 import com.likhtar.home.core.catalog.ResumeRows
 import com.likhtar.home.core.catalog.openIn
-import com.likhtar.home.core.catalog.ResolverClient
 import com.likhtar.home.core.catalog.SectionBrand
 import com.likhtar.home.core.catalog.SectionGenre
 import com.likhtar.home.core.data.AppsRepository
@@ -70,7 +69,6 @@ class RealityViewModel @Inject constructor(
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val rows: RealityRows,
     private val resumeRows: ResumeRows,
-    private val resolver: ResolverClient,
     private val apps: AppsRepository,
     marks: com.likhtar.home.core.catalog.TitleMarksRepository,
     private val continuePlayback: com.likhtar.home.core.catalog.ContinuePlayback,
@@ -91,6 +89,10 @@ class RealityViewModel @Inject constructor(
 
     init {
         reload()
+        viewModelScope.launch {
+            // D2: перший кадр був зі знімка — свіжі ряди сервера приїхали, збираємо розділ наново.
+            rows.fresh.collect { if (it == "reality") { rows.invalidate(); loadedAt = 0L; refreshIfStale() } }
+        }
     }
 
     /** Ряди, «Продовжити» й слайдер наново — і на старті, і з «Спробувати ще». */
@@ -197,17 +199,13 @@ class RealityViewModel @Inject constructor(
      * Позиція, у якої немає нашої сторінки: вмикаємо там, де вона лежить.
      *
      * Сторінки матеріалу для неї не буде й не має бути — у ютуб-плейлиста чи позиції
-     * MEGOGO немає ні торентів, ні серій у нашому вигляді. Сервер віддає готовий діплінк
+     * MEGOGO немає ні варіантів, ні серій у нашому вигляді. Сервер віддає готовий діплінк
      * (`/api/watch`), клієнт відповідає лише на те, чого сервер не знає: який із
      * застосунків стоїть на цій приставці.
      */
     fun openExternally(card: CatalogItem) {
         viewModelScope.launch {
-            val options = runCatching { resolver.watch(card) }.getOrDefault(emptyList())
-            val launched = options.any { option ->
-                option.packages.any { apps.launchIntentUri(option.deeplink, it) }
-            }
-            if (!launched) {
+            if (!rows.launchElsewhere(card)) {
                 state.update { it.copy(message = context.getString(R.string.cinema_no_app_for, card.title)) }
             }
         }

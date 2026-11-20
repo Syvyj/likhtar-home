@@ -3,24 +3,29 @@ package com.likhtar.home.core.catalog
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Доріжки взято з роздачі «Tuner (2025) [Hurtom]» — дві українські озвучки в одному файлі. */
 class VoiceInsideTest {
-    @Test fun `рядок під пігулкою називає доріжки й субтитри`() {
-        val group = VoiceGroup(
-            voice = "Українська", quality = 1080, hdr = "", sources = 1, refs = listOf("ref"),
-            unnamed = true, from = listOf("teleportal"),
-            audio = listOf("Багатоголосий · В одне рило", "Двоголосий · Студія"),
-            subs = listOf("українська", "англійська"),
+    @Test fun `українські й оригінал, решта — ще N`() {
+        val g = VoiceGroup(
+            "Дубляж", 2160, "DV", 1, listOf("r"),
+            audio = listOf(
+                Track("Дубляж Postmodern", "ukr"), Track("Original English Atmos", "eng"),
+                Track("MVO", "ukr"), Track("Commentary", "eng"), Track("Polski", "pol"),
+            ),
+            subs = listOf(Track("українська", "ukr"), Track("англійська", "eng")),
         )
-        assertEquals(
-            "доріжки: Багатоголосий · В одне рило, Двоголосий · Студія   субтитри: українська, англійська",
-            group.inside,
-        )
-        assertEquals("Українська · 1080p · Телепортал", group.label)
+        assertEquals("Дубляж Postmodern, MVO · оригінал: Original English Atmos · ще 2 · укр. субтитри", g.inside)
     }
 
     @Test fun `без розбору рядка немає`() {
-        assertEquals("", VoiceGroup("Дубляж", 1080, "", 1, listOf("ref")).inside)
+        assertEquals("", VoiceGroup("Дубляж", 1080, "", 1, listOf("r")).inside)
+    }
+
+    @Test fun `підпис безіменної озвучки — сайтом`() {
+        val group = VoiceGroup(
+            voice = "Українська", quality = 1080, hdr = "", sources = 1, refs = listOf("ref"),
+            unnamed = true, from = listOf("teleportal"),
+        )
+        assertEquals("Українська · 1080p · Телепортал", group.label)
     }
 
     @Test fun `незнайомий код мови показуємо як є`() {

@@ -29,3 +29,7 @@ data class RealityListRoute(val title: String)
 /** Усі стрімінги й телеканали сіткою. */
 @Serializable
 data object StreamingsRoute
+
+/** Повний календар: «Цього тижня» → «Повний календар ›». */
+@Serializable
+data object CalendarRoute

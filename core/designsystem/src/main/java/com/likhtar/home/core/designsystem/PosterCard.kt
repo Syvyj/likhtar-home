@@ -1,22 +1,31 @@
 package com.likhtar.home.core.designsystem
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import androidx.compose.ui.graphics.graphicsLayer
 import coil3.compose.AsyncImage
@@ -24,7 +33,7 @@ import coil3.compose.AsyncImage
 /** Постер 2:3 — пропорція TMDB. Ширші картки 16:9 різали б обкладинки навпіл. */
 // Великий вертикальний постер, як у рядах Apple TV: арт на постері і є підписом,
 // тому назва під карткою потрібна лише коли постера немає.
-/** .card.poster прототипів 236×354 px (118×177 dp) + 20 %. */
+/** .card.poster прототипів 236×354 px (118×177 dp) + 20 % (картки замалі). */
 val PosterWidth = 143.dp
 val PosterHeight = 215.dp
 
@@ -73,7 +82,13 @@ fun CatalogPosterCard(
     width: androidx.compose.ui.unit.Dp = PosterWidth,
     height: androidx.compose.ui.unit.Dp = PosterHeight,
 ) {
-    Column(modifier = modifier.width(width)) {
+    val reduceMotion = LocalReduceMotion.current
+    var cardFocused by remember { mutableStateOf(false) }
+    Column(
+        modifier = modifier
+            .width(width)
+            .onFocusChanged { cardFocused = it.hasFocus },
+    ) {
         FocusableSurface(
             onClick = onClick,
             onLongClick = onLongClick,
@@ -143,45 +158,19 @@ fun CatalogPosterCard(
                     )
                 }
                 if (order != null) {
-                    Text(
-                        text = "$order",
-                        style = LikhtarType.MonoSmall,
-                        color = LikhtarColors.OnAccent,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(4.dp)
-                            .clip(RoundedCornerShape(LikhtarDimens.CornerPill))
-                            .background(LikhtarColors.Accent)
-                            .padding(horizontal = 5.dp, vertical = 1.dp),
-                    )
+                    OutlineBadge(text = "$order", filled = true, modifier = Modifier.align(Alignment.TopStart).padding(6.dp))
                 }
                 if (watched) {
-                    Text(
-                        text = "✓",
-                        style = LikhtarType.MonoSmall,
-                        color = LikhtarColors.OnAccent,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(4.dp)
-                            .clip(RoundedCornerShape(LikhtarDimens.CornerPill))
-                            .background(LikhtarColors.Accent)
-                            .padding(horizontal = 5.dp, vertical = 1.dp),
-                    )
+                    OutlineBadge(text = "✓", filled = true, modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp))
                 }
                 FocusRing(focused, ProtoCardCorner)
                 // Оцінка — лише під фокусом, як усюди: постійна плашка в кутку накривала назву,
                 // надруковану на самому постері («Зникла безвісти»).
                 if (focused && rating > 0) {
-                    Text(
-                        text = String.format(java.util.Locale.US, "%.1f", rating),
-                        style = LikhtarType.MonoSmall,
-                        color = LikhtarColors.AccentBright,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(4.dp)
-                            .clip(RoundedCornerShape(LikhtarDimens.CornerPill))
-                            .background(LikhtarColors.BackgroundDeep.copy(alpha = 0.85f))
-                            .padding(horizontal = 5.dp, vertical = 1.dp),
+                    // Та сама плашка, що «УКР» навпроти, — інакше рейтинг виглядав більшим і старим.
+                    QualityBadge(
+                        label = String.format(java.util.Locale.US, "%.1f", rating),
+                        modifier = Modifier.align(Alignment.TopEnd).padding(6.dp),
                     )
                 }
             }
@@ -201,6 +190,49 @@ fun CatalogPosterCard(
                 color = LikhtarColors.TextMuted,
                 maxLines = 1,
             )
+        } else if (!overlayTitle) {
+            // Apple tvOS Lockup Footer: на вертикальних постерах назва й рік плавно
+            // проявляються під карткою з відступом від фокус-кільця й легким збільшенням.
+            val footerProgress by animateFloatAsState(
+                targetValue = if (cardFocused) 1f else 0f,
+                animationSpec = tween(if (reduceMotion) 0 else 180),
+                label = "posterFooter",
+            )
+            // Під підпис резервуємо лише 20 dp із ~42: решта лягає в проміжок між рядами (до заголовка
+            // наступного ~37 dp) — він порожній, коли картка не у фокусі. Ряди постерів стоять так само
+            // щільно, як широкі.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(20.dp)
+                    .wrapContentHeight(Alignment.Top, unbounded = true)
+                    .padding(top = 9.dp)
+                    .graphicsLayer {
+                        alpha = footerProgress
+                        translationY = (-4f * (1f - footerProgress)) * density
+                        // Підпис росте разом із карткою.
+                        val s = 0.94f + 0.16f * footerProgress
+                        scaleX = s
+                        scaleY = s
+                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f)
+                    },
+            ) {
+                Text(
+                    text = title,
+                    style = LikhtarType.Body2.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                    color = LikhtarColors.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (year.isNotBlank()) {
+                    Text(
+                        text = year,
+                        style = LikhtarType.MonoSmall.copy(fontSize = 11.5.sp),
+                        color = LikhtarColors.WarmMuted,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
     }
 }

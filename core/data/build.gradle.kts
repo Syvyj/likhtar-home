@@ -6,7 +6,7 @@ android {
     namespace = "com.likhtar.home.core.data"
 
     // Той самий вимір, що й в app: у src/personal — те, чого в збірці для магазину немає
-    // зовсім (TorrServer, сторонні плеєри); у src/play — порожні двійники.
+    // зовсім (власні сервери й сторонні плеєри); у src/play — порожні двійники.
     flavorDimensions += "dist"
     productFlavors {
         create("play") { dimension = "dist" }

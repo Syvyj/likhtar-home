@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="cinema_prep_looking">Шукаю джерело…</string>
+    <string name="cinema_prep_slow">Джерело повільне для цієї якості — шукаю швидше</string>
+    <string name="cinema_prep_measuring">Міряю швидкість</string>
+    <string name="cinema_picker_more">Шукаємо ще…</string>
+    <string name="cinema_source_dead">Це джерело не відповідає. Спробуйте інший пункт списку.</string>
+    <string name="cinema_prep_connecting">Підключаюсь до джерела</string>
+    <string name="cinema_prep_waiting">Чекаю перші дані</string>
+    <plurals name="cinema_stat_links" tools:ignore="ImpliedQuantity">
+        <item quantity="one">з\'єднання</item>
+        <item quantity="few">з\'єднання</item>
+        <item quantity="many">з\'єднань</item>
+        <item quantity="other">з\'єднання</item>
+    </plurals>
+    <plurals name="cinema_stat_sources" tools:ignore="ImpliedQuantity">
+        <item quantity="one">джерело</item>
+        <item quantity="few">джерела</item>
+        <item quantity="many">джерел</item>
+        <item quantity="other">джерела</item>
+    </plurals>
+    <plurals name="cinema_own_dead">
+        <item quantity="one">Джерело не тягне: %1$d з\'єднання, %2$s з потрібних %3$s Мбіт/с. Оберіть інше</item>
+        <item quantity="few">Джерело не тягне: %1$d з\'єднання, %2$s з потрібних %3$s Мбіт/с. Оберіть інше</item>
+        <item quantity="many">Джерело не тягне: %1$d з\'єднань, %2$s з потрібних %3$s Мбіт/с. Оберіть інше</item>
+        <item quantity="other">Джерело не тягне: %1$d з\'єднання, %2$s з потрібних %3$s Мбіт/с. Оберіть інше</item>
+    </plurals>
+</resources>

@@ -48,15 +48,18 @@ class TvCatalogRepository @Inject constructor(
      * XMLTV, решта — Sweet.TV і MEGOGO. Лишаються лише ті, чий застосунок стоїть на приставці:
      * каналом, якого нічим відкрити, сторінка лише дратувала б (емулятор з польським Google TV).
      */
-    suspend fun catalog(): TvCatalog = withContext(Dispatchers.IO) {
+    /** [fromSnapshot] — D2: перший кадр ТБ Ефіру з останньої відповіді на диску; немає її — як завжди, з мережі. */
+    suspend fun catalog(fromSnapshot: Boolean = false): TvCatalog = withContext(Dispatchers.IO) {
         val base = server.baseUrl() ?: return@withContext TvCatalog(emptyList(), emptyList())
         // Країна — вибір людини, інакше системна; сервер знає PL, решті віддає типовий набір.
         // І мова: українською діаспорі за кордоном сервер дає українські канали, решті — свої або нічого.
         val locale = runCatching { settings.settings.first().locale }.getOrNull()
         val country = locale?.let { "?country=${it.country}&lang=${it.language}" }.orEmpty()
-        runCatching {
-            http("$base/api/tv-channels$country", TIMEOUT_MS) { parseTvCatalog(it.text()) }
-        }.onFailure { Log.w(TAG, "Каталог каналів недоступний", it) }
+        val url = "$base/api/tv-channels$country"
+        val saved = if (fromSnapshot) snapshots.read(url, SNAPSHOT_MAX_AGE_MS)?.let { runCatching { parseTvCatalog(it) }.getOrNull() } else null
+        (saved?.let { Result.success(it) } ?: runCatching {
+            http(url, TIMEOUT_MS) { c -> c.text().also { body -> snapshots.write(url, body) }.let(::parseTvCatalog) }
+        }).onFailure { Log.w(TAG, "Каталог каналів недоступний", it) }
             .getOrDefault(TvCatalog(emptyList(), emptyList()))
             .let { tv -> tv.copy(channels = tv.channels.filter { installed(it.link.packageName) }) }
     }
@@ -65,9 +68,12 @@ class TvCatalogRepository @Inject constructor(
     private fun installed(pkg: String): Boolean =
         pkg.isBlank() || runCatching { context.packageManager.getPackageInfo(pkg, 0); true }.getOrDefault(false)
 
+    private val snapshots = com.likhtar.home.core.data.DiskSnapshots(java.io.File(context.cacheDir, "tv-snapshots"))
+
     private companion object {
         const val TAG = "LikhtarTvCatalog"
         const val TIMEOUT_MS = 20_000
+        const val SNAPSHOT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000L
     }
 }
 

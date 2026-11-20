@@ -26,7 +26,18 @@ class BootReceiver : BroadcastReceiver() {
     @Inject
     lateinit var homeLauncherRepository: HomeLauncherRepository
 
+    @Inject
+    lateinit var keyService: com.likhtar.home.core.data.KeyServiceRestore
+
     override fun onReceive(context: Context, intent: Intent) {
+        // Оновили сам лаунчер: Android вимкнув нашу службу кнопок — повернути, якщо її не вимикали свідомо.
+        if (intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+            val pending = goAsync()
+            Thread { try { keyService.restoreIfDropped() } finally { pending.finish() } }.start()
+            return
+        }
+        // Лише справжнє завантаження: приймач не експортований, але порожній чи чужий intent — не привід.
+        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         // Оновлення телевізора вмикає вимкнене назад — домашній екран повертаємо собі (лише
         // якщо його брали через ADB телевізора; ключ уже дозволено, тож без питань на екрані).
         // ADB — мережа, тому не в головному потоці.

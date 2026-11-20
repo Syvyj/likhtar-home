@@ -88,6 +88,10 @@ fun MarkPanel(
     onDismiss: () -> Unit,
     /** false — відкрито довгим OK на картці: перше OK лише «відпустили кнопку». */
     armed: Boolean = true,
+    /** Довге OK на картці — меню дій (tvOS): «Відкрити» й «У список» над позначками. */
+    onOpen: (() -> Unit)? = null,
+    inList: Boolean? = null,
+    onToggleList: (() -> Unit)? = null,
 ) {
     var step by remember { mutableStateOf(MarkStep.ROOT) }
     // «Переглянуто» серіалу: спершу що саме, потім оцінка — обране тримаємо між кроками.
@@ -106,7 +110,7 @@ fun MarkPanel(
     ) {
         Text(
             text = when (step) {
-                MarkStep.ROOT -> stringResource(R.string.cinema_mark)
+                MarkStep.ROOT -> stringResource(if (onOpen != null) R.string.cinema_actions else R.string.cinema_mark)
                 MarkStep.WATCHED -> stringResource(R.string.cinema_mark_q_watched)
                 MarkStep.RATING -> stringResource(R.string.cinema_mark_q_rating)
                 MarkStep.SKIP -> stringResource(R.string.cinema_mark_q_skip)
@@ -130,6 +134,10 @@ fun MarkPanel(
                 add(MarkOptionSpec(icon, label, hint, onClick))
             when (step) {
                 MarkStep.ROOT -> {
+                    onOpen?.let { open -> option(null, stringResource(R.string.cinema_action_open), stringResource(R.string.cinema_action_open_hint)) { open() } }
+                    if (inList != null && onToggleList != null) {
+                        option(null, stringResource(if (inList) R.string.cinema_in_watchlist else R.string.cinema_add_to_watchlist), stringResource(if (inList) R.string.cinema_action_unlist_hint else R.string.cinema_action_list_hint)) { onToggleList() }
+                    }
                     if (mark != null) option(MarkIcon.CLEAR, stringResource(R.string.cinema_mark_clear), stringResource(R.string.cinema_mark_current, markState(mark).second.lowercase())) { onClear() }
                     option(MarkIcon.WATCHED, stringResource(R.string.cinema_mark_watched), stringResource(R.string.cinema_mark_watched_hint)) {
                         if (isTv) step = MarkStep.WATCHED else {
@@ -139,6 +147,10 @@ fun MarkPanel(
                     }
                     option(MarkIcon.SKIP, stringResource(R.string.cinema_mark_skip), stringResource(R.string.cinema_mark_skip_hint)) { step = MarkStep.SKIP }
                     option(MarkIcon.HIDE, stringResource(R.string.cinema_mark_hide), stringResource(R.string.cinema_mark_hide_hint)) { step = MarkStep.HIDE }
+                    // Трекер: кинутий серіал зникає з «Моїх серіалів», тижня й дзвіночка (позначка hide).
+                    if (isTv) option(MarkIcon.HIDE, stringResource(R.string.cinema_mark_drop), stringResource(R.string.cinema_mark_drop_hint)) {
+                        onChoice(MarkChoice("hide", reason = "title"))
+                    }
                 }
                 MarkStep.WATCHED -> {
                     option(null, stringResource(R.string.cinema_mark_whole_series), stringResource(R.string.cinema_mark_whole_series_hint)) {

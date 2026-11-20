@@ -46,32 +46,57 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class NewEpisodesState(val list: List<AiredEpisode> = emptyList(), val unseen: Int = 0)
+data class NewEpisodesState(
+    val list: List<AiredEpisode> = emptyList(),
+    val unseen: Int = 0,
+    /** C4: закладка з'явилась на сервісі чи отримала трейлер. */
+    val news: List<com.likhtar.home.core.catalog.TitleNews> = emptyList(),
+) {
+    val total: Int get() = list.size + news.size
+}
 
 @HiltViewModel
-class NewEpisodesViewModel @Inject constructor(private val source: NewEpisodes) : ViewModel() {
+class NewEpisodesViewModel @Inject constructor(
+    private val source: NewEpisodes,
+    private val bookmarks: com.likhtar.home.core.catalog.WatchlistNews,
+) : ViewModel() {
     private val list = MutableStateFlow<List<AiredEpisode>>(emptyList())
 
-    val state: StateFlow<NewEpisodesState> = combine(list, source.seen) { l, seen ->
-        NewEpisodesState(l, l.count { it.key !in seen })
+    val state: StateFlow<NewEpisodesState> = combine(list, bookmarks.news, source.seen) { l, news, seen ->
+        NewEpisodesState(l, l.count { it.key !in seen } + news.count { it.key !in seen }, news)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, NewEpisodesState())
 
     init {
-        // Приставка живе тижнями без перезапуску: перечитуємо раз на дві години (кеш там само).
+        // Приставка живе тижнями без перезапуску: перечитуємо раз на дві години (кеш там само) —
+        // і одразу, щойно змінилась позначка (кинули, «переглянуто до») чи закладки.
         viewModelScope.launch {
             while (true) {
+                val revision = com.likhtar.home.core.catalog.TitleMarksRevision.changedAt
                 runCatching { list.value = source.load() }
-                delay(REFRESH_MS)
+                // Закладки — раз на добу (сам check тримає інтервал), тут лише нагадування.
+                runCatching { bookmarks.check() }
+                val until = System.currentTimeMillis() + REFRESH_MS
+                while (System.currentTimeMillis() < until && com.likhtar.home.core.catalog.TitleMarksRevision.changedAt == revision) {
+                    delay(MARKS_POLL_MS)
+                }
+            }
+        }
+        viewModelScope.launch {
+            // Перше значення — те саме, що вже порахував цикл вище; реагуємо лише на зміни.
+            var first = true
+            source.bookmarkedShows.collect {
+                if (first) first = false else runCatching { list.value = source.load(force = true) }
             }
         }
     }
 
     fun markSeen() {
-        viewModelScope.launch { source.markSeen(list.value) }
+        viewModelScope.launch { source.markSeen(state.value.list.map { it.key }.toSet() + state.value.news.map { it.key }) }
     }
 
     private companion object {
         const val REFRESH_MS = 2 * 60 * 60 * 1000L + 60_000L
+        const val MARKS_POLL_MS = 3_000L
     }
 }
 
@@ -79,6 +104,7 @@ class NewEpisodesViewModel @Inject constructor(private val source: NewEpisodes) 
 @Composable
 fun NewEpisodesDialog(
     list: List<AiredEpisode>,
+    news: List<com.likhtar.home.core.catalog.TitleNews>,
     onOpen: (CatalogItem) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -118,6 +144,45 @@ fun NewEpisodesDialog(
                         }
                     }
                 }
+            }
+            items(news, key = { it.key }) { n ->
+                val line = when (n.kind) {
+                    com.likhtar.home.core.catalog.TitleNews.Kind.SERVICE -> stringResource(R.string.bell_news_service, n.label)
+                    com.likhtar.home.core.catalog.TitleNews.Kind.TRAILER -> stringResource(R.string.bell_news_trailer, n.label)
+                }
+                NewsRow(n.item, line, n.date, if (list.isEmpty() && n == news.first()) Modifier.focusRequester(first) else Modifier) { onOpen(n.item) }
+            }
+        }
+    }
+}
+
+/** Рядок новини закладки — той самий вигляд, що й серія: постер, назва, що сталось і коли. */
+@Composable
+private fun NewsRow(item: CatalogItem, line: String, date: String, modifier: Modifier, onClick: () -> Unit) {
+    FocusableSurface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().then(modifier),
+        shape = RoundedCornerShape(12.dp),
+        background = LikhtarColors.Surface,
+        focusedBackground = LikhtarColors.GlassActive,
+        focusedScale = 1.02f,
+    ) { focused ->
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(8.dp)) {
+            AsyncImage(
+                model = TmdbImages.posterThumb(item.posterPath),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.width(44.dp).aspectRatio(2f / 3f).clip(RoundedCornerShape(6.dp)),
+            )
+            Column {
+                Text(item.title, style = LikhtarType.TitleLead, color = if (focused) LikhtarColors.OnGlassActive else LikhtarColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    listOf(line, date.drop(5).split('-').reversed().joinToString(".")).filter { it.isNotBlank() }.joinToString(" · "),
+                    style = LikhtarType.Body1,
+                    color = if (focused) LikhtarColors.OnGlassActive else LikhtarColors.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

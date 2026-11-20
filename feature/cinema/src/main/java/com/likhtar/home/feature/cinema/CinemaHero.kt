@@ -154,7 +154,7 @@ internal fun SlideBackdrop(slide: CatalogItem?, forward: Boolean, art: String? =
 /** Скільки пливе кадр слайда: трохи довше за показ слайда, щоб рух не зупинявся на очах. */
 private const val SlideDriftMs = 12_000
 
-private val OverviewShadow = androidx.compose.ui.graphics.Shadow(
+internal val OverviewShadow = androidx.compose.ui.graphics.Shadow(
     color = Color.Black.copy(alpha = 0.8f),
     blurRadius = 6f,
 )
@@ -211,10 +211,10 @@ internal const val HeroSlideMs = 420
 private const val HeroTextDelayMs = 160
 
 /** Логотип героя: він і є назва, тому місця йому дається як назві, а не як підпису. */
-internal val HeroLogoHeight = 75.dp
+internal val HeroLogoHeight = 100.dp
 
 /** Скільки екрана віддано героєві: решта лишається під перший ряд, який має визирати. */
-private const val HeroFraction = 0.82f
+internal const val HeroFraction = 0.74f
 
 /**
  * Верх Кінозалу: один слайд на весь кадр.
@@ -244,6 +244,8 @@ internal fun CinemaHero(
     /** Рядок під назвою замість «★ рейтинг · рік · тип» — ТВ Ефір 2 пише там канал і час. */
     meta: ((CatalogItem) -> String)? = null,
     watchLabel: ((CatalogItem) -> String)? = null,
+    /** Підказка «↓ Більше добірок» праворуч на рівні крапок слайдів. */
+    moreHint: String? = null,
 ) {
     val inPool = pool.indexOf(item)
     // Мітка приходить окремим запитом, пізніше за слайд, а AnimatedContent запам'ятовує
@@ -251,10 +253,10 @@ internal fun CinemaHero(
     // з'являлось лише після зміни слайда. Стан, прочитаний усередині, — доходить.
     val ua by rememberUpdatedState(uaAudio)
 
-    // .hero прототипу: текстова колонка 860 px унизу ліворуч, 92 px від низу героя.
+    // .hero прототипу: текстова колонка 860 px унизу ліворуч.
     Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(HeroFraction)) {
         Column(
-            modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 32.dp).width(430.dp),
+            modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 4.dp).width(480.dp),
         ) {
             // Текст приходить після кадру: якщо пустити разом, він їде з картинкою й
             // читається як зсув сторінки, а не як зміна слайда.
@@ -274,7 +276,7 @@ internal fun CinemaHero(
                         height = HeroLogoHeight,
                         localTitle = true,
                         mark = titleMark,
-                        widthFraction = 0.72f,
+                        widthFraction = 0.86f,
                         fallbackStyle = androidx.compose.ui.text.TextStyle(
                             fontFamily = LikhtarType.Body,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
@@ -287,15 +289,17 @@ internal fun CinemaHero(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.padding(top = 13.dp),
+                        modifier = Modifier.padding(top = 11.dp),
                     ) {
                         Text(
                             text = meta?.invoke(shown) ?: itemMeta(shown, kindLabel),
                             style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium, fontSize = 12.sp),
                             color = LikhtarColors.TextDim,
                         )
-                        if (ua) VoiceBadge()
-                        shown.qualityLabel.takeIf { it.isNotEmpty() }?.let { QualityBadge(it) }
+                        // Один стиль плашок (контур), як на сторінці тайтлу: «УКР» — бурштином.
+                        if (ua) com.likhtar.home.core.designsystem.OutlineBadge(stringResource(R.string.cinema_badge_ukr), amber = true)
+                        shown.qualityLabel.split("·").map { it.trim() }.filter { it.isNotEmpty() }
+                            .forEach { com.likhtar.home.core.designsystem.OutlineBadge(it) }
                     }
                     // p: 26 px / 1.42, .9, 3 рядки, margin 18 px / 30 px.
                     Text(
@@ -304,7 +308,7 @@ internal fun CinemaHero(
                         color = LikhtarColors.TextPrimary.copy(alpha = 0.9f),
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 9.dp, bottom = 15.dp),
+                        modifier = Modifier.padding(top = 8.dp, bottom = 14.dp),
                     )
                 }
             }
@@ -337,6 +341,15 @@ internal fun CinemaHero(
             // позицію, якої немає.
             if (pool.size > 1 && inPool >= 0) HeroDots(count = pool.size, active = inPool)
         }
+        // «↓ Більше добірок» — на одному рівні з крапками, праворуч.
+        if (moreHint != null) {
+            Text(
+                text = moreHint,
+                style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp),
+                color = LikhtarColors.TextMuted,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 2.dp),
+            )
+        }
     }
 }
 
@@ -364,7 +377,10 @@ internal fun HeroDots(count: Int, active: Int) {
 }
 
 @Composable
-internal fun itemMeta(item: CatalogItem, kindLabel: String? = null): String = listOfNotNull(
+internal fun itemMeta(item: CatalogItem, kindLabel: String? = null): String = if (item.opens.isNotBlank()) {
+    // Слайд франшизи чи всесвіту: рік і «серіал» однієї з частин тут неправда.
+    stringResource(R.string.cinema_tab_franchise)
+} else listOfNotNull(
     item.rating.takeIf { it > 0 }?.let { String.format(java.util.Locale.US, "★ %.1f", it) },
     item.year.takeIf { it.isNotBlank() },
     // Підпис типу перевизначається з того ж міркування, що і в шапці рядів: у «Реаліті»

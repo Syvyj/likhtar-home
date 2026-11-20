@@ -49,18 +49,13 @@ fun Modifier.focusGlow(corner: Dp): Modifier {
 }
 
 
-/** Біле кільце 5 px прототипу (`box-shadow: 0 0 0 5px var(--white)`) — по краю картки у фокусі. */
+/**
+ * Єдине зовнішнє кільце фокуса тепер малює сам [FocusableSurface] (як на Головній) —
+ * лишаємо функцію порожньою, щоб не було подвійних рамок на картках.
+ */
 @Composable
-fun androidx.compose.foundation.layout.BoxScope.FocusRing(focused: Boolean, corner: Dp) {
-    if (focused) {
-        androidx.compose.foundation.layout.Box(
-            Modifier
-                .matchParentSize()
-                .border(2.5.dp, LikhtarColors.Paper, androidx.compose.foundation.shape.RoundedCornerShape(corner)),
-        )
-    }
-}
+fun androidx.compose.foundation.layout.BoxScope.FocusRing(@Suppress("UNUSED_PARAMETER") focused: Boolean, @Suppress("UNUSED_PARAMETER") corner: Dp) = Unit
 
-/** Скруглення карток прототипу: 18 px. */
-val ProtoCardCorner = 9.dp
+/** Скруглення карток сучасного прототипу: 12 dp. */
+val ProtoCardCorner = 12.dp
 

@@ -6,13 +6,23 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -40,9 +50,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import androidx.compose.runtime.compositionLocalOf
 import com.likhtar.home.core.model.LikhtarSection
@@ -77,11 +89,6 @@ val LocalAmbientIdle = compositionLocalOf { false }
  * щоб ↑ з першого рядка контенту приводило фокус саме на пункт поточного розділу.
  * [contentFocusRequester] замикає зв'язок у зворотний бік: ↓ з меню повертає фокус на контент.
  */
-/**
- * [weatherLabel] — рядок вигляду «Нд, 24 серпня · +16°» для Головної. Коли він заданий,
- * шапка перемикається в режим Головної: ховає «Головна» та «Застосунки» з навігації,
- * прибирає годинник і показує дату з погодою поруч із логотипом.
- */
 @Composable
 fun LikhtarTopMenu(
     current: LikhtarSection,
@@ -89,38 +96,45 @@ fun LikhtarTopMenu(
     menuFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
     contentFocusRequester: FocusRequester? = null,
-    weatherLabel: String? = null,
 ) {
     val isHome = current == LikhtarSection.HOME
-    // Меню — по центру, доки вміщається між логотипом і правим блоком; ні — зсувається вліво, а не
-    // наїжджає на годинник (сім розділів, дзвіночок і телефон разом на 1080p не вміщались).
-    androidx.compose.ui.layout.Layout(
+    val highContrast = LocalHighContrast.current
+    val pillBg = if (highContrast) LikhtarColors.SurfaceDeep else LikhtarColors.BlockFill.copy(alpha = 0.79f)
+    val pillBorder = if (highContrast) LikhtarColors.PillBorderHighContrast else LikhtarColors.PillBorder
+
+    Row(
         modifier = modifier
             .fillMaxWidth()
             .height(LikhtarDimens.TopMenuHeight)
-            .padding(horizontal = LikhtarDimens.ScreenPadding),
-        content = {
-        // Ліворуч: логотип та погода (на не-Головних екранах; на Головній це шапка лівої стрічки)
-        Box {
-            if (!isHome) BrandMark()
-        }
-
-        // Строго по центру — так само, як і в решті розділів. Прив'язка до лівого поля
-        // над віджетом Головної читалась як асиметрія, а не навмисний акцент.
+            .padding(
+                start = LikhtarDimens.ScreenPadding,
+                end = LikhtarDimens.ScreenPadding,
+                // Безпечна зона телевізора згори (Android TV 27 dp, tvOS 60 px): на 10 dp пігулки
+                // на частині телевізорів з'їдав overscan.
+                top = 26.dp,
+                bottom = 2.dp,
+            ),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Ліворуч (по лінії контенту): скляна пігулка розділів без логотипа й без «Home»
+        // (на Головну повертає Back, бренд живе в ряді на Головній).
         Row(
             modifier = Modifier
+                // Пігулка бере лише те, що лишив правий блок: тісно — прокручується до фокуса, а не
+                // насувається на годинник (Row(SpaceBetween) без ваги давав від'ємний проміжок).
+                .weight(1f, fill = false)
                 .clip(RoundedCornerShape(LikhtarDimens.CornerPill))
-                .background(LikhtarColors.PanelFloor.copy(alpha = 0.6f))
-                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(LikhtarDimens.CornerPill))
-                .padding(2.dp),
+                .background(pillBg)
+                .border(1.dp, pillBorder, RoundedCornerShape(LikhtarDimens.CornerPill))
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 6.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(1.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // На Головній ховаємо «Головна» та «Застосунки» — вони з'являються лише в розділах.
-            // Налаштування зі списку прибрані: вони живуть під іконкою-шестернею праворуч.
-            val hiddenOnHome = setOf(LikhtarSection.HOME, LikhtarSection.APPS, LikhtarSection.SETTINGS)
-            val hiddenAlways = setOf(LikhtarSection.SETTINGS)
-            val hidden = if (isHome) hiddenOnHome else hiddenAlways
+            // «Головна», «Реаліті», «Смарт дім» та «Налаштування» винесено з пігулки:
+            // на Головну веде Back, Реаліті живе рядом у Кінозалі, «Смарт дім» — бічна панель, а Налаштування — ⚙.
+            val hidden = setOf(LikhtarSection.HOME, LikhtarSection.REALITY, LikhtarSection.SMART_HOME, LikhtarSection.SETTINGS)
             val visibleSections = LocalVisibleSections.current.filterNot { it in hidden }
             visibleSections.forEachIndexed { index, section ->
                 val isFocusTarget = if (current in hidden) index == 0 else section == current
@@ -137,7 +151,7 @@ fun LikhtarTopMenu(
             }
         }
 
-        // Праворуч: статус мережі та налаштування
+        // Праворуч: блок у стилі Головної — годинник, погода, динамічні пігулки, шестерня.
         StatusBlock(
             current = current,
             onSelect = onSelect,
@@ -145,22 +159,6 @@ fun LikhtarTopMenu(
             contentFocusRequester = contentFocusRequester,
             showClock = !isHome,
         )
-        },
-    ) { measurables, constraints ->
-        val loose = constraints.copy(minWidth = 0, minHeight = 0)
-        val (brand, menu, status) = measurables.map { it.measure(loose) }
-        val width = constraints.maxWidth
-        val height = constraints.maxHeight
-        val gap = LikhtarDimens.TopMenuGap.roundToPx()
-        val centered = (width - menu.width) / 2
-        val rightmost = width - status.width - gap - menu.width
-        val leftmost = if (brand.width > 0) brand.width + gap else 0
-        val x = minOf(centered, rightmost).coerceAtLeast(leftmost)
-        layout(width, height) {
-            brand.place(0, (height - brand.height) / 2)
-            menu.place(x, (height - menu.height) / 2)
-            status.place(width - status.width, (height - status.height) / 2)
-        }
     }
 }
 
@@ -181,57 +179,184 @@ private fun StatusBlock(
             time = currentTime()
         }
     }
-
     val networkState = rememberNetworkState()
+    val highContrast = LocalHighContrast.current
+    val pillBg = if (highContrast) LikhtarColors.PillGlassHighContrast else LikhtarColors.PillGlass
+    val pillBorder = if (highContrast) LikhtarColors.PillBorderHighContrast else LikhtarColors.PillBorder
+    val weather = LocalWeatherChip.current
+    val tray = LocalNotificationsTray.current?.takeIf { it.count > 0 }
+    val bell = LocalNewEpisodesBell.current?.takeIf { it.total > 0 }
+    var open by remember { mutableStateOf(false) }
 
-    // Та сама темна пігулка, що й у меню: без підкладки час і мова тонули у світлому кадрі.
+    // Праворуч — лише годинник і ОДНА пігулка статусу (як в Apple TV: угорі вкладки, решта за
+    // однією кнопкою). Погода, «Мій дім», профіль, «Що грає», сповіщення, нові серії, телефон і
+    // налаштування — у спадному меню з неї. Блок вузький і сталий: пігулка розділів вміщається
+    // будь-якою мовою, а смуга не міняє ширини від того, що з'явилось сповіщення.
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier
-            .clip(RoundedCornerShape(LikhtarDimens.CornerPill))
-            .background(LikhtarColors.PanelFloor.copy(alpha = 0.71f))
-            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(LikhtarDimens.CornerPill))
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+        modifier = modifier,
     ) {
-        // На Головній годинник не показуємо: дата й час живуть у стрічці та шапці зліва.
         if (showClock) {
-            // Той самий кегль і колір, що в пунктів меню, — годинник має читатися як частина
-            // меню, а не як службовий підпис. Моноширинний JetBrains Mono тут замінено на Inter,
-            // тому вмикаємо табличні цифри: без них ширина рядка стрибає на кожній хвилині.
-            Text(
-                text = time,
-                style = MenuClock,
-                color = MenuInk,
-            )
-            Box(
+            Text(text = time, style = MenuClock, color = LikhtarColors.Ink)
+            Box(Modifier.width(1.dp).height(20.dp).background(LikhtarColors.GlassDivider))
+        }
+        if (networkState == NetworkState.DISCONNECTED) NetworkStatusIcon(state = networkState)
+        Box {
+            FocusableSurface(
+                onClick = { open = true },
                 modifier = Modifier
-                    .width(1.dp)
-                    .height(12.dp)
-                    .background(LikhtarColors.Border),
-            )
-        }
-        NetworkStatusIcon(state = networkState)
-        LocalNewEpisodesBell.current?.takeIf { it.total > 0 }?.let { bell ->
-            BellButton(bell, modifier = Modifier.focusDown(contentFocusRequester))
-        }
-        LocalPhoneDropAction.current?.let { open ->
-            PhoneDropButton(onClick = open, modifier = Modifier.focusDown(contentFocusRequester))
-        }
-        SettingsButton(
-            active = current == LikhtarSection.SETTINGS,
-            onSelect = { onSelect(LikhtarSection.SETTINGS) },
-            modifier = Modifier
-                .then(
-                    if (current == LikhtarSection.SETTINGS) {
-                        Modifier.focusRequester(menuFocusRequester)
-                    } else {
-                        Modifier
-                    },
+                    .height(36.dp)
+                    .then(if (current == LikhtarSection.SETTINGS) Modifier.focusRequester(menuFocusRequester) else Modifier)
+                    .focusDown(contentFocusRequester),
+                shape = RoundedCornerShape(LikhtarDimens.CornerPill),
+                background = pillBg,
+                focusedBackground = LikhtarColors.BorderStrong,
+                borderColor = pillBorder,
+                focusedScale = LikhtarDimens.ControlFocusScale,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.align(Alignment.Center).padding(horizontal = 12.dp),
+                ) {
+                    weather?.let { w ->
+                        LikhtarIcons.Sky(sky = w.sky, night = w.night, tint = LikhtarColors.Glow, size = 19.dp, weight = 1.2f)
+                        Text(text = w.temp, style = MenuClock, color = LikhtarColors.Ink, maxLines = 1)
+                    }
+                    // Є нове (сповіщення чи серії) — крапка, без цифр: цифри в меню.
+                    if (tray != null || (bell != null && bell.unseen > 0)) {
+                        Box(Modifier.size(7.dp).clip(CircleShape).background(LikhtarColors.Glow))
+                    }
+                    GearGlyph(LikhtarColors.Glow)
+                }
+            }
+            if (open) {
+                StatusDropdown(
+                    weather = weather,
+                    tray = tray,
+                    bell = bell,
+                    onSettings = { onSelect(LikhtarSection.SETTINGS) },
+                    onDismiss = { open = false },
                 )
-                .focusDown(contentFocusRequester),
-        )
+            }
+        }
     }
+}
+
+/**
+ * Спадне меню пігулки статусу. Popup з фокусом: Back закриває, фокус не тікає на екран позаду,
+ * після закриття система повертає його на пігулку.
+ */
+@Composable
+private fun StatusDropdown(
+    weather: WeatherChip?,
+    tray: NotificationsTray?,
+    bell: NewEpisodesBell?,
+    onSettings: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val first = remember { FocusRequester() }
+    val smart = LocalSmartHomeAction.current
+    val profile = LocalProfileChip.current
+    val playing = LocalNowPlaying.current
+    val phone = LocalPhoneDropAction.current
+    // Дія — і закрити меню: панелі й екрани відкриваються вже без нього.
+    fun act(block: () -> Unit): () -> Unit = { onDismiss(); block() }
+    androidx.compose.ui.window.Popup(
+        alignment = Alignment.TopEnd,
+        offset = androidx.compose.ui.unit.IntOffset(0, with(androidx.compose.ui.platform.LocalDensity.current) { 44.dp.roundToPx() }),
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.PopupProperties(focusable = true),
+    ) {
+        LaunchedEffect(Unit) { first.requestWithRetry() }
+        Column(
+            modifier = Modifier
+                .width(300.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(LikhtarColors.Panel)
+                .border(1.dp, LikhtarColors.PillBorder, RoundedCornerShape(18.dp))
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            var firstUsed = false
+            @Composable
+            fun item(text: String, trailing: String? = null, onClick: () -> Unit, onLongClick: (() -> Unit)? = null, icon: @Composable () -> Unit) {
+                val isFirst = !firstUsed
+                firstUsed = true
+                StatusRow(text, trailing, onClick, onLongClick, if (isFirst) Modifier.focusRequester(first) else Modifier, icon)
+            }
+            weather?.let { w ->
+                item(stringResource(R.string.ds_weather), w.temp, act(w.onOpen)) {
+                    LikhtarIcons.Sky(sky = w.sky, night = w.night, tint = LikhtarColors.Glow, size = 18.dp, weight = 1.2f)
+                }
+            }
+            smart?.let { open ->
+                item(stringResource(R.string.ds_my_home), onClick = act(open)) { StatusIcon(R.drawable.ic_solar_home_smile) }
+            }
+            playing?.let { np ->
+                val label = listOf(np.title, np.artist).filter { it.isNotBlank() }.joinToString(" · ")
+                // OK — пауза/грати, меню лишається; довге OK — відкрити застосунок.
+                item(label, if (np.playing) "❚❚" else "▶", np.onToggle, act(np.onOpen)) { StatusIcon(R.drawable.ic_solar_play) }
+            }
+            bell?.let { b ->
+                item(stringResource(R.string.ds_new_episodes), b.total.toString(), act(b.onOpen)) { StatusIcon(R.drawable.ic_solar_bell) }
+            }
+            tray?.let { t ->
+                item(stringResource(R.string.ds_notifications), t.count.toString(), act(t.onOpen)) { StatusIcon(R.drawable.ic_inbox) }
+            }
+            profile?.let { p ->
+                item(stringResource(R.string.ds_profile), p.name, act(p.onOpen)) {
+                    Text(p.name.take(1).uppercase(), style = MenuClock, color = LikhtarColors.Glow)
+                }
+            }
+            phone?.let { open ->
+                item(stringResource(R.string.ds_phone_drop), onClick = act(open)) { StatusIcon(R.drawable.ic_solar_phone) }
+            }
+            item(stringResource(R.string.ds_settings), onClick = act(onSettings)) { GearGlyph(LikhtarColors.Glow) }
+        }
+    }
+}
+
+@Composable
+private fun StatusRow(
+    text: String,
+    trailing: String?,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)?,
+    modifier: Modifier,
+    icon: @Composable () -> Unit,
+) {
+    FocusableSurface(
+        onClick = onClick,
+        onLongClick = onLongClick,
+        modifier = modifier.fillMaxWidth().height(46.dp),
+        shape = RoundedCornerShape(12.dp),
+        background = Color.Transparent,
+        focusedBackground = LikhtarColors.BorderStrong,
+        borderColor = Color.Transparent,
+        focusedScale = 1.02f,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+        ) {
+            Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) { icon() }
+            Text(text, style = LikhtarType.MenuItem, color = LikhtarColors.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            trailing?.let { Text(it, style = MenuClock, color = LikhtarColors.WarmMuted, maxLines = 1) }
+        }
+    }
+}
+
+@Composable
+private fun StatusIcon(icon: Int) {
+    Image(
+        painter = painterResource(icon),
+        contentDescription = null,
+        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(LikhtarColors.Glow),
+        modifier = Modifier.size(18.dp),
+    )
 }
 
 private enum class NetworkState { WIFI, ETHERNET, CELLULAR, DISCONNECTED }
@@ -375,45 +500,42 @@ private fun NetworkStatusIcon(state: NetworkState, modifier: Modifier = Modifier
  * Шестерня намальована вручну: заводити material-icons заради однієї іконки — це залежність
  * на кільце й вісім зубців.
  */
+/** Погода в правому блоці шапки — як на Головній. */
+data class WeatherChip(
+    val temp: String,
+    val sky: com.likhtar.home.core.model.Sky,
+    val night: Boolean,
+    val onOpen: () -> Unit,
+)
+
+val LocalWeatherChip = androidx.compose.runtime.compositionLocalOf<WeatherChip?> { null }
+
+
+/** Відкриття бічної панелі «Мій дім» поверх будь-якого розділу. */
+val LocalSmartHomeAction = androidx.compose.runtime.staticCompositionLocalOf<(() -> Unit)?> { null }
+
+/** Шестерня, намальована вручну: заводити material-icons заради однієї іконки — зайва залежність. */
 @Composable
-private fun SettingsButton(active: Boolean, onSelect: () -> Unit, modifier: Modifier = Modifier) {
-    FocusableSurface(
-        onClick = onSelect,
-        modifier = modifier,
-        shape = RoundedCornerShape(LikhtarDimens.CornerPill),
-        background = if (active) LikhtarColors.Glass else Color.Transparent,
-        focusedBackground = LikhtarColors.GlassActive,
-        borderColor = Color.Transparent,
-        focusedScale = LikhtarDimens.ControlFocusScale,
-    ) { focused ->
-        val ink = if (focused) LikhtarColors.OnGlassActive else MenuInk
-        Canvas(modifier = Modifier.size(16.dp)) {
-            val s = size.minDimension
-            val center = Offset(size.width / 2f, size.height / 2f)
-            // Зубці — короткі прямокутники, що сидять НА кільці, а не промені, які від нього
-            // відходять: розділені промені читаються як сонце, і саме так виглядала перша
-            // версія. Отвір усередині дає товсте кільце, тому шар із BlendMode.Clear не
-            // потрібен — на приставці це був би зайвий offscreen-буфер.
-            val ring = s * 0.25f
-            val ringW = s * 0.13f
-            val toothW = s * 0.12f
-            val toothH = s * 0.17f
-            // Зубець сидить центром на зовнішньому краї кільця, а не на його осьовій лінії:
-            // інакше він коротший за товщину кільця й тоне в ньому — уся іконка стає
-            // суцільним бубликом. Саме це й вийшло з першого разу.
-            val toothCenter = ring + ringW / 2f
-            repeat(8) { index ->
-                rotate(degrees = index * 45f, pivot = center) {
-                    drawRoundRect(
-                        color = ink,
-                        topLeft = Offset(center.x - toothW / 2f, center.y - toothCenter - toothH / 2f),
-                        size = Size(toothW, toothH),
-                        cornerRadius = CornerRadius(toothW * 0.35f),
-                    )
-                }
+private fun GearGlyph(ink: Color) {
+    Canvas(modifier = Modifier.size(18.dp)) {
+        val s = size.minDimension
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val ring = s * 0.25f
+        val ringW = s * 0.13f
+        val toothW = s * 0.12f
+        val toothH = s * 0.17f
+        val toothCenter = ring + ringW / 2f
+        repeat(8) { index ->
+            rotate(degrees = index * 45f, pivot = center) {
+                drawRoundRect(
+                    color = ink,
+                    topLeft = Offset(center.x - toothW / 2f, center.y - toothCenter - toothH / 2f),
+                    size = Size(toothW, toothH),
+                    cornerRadius = CornerRadius(toothW * 0.35f),
+                )
             }
-            drawCircle(color = ink, radius = ring, center = center, style = Stroke(width = ringW))
         }
+        drawCircle(color = ink, radius = ring, center = center, style = Stroke(width = ringW))
     }
 }
 
@@ -426,68 +548,38 @@ val LocalPhoneDropAction = androidx.compose.runtime.staticCompositionLocalOf<(()
 /** Дзвіночок «Нові серії»: [total] — скільки нових, [unseen] — ще не бачених (цифра на значку). */
 data class NewEpisodesBell(val total: Int, val unseen: Int, val onOpen: () -> Unit)
 
+/**
+ * «Що грає» — музика чи подкаст у фоні (free-my-tv, lounge): OK — пауза/грати, довге OK —
+ * відкрити застосунок. [playing] — що робить OK: грає → значок паузи.
+ */
+data class NowPlayingChip(
+    val title: String,
+    val artist: String,
+    val playing: Boolean,
+    val onToggle: () -> Unit,
+    val onOpen: () -> Unit,
+)
+
+val LocalNowPlaying = androidx.compose.runtime.compositionLocalOf<NowPlayingChip?> { null }
+
+/** «Хто дивиться» (Nottilo «Chi guarda»): ім'я активного профілю, OK — панель профілів. */
+data class ProfileChip(val name: String, val onOpen: () -> Unit)
+
+val LocalProfileChip = androidx.compose.runtime.compositionLocalOf<ProfileChip?> { null }
+
+/** Сповіщення Android (lounge): [count] — скільки зараз у панелі; OK — бічна панель. */
+data class NotificationsTray(val count: Int, val onOpen: () -> Unit)
+
+val LocalNotificationsTray = androidx.compose.runtime.compositionLocalOf<NotificationsTray?> { null }
+
 val LocalNewEpisodesBell = androidx.compose.runtime.compositionLocalOf<NewEpisodesBell?> { null }
-
-@Composable
-private fun BellButton(bell: NewEpisodesBell, modifier: Modifier = Modifier) {
-    FocusableSurface(
-        onClick = bell.onOpen,
-        modifier = modifier,
-        shape = RoundedCornerShape(LikhtarDimens.CornerPill),
-        background = Color.Transparent,
-        focusedBackground = LikhtarColors.GlassActive,
-        borderColor = Color.Transparent,
-        focusedScale = LikhtarDimens.ControlFocusScale,
-    ) { focused ->
-        // Поля всередині: з цифрою пігулка фокуса ширша за значок, і без них «2» липне до краю.
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
-            modifier = Modifier.padding(horizontal = if (bell.unseen > 0) 8.dp else 0.dp),
-        ) {
-            androidx.compose.foundation.Image(
-                painter = androidx.compose.ui.res.painterResource(R.drawable.ic_solar_bell),
-                contentDescription = androidx.compose.ui.res.stringResource(R.string.ds_new_episodes),
-                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(if (focused) LikhtarColors.OnGlassActive else MenuInk),
-                modifier = Modifier.size(16.dp),
-            )
-            if (bell.unseen > 0) {
-                Text(
-                    text = bell.unseen.toString(),
-                    style = MenuClock,
-                    color = if (focused) LikhtarColors.OnGlassActive else LikhtarColors.Glow,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PhoneDropButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    FocusableSurface(
-        onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(LikhtarDimens.CornerPill),
-        background = Color.Transparent,
-        focusedBackground = LikhtarColors.GlassActive,
-        borderColor = Color.Transparent,
-        focusedScale = LikhtarDimens.ControlFocusScale,
-    ) { focused ->
-        androidx.compose.foundation.Image(
-            painter = androidx.compose.ui.res.painterResource(R.drawable.ic_solar_phone),
-            contentDescription = androidx.compose.ui.res.stringResource(R.string.ds_phone_drop),
-            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(if (focused) LikhtarColors.OnGlassActive else MenuInk),
-            modifier = Modifier.size(16.dp),
-        )
-    }
-}
 
 private const val CLOCK_TICK_MS = 20_000L
 
 /** Колір неактивного пункту меню — його ж носять годинник і шестерня. */
-private val MenuInk = LikhtarColors.ChipInk.copy(alpha = 0.84f)
+private val MenuInk = LikhtarColors.ChipInk.copy(alpha = 0.88f)
 
-private val MenuClock = LikhtarType.MenuItem.copy(fontFeatureSettings = "tnum")
+private val MenuClock = LikhtarType.MenuItem.copy(fontSize = 15.5.sp, fontFeatureSettings = "tnum")
 
 private fun currentTime(): String = clockTime()
 
@@ -514,24 +606,26 @@ private fun MenuItem(
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Біле — це курсор, а не «поточний розділ». Раніше активний пункт теж був білим, і
-    // на екрані з'являлися дві білі пігулки одночасно; плюс кільце фокуса поверх білого
-    // читалося сірим обідком. Тепер активний — скляна пігулка, сфокусований — матово-біла,
-    // рівно як картки в каталогах і плитки доку.
+    // Активний розділ — тепла біла пігулка (#FFFAF2) з темним текстом, добре помітна з 3 м;
+    // сфокусований інший розділ — тепла підкладка #49433A + біле кільце фокуса зовні.
     FocusableSurface(
         onClick = onSelect,
         modifier = modifier,
         shape = RoundedCornerShape(LikhtarDimens.CornerPill),
-        background = if (active) LikhtarColors.Glass else Color.Transparent,
-        focusedBackground = LikhtarColors.GlassActive,
+        background = if (active) LikhtarColors.GlassActive else Color.Transparent,
+        focusedBackground = if (active) LikhtarColors.GlassActive else LikhtarColors.BorderStrong,
         borderColor = Color.Transparent,
-        focusedScale = LikhtarDimens.ControlFocusScale,
+        focusedScale = 1.02f,
     ) { focused ->
         Text(
             text = stringResource(section.titleRes),
             style = LikhtarType.MenuItem,
-            color = if (focused) LikhtarColors.OnGlassActive else MenuInk,
-            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+            color = when {
+                active -> LikhtarColors.OnGlassActive
+                focused -> LikhtarColors.GlassActive
+                else -> LikhtarColors.WarmInkSoft
+            },
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
         )
     }
 }

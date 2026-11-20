@@ -7,6 +7,12 @@ import androidx.compose.ui.graphics.Color
  * акцент приведено до бренд-бірюзового #00B8D4.
  */
 object LikhtarColors {
+    /** Підкладка годинника заставки й тінь її тексту — читаються на будь-якому кадрі. */
+    val ScreensaverPlate = Color(0xB3151310)
+    val TextShadow = Color(0xB3000000)
+    /** Затемнення під «Готуємо…» поверх кадру тайтла. */
+    val PreparingScrim = Color(0x990F0D0B)
+
     // Графіт, а не майже чорне #0A0D0F: на ньому темні постери й кадри зливались із тлом,
     // і весь лаунчер виглядав «надто темним».
     val Background = Color(0xFF27231E)
@@ -44,8 +50,8 @@ object LikhtarColors {
     val FocusEdge = Color(0x59FFFFFF)
 
     /**
-     * Суцільні панелі (Налаштування, картки ТВ Ефіру) — та сама тепла гама, що й тло.
-     * Колись бірюзові; світлота збережена.
+     * Суцільні панелі (Налаштування, картки ТВ Ефіру) — та сама тепла гама, що й тло
+     *. Колись бірюзові; світлота збережена.
      */
     val PanelFloor = Color(0xFF1A1815)
     val Panel = Color(0xFF24211C)
@@ -170,4 +176,38 @@ object LikhtarColors {
     val TileOrange = Color(0xFFFB923C)
     val TileRed = Color(0xFFF87171)
     val TileBlue = Color(0xFF60A5FA)
+
+    /** Тепла палітра редизайну (шапка, пігулки, панелі, вторинний текст). */
+    val WarmInkSoft = Color(0xFFE8E4DF)
+    val WarmInkBright = Color(0xFFE6DFD5)
+    val WarmSand = Color(0xFFD9D2C7)
+    val WarmStone = Color(0xFFC9C2B8)
+    val WarmMuted = Color(0xFFAAA49C)
+    val WarmSubtle = Color(0xFF6D665C)
+    val WarmGold = Color(0xFFF2C14E)
+    val WarmGoldSoft = Color(0xFFC7AE7C)
+    val WarmCream = Color(0xFFF6E7C8)
+    val PillGlass = Color(0xC9302C25)
+    val PillGlassHighContrast = Color(0xFF2B2721)
+    val PillBorder = Color(0x20FFFFFF)
+    val PillBorderHighContrast = Color(0x66FFFFFF)
+    val GlassBorderStrong = Color(0x29FFFFFF)
+    val GlassDivider = Color(0x18FFFFFF)
+    val SurfaceDeep = Color(0xFF181613)
+    val SurfaceSoft = Color(0xFF2C2925)
+    val SurfaceElevated = Color(0xFF3A352F)
+    val BorderMuted = Color(0xFF5B544B)
+    val SwitchOff = Color(0xFF625E58)
+    val DangerMuted = Color(0xFFFF8C82)
+    val ScrimPanel = Color(0xF024211C)
+    val ScrimDeep = Color(0xB3151310)
+    val HeroGlowWarm = Color(0xFF403628)
+    val HeroGlowGames = Color(0xFF424333)
+    val HeroGlowApps = Color(0xFF40382E)
+    val HeroGlowCalendar = Color(0xFF3E3428)
+    val HeroGlowLive = Color(0xFF42372A)
+    val SkeletonBase = Color(0xFF2B2721)
+    val SkeletonHighlight = Color(0xFF39332B)
+    val SkeletonAccentBase = Color(0xFF332E26)
+    val SkeletonAccentHighlight = Color(0xFF443D33)
 }

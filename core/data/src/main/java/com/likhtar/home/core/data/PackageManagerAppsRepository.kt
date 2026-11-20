@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
+import androidx.core.net.toUri
 
 /**
  * Реальний список застосунків.
@@ -87,7 +88,8 @@ class PackageManagerAppsRepository @Inject constructor(
             addAction(Intent.ACTION_PACKAGE_CHANGED)
             addDataScheme("package")
         }
-        context.registerReceiver(receiver, filter)
+        // Системні PACKAGE_* доходять і до неекспортованого приймача; від інших застосунків — ні.
+        androidx.core.content.ContextCompat.registerReceiver(context, receiver, filter, androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
         awaitClose { context.unregisterReceiver(receiver) }
     }
 
@@ -169,8 +171,8 @@ class PackageManagerAppsRepository @Inject constructor(
             )
             return true
         }
-        // Картка TMDB («Відкрити будь-де») — без CLEAR_TASK: застосунок, що знає такі посилання
-        // (сторонні каталоги), бере їх у onNewIntent, а свіже завдання перезапускало його з нуля, і він
+        // Картка TMDB («Відкрити будь-де») — без CLEAR_TASK: застосунок, що знає такі посилання,
+        // бере їх у onNewIntent, а свіже завдання перезапускало його з нуля, і він
         // губив картку — відкривав головну або взагалі інший тайтл.
         val tmdbCard = parsed.data?.host?.endsWith("themoviedb.org") == true
         val intent = parsed.addFlags(if (tmdbCard) Intent.FLAG_ACTIVITY_NEW_TASK else Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
@@ -181,10 +183,11 @@ class PackageManagerAppsRepository @Inject constructor(
         if (target == NETFLIX) intent.putExtra("source", "30")
         val startedAt = SystemClock.uptimeMillis()
         context.startActivity(intent)
-        // Застосунок на веб-основі з холодного старту вантажиться секунд десять, показує свою
-        // головну, а картку губить. Повтор, коли він уже готовий, відкриває саме тайтл. Живому —
-        // без повтору: друга картка лягла б поверх першої, і «Назад» показував би ту саму.
-        // Чужі процеси Android не показує, тож холодний пізнаємо за швидкістю: наш екран
+        // Холодний веб-застосунок вантажиться секунд десять і показує свою головну, а картку
+        // губить. Повтор, коли вона вже готова, відкриває саме тайтл (перевірено на приставці:
+        // на 8-й секунді ще головна, повтор на 12-й — уже тайтл). Теплій — без
+        // повтору: друга картка лягла б поверх першої, і «Назад» показував би ту саму.
+        // Чужі процеси Android не показує, тож холодну пізнаємо за швидкістю: наш екран
         // ховається, коли застосунок намалював свій. Живий — ~0,6 с, холодний — ~1,5 с.
         if (tmdbCard) {
             val again = Intent(intent)
@@ -233,7 +236,7 @@ class PackageManagerAppsRepository @Inject constructor(
 
     override fun openVideo(uri: String, packageName: String?, mime: String): Boolean = runCatching {
         val view = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(Uri.parse(uri), mime)
+            setDataAndType(uri.toUri(), mime)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         // Обраний плеєр може не приймати саме цей mime, і тоді пінити його — це гарантований
@@ -273,7 +276,7 @@ class PackageManagerAppsRepository @Inject constructor(
     }.onFailure { Log.w(TAG, "Пошук у $packageName не вдався", it) }.getOrDefault(false)
 
     override fun openLink(url: String, packageName: String): Boolean {
-        val uri = Uri.parse(url)
+        val uri = url.toUri()
         // Sweet.TV (3.57.3): посилання каналу, що приходить у вже відкритий
         // екран ТБ, він ігнорує — навігація в той самий екран нічого не робить, і лишається
         // попередній канал. А з будь-якого іншого екрана перемикає. Тож спершу крок на картку
@@ -283,7 +286,7 @@ class PackageManagerAppsRepository @Inject constructor(
         // не рятує: живий процес губить посилання, поки активність перестворюється.
         // Перевірено на приставці: і живий Sweet.TV на іншому каналі, і вбитий.
         if (packageName == SWEET_TV && uri.scheme == "sweettv" && uri.host == "channel") {
-            val hop = Intent(Intent.ACTION_VIEW, Uri.parse("sweettv://movie/1"))
+            val hop = Intent(Intent.ACTION_VIEW, "sweettv://movie/1".toUri())
                 .setPackage(packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             val channel = Intent(Intent.ACTION_VIEW, uri)
                 .setPackage(packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -360,7 +363,7 @@ class PackageManagerAppsRepository @Inject constructor(
         // На Google TV ACTION_DELETE часто резолвиться в нікуди, хоча Package Installer
         // приймає саме ACTION_UNINSTALL_PACKAGE. Явно перевіряємо обробник до запуску,
         // тому UI більше не показує успіх, коли системний діалог навіть не відкрився.
-        val uri = Uri.parse("package:$packageName")
+        val uri = "package:$packageName".toUri()
         val intent = Intent(Intent.ACTION_UNINSTALL_PACKAGE, uri)
             .putExtra(Intent.EXTRA_RETURN_RESULT, true)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -370,7 +373,7 @@ class PackageManagerAppsRepository @Inject constructor(
     }.onFailure { Log.w(TAG, "Не вдалося відкрити видалення $packageName", it) }.getOrDefault(false)
 
     override fun openAppInfo(packageName: String): Boolean = runCatching {
-        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
+        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri())
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         checkNotNull(intent.resolveActivity(packageManager)) { "Сторінки застосунку в системі немає" }
         context.startActivity(intent)
@@ -433,6 +436,8 @@ class PackageManagerAppsRepository @Inject constructor(
                 ApplicationInfo.CATEGORY_NEWS,
                 ApplicationInfo.CATEGORY_MAPS,
                 -> return AppCategory.TOOLS
+                // Решта (зображення, доступність, без категорії) — розбираємо за назвою пакета нижче.
+                ApplicationInfo.CATEGORY_IMAGE, ApplicationInfo.CATEGORY_ACCESSIBILITY, ApplicationInfo.CATEGORY_UNDEFINED -> Unit
             }
         }
         @Suppress("DEPRECATION")
@@ -489,13 +494,13 @@ class PackageManagerAppsRepository @Inject constructor(
 
         /** Скільки MEGOGO на холодному старті проходить вибір профілю. */
         const val MEGOGO_RETRY_MS = 4000L
-        /** Скільки холодний застосунок вантажиться до готовності прийняти картку. */
+        /** Скільки холодний веб-застосунок вантажиться до готовності прийняти картку. */
         const val COLD_CARD_RETRY_MS = 12_000L
         /** Довше за це застосунок показувався — стартував з нуля (живий ~0,6 с, холодний ~1,5 с). */
         const val COLD_START_MS = 1000L
 
         /** Будь-яке відео-посилання: потрібне лише щоб система назвала своїх обробників. */
-        val SAMPLE_VIDEO: Uri = Uri.parse("http://likhtar.local/sample.mp4")
+        val SAMPLE_VIDEO: Uri = "http://likhtar.local/sample.mp4".toUri()
 
 
         val VIDEO_KEYWORDS = listOf(

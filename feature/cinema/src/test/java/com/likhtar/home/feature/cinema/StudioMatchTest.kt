@@ -5,7 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Варіанти взято з бази: 177 рядків роздач пишуть студію чотирма способами. */
+/** Варіанти взято з бази: 177 рядків бази пишуть студію чотирма способами. */
 class StudioMatchTest {
     @Test fun `написання студії не ховає доріжку`() {
         listOf("DniproFilm", "Dniprofilm", "Dniprofilm [Режисерська версія]", "DniproFlm")
@@ -22,8 +22,8 @@ class StudioMatchTest {
 class VoiceRankTest {
     @Test fun `недавня озвучка випереджає решту`() {
         val recent = listOf("DniproFilm", "Дубляж")
-        assertEquals(0, voiceRank("🇺🇦 1080p · Dniprofilm · Торент", recent))
-        assertEquals(1, voiceRank("🇺🇦 2160p · Дубляж · Торент", recent))
+        assertEquals(0, voiceRank("🇺🇦 1080p · Dniprofilm · Джерело", recent))
+        assertEquals(1, voiceRank("🇺🇦 2160p · Дубляж · Джерело", recent))
         assertEquals(2, voiceRank("🇺🇦 1080p · Джерело", recent))
     }
 

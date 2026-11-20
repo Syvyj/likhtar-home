@@ -14,6 +14,8 @@ import javax.inject.Singleton
  * ходить у парі з `profile`. Порожній рядок можливий на дивних прошивках — сервер тоді
  * просто не знатиме пристрою, і це краще, ніж вигадувати випадковий id щозапуску.
  */
+// ANDROID_ID свідомо: свій для кожного ключа підпису, переживає перевстановлення — сервер упізнає приставку.
+@android.annotation.SuppressLint("HardwareIds")
 @Singleton
 class DeviceId @Inject constructor(
     @ApplicationContext private val context: Context,

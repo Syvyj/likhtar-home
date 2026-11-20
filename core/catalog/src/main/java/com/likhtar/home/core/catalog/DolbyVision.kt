@@ -5,14 +5,16 @@ import android.media.MediaCodecList
 import android.media.MediaFormat
 
 /**
- * Чи тягне пристрій Dolby Vision роздач: профіль 8 (dvhe.08 — HEVC з HDR10-основою, ним
+ * Чи тягне пристрій Dolby Vision: профіль 8 (dvhe.08 — HEVC з HDR10-основою, ним
  * ідуть майже всі 4K WEB-DL) у 4K24. Перевіряємо саме профіль і рівень, а не «є декодер
  * DV»: на деяких приставках декодери DV є, але dvhe.08.06 вони не беруть (лог Just+:
  * «NoSupport dvhe.08.06»), і 4K DV «Людини-павука» показував темний екран.
  *
- * Не тягне — DV-роздачі йдуть у кінець (bestFirstKey) і сервер теж ставить їх останніми
+ * Не тягне — DV-варіанти йдуть у кінець (bestFirstKey) і сервер теж ставить їх останніми
  * (`nodv=1` у /api/play). Непідтримуваний профіль пропускаємо.
  */
+// Константи профілю DV вбудовуються під час збирання; на прошивках до API 27 з DV-декодером вони ті самі.
+@android.annotation.SuppressLint("InlinedApi")
 object DolbyVision {
     val supported: Boolean by lazy {
         runCatching {

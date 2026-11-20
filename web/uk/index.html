@@ -17,7 +17,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
 <link rel="apple-touch-icon" href="../assets/icon-180.png">
 <link rel="preload" href="../fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../style.css?v=f14757ba">
+<link rel="stylesheet" href="../style.css?v=c0672aa3">
 <script>document.documentElement.classList.add("js")</script>
 </head>
 <body>
@@ -54,13 +54,13 @@
   <div class="hero-copy">
     <p class="eyebrow">Домашній екран для будь-якого телевізора чи приставки з Android TV або Google TV</p>
     <h1 id="hero-title" class="split">Спершу кіно. <em>Застосунки потім.</em></h1>
-    <p class="lead">Увімкніть телевізор, оберіть настрій і натисніть OK. Фільми, канали й застосунки — в одному спокійному домашньому екрані.</p>
+    <p class="lead">Увімкніть телевізор, оберіть настрій і натисніть OK. Без спонсорських банерів, стеження й акаунта — лише фільм на вечір, ваші ігри, канали й дім.</p>
     <div class="cta">
       <a class="btn" href="https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-home.apk" data-chime>Завантажити APK</a>
       <a class="btn btn-ghost" href="https://github.com/Syvyj/likhtar-home">Код на GitHub</a>
     </div>
     <ul class="facts" aria-label="Коротко">
-      <li>Телевізори й приставки</li><li>Android 7.0+</li><li>6.4 МБ</li><li>GPL-3.0</li><li>Без root</li><li>Без комп'ютера</li>
+      <li>Телевізори й приставки</li><li>Android 7.0+</li><li>8 МБ</li><li>GPL-3.0</li><li>Без root</li><li>Без комп'ютера</li>
     </ul>
   </div>
   <button class="lantern-hit" type="button" aria-label="Засвітити ліхтар" data-lantern></button>
@@ -85,8 +85,12 @@
       <figcaption><b>Кінозал</b>Новинки й тренди у вашій країні, кожен сервіс — на своїй сторінці.</figcaption>
     </figure>
     <figure class="frame">
+      <img src="../assets/18-games.webp" alt="Ігри: каталог хмарних ігор, «Мої ігри» першими" width="1440" height="810" loading="lazy" decoding="async">
+      <figcaption><b>Ігри</b>Де пограти, а не лише що подивитись: понад 2900 хмарних ігор і ваші образи.</figcaption>
+    </figure>
+    <figure class="frame">
       <img src="../assets/06-likhtaryk.webp" alt="Ліхтарик: формат, настрій і ряд порад" width="1440" height="810" loading="lazy" decoding="async">
-      <figcaption><b>Ліхтарик</b>Оберіть формат і настрій — отримайте добірку фільмів і серіалів на вечір.</figcaption>
+      <figcaption><b>Ліхтарик</b>Ваші серіали, серії цього тижня й добірка на вечір за форматом і настроєм.</figcaption>
     </figure>
   </div>
 </section>
@@ -119,15 +123,15 @@
     <p class="hint"><kbd>←</kbd> <kbd>→</kbd> Спробуйте керувати стрілками.</p>
   </div>
   <div class="channels" role="tablist" aria-label="Розділи">
-    <button role="tab" type="button" aria-selected="true" data-shot="06-likhtaryk" data-text="Оберіть формат і настрій — отримайте добірку фільмів і серіалів на вечір, без того, що вже бачили.">Ліхтарик</button>
+    <button role="tab" type="button" aria-selected="true" data-shot="06-likhtaryk" data-text="Ваші серіали й що виходить цього тижня, повний календар прем'єр і добірка на вечір за форматом і настроєм.">Ліхтарик</button>
     <button role="tab" type="button" aria-selected="false" data-shot="02-cinema-hero" data-text="Новинки й тренди у вашій країні, жанри й сторінка кожного стрімінгу.">Кінозал</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="18-games" data-text="Де пограти, а не лише що подивитись: понад 2900 ігор Boosteroid, GeForce NOW і Xbox Cloud — безкоштовне й Game Pass першими, ваші образи ігор у тих самих рядах.">Ігри</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="19-game-page" data-text="У кожної гри своя сторінка: який сервіс її транслює і з якого магазину, підтримка геймпада, кадри й трейлер.">Сторінка гри</button>
     <button role="tab" type="button" aria-selected="false" data-shot="08-title" data-text="Одне натискання відкриває саме цей фільм у Netflix та інших ваших застосунках, а не їхню головну. А ще серії, трейлери, схоже й уся франшиза по порядку.">Сторінка фільму</button>
     <button role="tab" type="button" aria-selected="false" data-shot="09-live-tv" data-text="Плейлист вашого провайдера — сіткою каналів із логотипами, групами й тим, що йде зараз.">ТВ Ефір</button>
     <button role="tab" type="button" aria-selected="false" data-shot="10-reality" data-text="Шоу, про які всі говорять, — на одній полиці, а не в п'яти застосунках.">Реаліті</button>
     <button role="tab" type="button" aria-selected="false" data-shot="16-smart-home" data-text="Кімнати вашого Home Assistant на великому екрані — світло, жалюзі, чайник — пультом чи голосом.">Розумний дім</button>
     <button role="tab" type="button" aria-selected="false" data-shot="17-send-from-phone" data-text="Скануєте QR і кидаєте на телевізор фільм, фото, APK чи посилання — без застосунку, кабелю й хмари.">З телефона</button>
-    <button role="tab" type="button" aria-selected="false" data-shot="18-games" data-text="Boosteroid, Xbox Cloud, GeForce NOW і PS Remote Play в одному ряду, а ваші образи ігор з обкладинками запускаються одним OK. Вмикається в Налаштуваннях.">Ігри</button>
-    <button role="tab" type="button" aria-selected="false" data-shot="11-apps" data-text="Ваші застосунки — вже розкладені, а що нового в кожному сервісі — видно на плитці.">Застосунки</button>
   </div>
   <div class="tv">
     <div class="tv-screen">
@@ -179,7 +183,7 @@
   <ol class="steps">
     <li><span class="step-n">01</span><h3>Встановіть і роздивіться</h3><p>Відкрийте як звичайний застосунок. Доки не попросите, на телевізорі нічого не зміниться.</p></li>
     <li><span class="step-n">02</span><h3>Зробіть домашнім екраном</h3><p>Одне підтвердження на телевізорі. Стоковий лаунчер вимикається, а не видаляється, — і спершу перевіряється ваш Wi‑Fi.</p></li>
-    <li><span class="step-n">03</span><h3>Передумали?</h3><p><i>Налаштування → Пульт і запуск → Повернути стоковий домашній екран.</i> А якщо Likhtar упаде тричі за п'ять хвилин, він сам поверне домашній екран. <b>Видаляєте? Спершу натисніть цю кнопку</b> — інакше телевізор лишиться без домашнього екрана (<a href="https://github.com/Syvyj/likhtar-home/blob/main/README.uk.md#видалили-й-бачите-чорний-екран">що робити з чорним екраном</a>).</p></li>
+    <li><span class="step-n">03</span><h3>Передумали?</h3><p><i>Налаштування → Головна → Кнопка HOME → Повернути стоковий домашній екран.</i> А якщо Likhtar упаде тричі за п'ять хвилин, він сам поверне домашній екран. <b>Видаляєте? Спершу натисніть цю кнопку</b> — інакше телевізор лишиться без домашнього екрана (<a href="https://github.com/Syvyj/likhtar-home/blob/main/README.uk.md#видалили-й-бачите-чорний-екран">що робити з чорним екраном</a>).</p></li>
   </ol>
 </section>
 
@@ -204,6 +208,7 @@
     <li><time>11 серп</time><p>Плагін упирається в стіни чужого застосунку. Починається нативний лаунчер.</p></li>
     <li><time>Вер</time><p>Реаліті, сторінки фільмів, франшизи, фокус, переписаний під пульт.</p></li>
     <li><time>Жовт</time><p>Публічна збірка без домашнього сервера, налаштування з телефона, свій AI.</p></li>
+    <li><time>Лист</time><p><b>0.4.0</b>: новий вигляд, каталог ігор, трекер серіалів і календар.</p></li>
   </ol>
   <p class="grew-note">Звідки все почалося, досі відкрито: <a href="https://github.com/Syvyj/studios_4lampa">перший плагін на GitHub</a>. Репозиторій лаунчера починається з першого публічного випуску.</p>
 </section>
@@ -270,7 +275,7 @@
 <script src="../vendor/gsap.min.js" defer></script>
 <script src="../vendor/ScrollTrigger.min.js" defer></script>
 <script src="../vendor/lenis.min.js" defer></script>
-<script src="../sound.js?v=f14757ba" defer></script>
-<script src="../motion.js?v=f14757ba" defer></script>
+<script src="../sound.js?v=c0672aa3" defer></script>
+<script src="../motion.js?v=c0672aa3" defer></script>
 </body>
 </html>

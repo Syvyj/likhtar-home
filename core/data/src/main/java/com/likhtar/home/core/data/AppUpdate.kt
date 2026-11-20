@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import androidx.core.net.toUri
+import androidx.core.content.edit
 
 /**
  * Новіший випуск на GitHub: номер, що змінилось, пряме посилання на APK і його SHA-256 з приміток
@@ -90,6 +92,15 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
         )
     }
 
+    /**
+     * «Ліхтар ТБ» стоїть, але старіший за [MIN_TV_PLAYER]: оновлювач лаунчера сам його не міняє
+     * (ставить лише коли плеєра немає), тож ТБ Ефір пропонує оновити.
+     */
+    fun tvPlayerOutdated(): Boolean = runCatching {
+        val info = context.packageManager.getPackageInfo(TV_PLAYER, 0)
+        androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(info) < MIN_TV_PLAYER
+    }.getOrDefault(false)
+
     private fun canInstall() = Build.VERSION.SDK_INT < Build.VERSION_CODES.O || context.packageManager.canRequestPackageInstalls()
 
     fun clearError() { _error.value = null }
@@ -107,9 +118,9 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
         // Не спитали (нема мережі, GitHub обмежив запити) — це не «перевірено»: наступне
         // ввімкнення спитає знову, а не через добу.
         if (result.isFailure) return@withContext _available.value != null
-        prefs.edit().putLong(KEY_CHECKED, now).apply()
+        prefs.edit { putLong(KEY_CHECKED, now) }
         val fresh = result.getOrNull()?.takeIf { newer(it.version, installed) }
-        prefs.edit().putString(KEY_RELEASE, fresh?.let(::encode)).apply()
+        prefs.edit { putString(KEY_RELEASE, fresh?.let(::encode)) }
         _available.value = fresh
         fresh != null
     }
@@ -121,7 +132,7 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
     suspend fun install(release: AppRelease): Unit = withContext(Dispatchers.IO) {
         _error.value = null
         if (!canInstall()) {
-            val ask = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
+            val ask = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:${context.packageName}".toUri())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             runCatching { context.startActivity(ask) }
                 .onSuccess { waiting = release; _awaitingPermission.value = true }
@@ -194,7 +205,7 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
      */
     suspend fun installTvPlayer(): Boolean = withContext(Dispatchers.IO) {
         if (!canInstall()) {
-            val ask = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
+            val ask = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:${context.packageName}".toUri())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             return@withContext runCatching { context.startActivity(ask) }.isSuccess
         }
@@ -224,6 +235,8 @@ class AppUpdate @Inject constructor(@ApplicationContext private val context: Con
         private const val TV_PLAYER_APK = "likhtar-tv.apk"
         /** Пакет «Ліхтар ТБ»: ТБ Ефір віддає канали йому, якщо він стоїть. */
         const val TV_PLAYER = "com.justplus.player.likhtar.tv"
+        /** Найстаріша збірка «Ліхтар ТБ», яку не просимо оновити (versionCode ТБ-збірки плеєра). */
+        const val MIN_TV_PLAYER = 2_000_101L
         private const val CHECK_MS = 24 * 60 * 60_000L
         private const val TIMEOUT_MS = 15_000
         private const val DOWNLOAD_TIMEOUT_MS = 120_000

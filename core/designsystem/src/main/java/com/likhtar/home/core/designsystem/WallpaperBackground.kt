@@ -84,6 +84,8 @@ fun WallpaperBackground(
     dimPercent: Int = 30,
     scrim: WallpaperScrim? = WallpaperScrim.HOME,
     attribution: String? = null,
+    /** Живий шар замість кадру (відео з висоти) — його малює застосунок, тут лише місце. */
+    media: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     // Нова шпалера — лише коли вже завантажилась: інакше між кадрами 3–5 с стояло голе тло
@@ -102,6 +104,8 @@ fun WallpaperBackground(
     Box(modifier = modifier.fillMaxSize().background(LikhtarColors.Background)) {
         if (scrim != null) {
             when {
+                media != null -> media()
+
                 shown != null -> AsyncImage(
                     model = shown,
                     contentDescription = null,

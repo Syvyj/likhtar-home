@@ -47,7 +47,7 @@ internal fun ProtoChip(
     dot: Boolean = false,
     amber: Boolean = false,
     height: Dp = 22.dp,
-    fontSize: TextUnit = if (mono) 10.sp else 10.5.sp,
+    fontSize: TextUnit = 11.5.sp,
 ) {
     if (text.isBlank()) return
     Row(
@@ -99,7 +99,7 @@ internal fun ProtoUaChip(label: String = "UA", height: Dp = 22.dp) {
                 drawRoundRect(LikhtarColors.Amber, Offset(i * step, (size.height - hp) / 2f), Size(bar, hp), CornerRadius(1.dp.toPx()))
             }
         }
-        Text(label, style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 10.5.sp), color = Color.White, maxLines = 1)
+        Text(label, style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp), color = Color.White, maxLines = 1)
     }
 }
 

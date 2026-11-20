@@ -9,4 +9,9 @@
         <item name="android:colorBackground">@color/likhtar_background</item>
         <item name="android:windowNoTitle">true</item>
     </style>
+
+    <style name="Theme.Likhtar.Screensaver" parent="Theme.Likhtar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
 </resources>

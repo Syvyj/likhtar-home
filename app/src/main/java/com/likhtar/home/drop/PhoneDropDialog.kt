@@ -55,6 +55,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 @HiltViewModel
 class PhoneDropViewModel @Inject constructor(
@@ -222,7 +223,7 @@ private fun install(context: Context, uri: Uri, name: String) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
         runCatching {
             context.startActivity(
-                Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:${context.packageName}".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             )
         }.onFailure { Log.w(TAG, "дозвіл на встановлення", it) }
         return
@@ -232,7 +233,7 @@ private fun install(context: Context, uri: Uri, name: String) {
 
 private fun openLink(context: Context, url: String) {
     try {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     } catch (e: ActivityNotFoundException) {
         Log.w(TAG, "посилання $url", e)
     }

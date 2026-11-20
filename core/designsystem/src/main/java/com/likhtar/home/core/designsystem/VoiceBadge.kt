@@ -39,94 +39,30 @@ import androidx.tv.material3.Text
 fun VoiceBadge(
     modifier: Modifier = Modifier,
     label: String = "UA",
-    /**
-     * Крупніша версія для рядка міток сторінки тайтла: там сусідні мітки 11sp, і в 9sp
-     * головна мітка ряду виходила найдрібнішою.
-     */
-    large: Boolean = false,
+    @Suppress("UNUSED_PARAMETER") large: Boolean = false,
 ) {
-    val k = if (large) 1.25f else 1f
-    Row(
-        modifier = modifier
-            .badgeChrome()
-            .padding(horizontal = 6.dp * k, vertical = 3.dp * k),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp * k),
-    ) {
-        // .badge .wave прототипів: чотири смужки 3 px через 2 px — 6, 12, 16, 10 px заввишки.
-        Canvas(modifier = Modifier.size(width = 7.dp * k, height = 8.dp * k)) {
-            val bar = 1.5.dp.toPx() * k
-            val step = bar + 1.dp.toPx() * k
-            val radius = CornerRadius(1.dp.toPx(), 1.dp.toPx())
-            listOf(3f, 6f, 8f, 5f).forEachIndexed { index, heightDp ->
-                val height = heightDp.dp.toPx() * k
-                drawRoundRect(
-                    color = LikhtarColors.Amber,
-                    topLeft = Offset(index * step, (size.height - height) / 2f),
-                    size = Size(bar, height),
-                    cornerRadius = radius,
-                )
-            }
-        }
-        Text(
-            text = label,
-            // 600 18 px Manrope, білий.
-            style = androidx.compose.ui.text.TextStyle(
-                fontFamily = LikhtarType.Body,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = if (large) 11.sp else 9.sp,
-            ),
-            color = Color.White,
-        )
-    }
+    // Один стиль плашок: контур, «УКР» — бурштином; на кадрі — темна підкладка.
+    OutlineBadge(
+        text = if (label == "UA") androidx.compose.ui.res.stringResource(R.string.ds_badge_ukr) else label,
+        amber = true,
+        filled = true,
+        modifier = modifier,
+    )
 }
 
-
 /**
- * Мітка якості поруч з «UA»: та сама підкладка й шрифт, без смужок звуку.
+ * Мітка якості поруч з «УКР»: той самий контур, світлий.
  *
  * Одна мітка на «4K · Dolby Vision», а не дві: на дивані вони читаються як одна
  * властивість — яка картинка ввімкнеться.
  */
 @Composable
 fun QualityBadge(label: String, modifier: Modifier = Modifier) {
-    Text(
-        text = label,
-        style = LikhtarType.MonoSmall.copy(
-            fontWeight = FontWeight.Medium,
-            fontSize = 9.sp,
-        ),
-        color = BadgeInk,
-        modifier = modifier
-            .badgeChrome()
-            .padding(horizontal = 6.dp, vertical = 3.dp),
-    )
+    OutlineBadge(text = label, filled = true, modifier = modifier)
 }
 
-/**
- * Підпис картки — «вийде 3 листопада», «Netflix · 9 жовтня»: та сама плашка, що мітки UA й
- * якості, у верхньому куті, текст бурштином, як «Вийде …» на великих картках анонсів.
- */
+/** Підпис картки — «вийде 3 листопада», «Netflix · 9 жовтня»: та сама плашка, що УКР і якість. */
 @Composable
 fun NoteBadge(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text.replaceFirstChar { it.uppercase() },
-        // .note прототипів: 500 17 px JetBrains Mono, --glow.
-        style = LikhtarType.MonoSmall.copy(fontWeight = FontWeight.Medium, fontSize = 8.5.sp),
-        color = LikhtarColors.Glow,
-        maxLines = 1,
-        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-        modifier = modifier
-            .badgeChrome()
-            .padding(horizontal = 6.dp, vertical = 3.dp),
-    )
+    OutlineBadge(text = text.replaceFirstChar { it.uppercase() }, filled = true, modifier = modifier)
 }
-
-/** Плашка мітки — одна на UA, якість і підпис картки: темне скло, тонка світла рамка. */
-fun Modifier.badgeChrome(): Modifier =
-    // .badge / .note / .q прототипів: rgba(15,13,11,.72), скруглення 10 px, без рамки.
-    clip(RoundedCornerShape(5.dp))
-        .background(BadgeFill)
-
-private val BadgeFill = LikhtarColors.BadgeFloor.copy(alpha = 0.72f)
-private val BadgeInk = LikhtarColors.ChipInk

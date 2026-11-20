@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="settings_home_combined_rows">Aplikacje i sekcje w jednym rzędzie</string>
+    <string name="settings_home_combined_rows_hint">Wyłączone — dwa osobne rzędy</string>
     <string name="wizard_step">KROK %1$d Z %2$d</string>
     <string name="wizard_language_title">Język</string>
     <string name="wizard_language_hint">Tytuły i opisy filmów, a także cały launcher.</string>
@@ -12,7 +14,7 @@
     <string name="wizard_all">Wszystko</string>
     <string name="wizard_only_mine">Tylko moje</string>
     <string name="settings_section_home">Główna</string>
-    <string name="settings_section_home_summary">Pogoda, rzędy, tapety, spoczynek</string>
+    <string name="settings_section_home_summary">Start, język, pogoda, rzędy</string>
     <string name="settings_phone">Z telefonu</string>
     <string name="settings_phone_subtitle">Adresy, klucze i hasła przez QR</string>
     <string name="settings_phone_title">Z telefonu</string>
@@ -32,8 +34,8 @@
     <string name="settings_section_tv_summary">Kanały, program TV, kraje</string>
     <string name="settings_section_profiles">Profile i PIN</string>
     <string name="settings_section_profiles_summary">Kto ogląda, blokady</string>
-    <string name="settings_section_startup">Pilot i uruchamianie</string>
-    <string name="settings_section_startup_summary">Przycisk HOME, przyciski pilota, język</string>
+    <string name="settings_section_startup">Pilot</string>
+    <string name="settings_section_startup_summary">Przyciski pilota i przytrzymanie</string>
     <string name="settings_section_connections">Połączenia</string>
     <string name="settings_not_linked">Nie połączono</string>
     <string name="settings_saved">Zapisano</string>
@@ -142,18 +144,12 @@
     <string name="settings_home_weather_group">POGODA</string>
     <string name="settings_home_show_weather">Pokazuj pogodę</string>
     <string name="settings_home_city">Miasto</string>
-    <string name="settings_home_dock_group">NA DOLNYM PASKU</string>
-    <string name="settings_home_dock_cinema">Kino</string>
-    <string name="settings_home_dock_live_tv">Na żywo</string>
-    <string name="settings_home_dock_reality">Reality</string>
-    <string name="settings_home_dock_search">Szukaj</string>
     <string name="settings_home_games">Gry</string>
     <string name="settings_home_games_subtitle">Sekcja z grami i emulatorami: w menu i w docku</string>
     <string name="settings_home_games_files">Gry z pendrive\'a i folderu ROMs</string>
     <string name="settings_home_games_files_on">Dozwolone</string>
     <string name="settings_home_games_files_off">Zezwól</string>
     <string name="settings_home_games_files_subtitle">Bez dostępu widać tylko gry wysłane z telefonu</string>
-    <string name="settings_home_dock_apps">Aplikacje</string>
     <string name="settings_home_torch_group">NAD KAFELKIEM „LIKHTAR HOME”</string>
     <string name="settings_home_torch">Likhtaryk</string>
     <string name="settings_home_torch_subtitle">Doradca: co obejrzeć dziś</string>
@@ -172,9 +168,6 @@
     <string name="settings_home_calm_group">SPOCZYNEK</string>
     <string name="settings_home_ambient">Ukryj kafelki, gdy pilot jest nieużywany</string>
     <string name="settings_home_ambient_subtitle">Zostają zegar, data i pogoda</string>
-    <string name="settings_wallpaper_source_group">ŹRÓDŁO ZDJĘĆ</string>
-    <string name="settings_wallpaper_theme_group">MOTYW</string>
-    <string name="settings_wallpaper_show_group">WYŚWIETLANIE</string>
     <string name="settings_wallpaper_interval">Zmieniaj zdjęcie co</string>
     <string name="settings_wallpaper_dim">Przyciemnienie na Głównej</string>
     <string name="settings_wallpaper_dim_subtitle">Aby zegar i kafelki były czytelne na jasnym zdjęciu</string>
@@ -209,9 +202,6 @@
     <string name="settings_tv_channels_group">KANAŁY</string>
     <string name="settings_tv_hidden">Ukryte kanały</string>
     <string name="settings_tv_restore_all">Przywróć wszystkie</string>
-    <string name="settings_tv_countries_group">KRAJE KANAŁÓW</string>
-    <string name="settings_tv_find_country">Znajdź kraj</string>
-    <string name="settings_tv_filter_all">wszystkie</string>
     <string name="settings_profiles_group">KTO OGLĄDA</string>
     <string name="settings_profile_kids">%1$s · dziecięcy</string>
     <string name="settings_profile_active">Aktywny</string>
@@ -224,8 +214,7 @@
     <string name="settings_pin_created">Utworzony</string>
     <string name="settings_pin_not_created">Nie utworzony</string>
     <string name="settings_pin_subtitle">Działa w launcherze; głosem system i tak otworzy</string>
-    <string name="settings_startup_group">OD CZEGO ZACZĄĆ</string>
-    <string name="settings_autostart_group">AUTOSTART</string>
+    <string name="settings_startup_group">START</string>
     <string name="settings_autostart">Otwieraj po włączeniu urządzenia</string>
     <string name="settings_autostart_granted">Uprawnienie przyznane</string>
     <string name="settings_autostart_needed">Wymaga uprawnienia „wyświetlanie nad innymi aplikacjami”</string>
@@ -303,7 +292,7 @@
     <string name="settings_keys_app">Aplikacja · %1$s</string>
     <string name="settings_keys_pick">Co robi „%1$s”</string>
     <string name="settings_keys_assistant">LIKHTAR · Asystent głosowy</string>
-    <string name="settings_media_group">MEDIATEKA</string>
+    <string name="settings_media_group">ŹRÓDŁA</string>
     <string name="settings_media_find_dlna">Znajdź serwery DLNA</string>
     <string name="settings_media_find_dlna_subtitle">Plex, NAS, minidlna w sieci domowej</string>
     <string name="settings_media_searching">Szukam…</string>
@@ -393,6 +382,10 @@
     <string name="settings_ai_need_url">AI: podaj adres swojego serwera</string>
     <string name="settings_ai_need_model">AI: podaj nazwę modelu</string>
     <string name="settings_ai_group">Asystent AI</string>
+    <string name="settings_about_report">Zgłoś problem</string>
+    <string name="settings_about_report_subtitle">Otwiera zgłoszenie na GitHubie w telefonie</string>
+    <string name="settings_about_report_qr1">Skieruj aparat telefonu na kod</string>
+    <string name="settings_about_report_qr2">Model urządzenia i wersja Likhtar są już wpisane — opisz tylko, co się stało</string>
     <string name="settings_about_support">Wesprzyj autora</string>
     <string name="settings_about_support_subtitle">Ko-fi, Buy Me a Coffee lub słoik Monobank — z telefonu</string>
     <string name="settings_watch_title_under_logo">Tytuł pod logo</string>
@@ -416,4 +409,36 @@
     <string name="settings_tv_portal_need_login">Nowy adres portalu: wpisz też login i klucz</string>
     <string name="settings_tv_portal_desc">Adres z panelu dostawcy. Login i klucz wpisuje się z telefonu (Ustawienia → Z telefonu). Puste — usunąć portal.</string>
     <string name="settings_tv_portal_subtitle">Kanały, program i archiwum z portalu dostawcy</string>
+    <string name="settings_screensaver_group">WYGASZACZ</string>
+    <string name="settings_screensaver_after">Włączaj wygaszacz</string>
+    <string name="settings_screensaver_after_subtitle">Gdy pilot leży i nic nie gra</string>
+    <string name="settings_screensaver_sleep">Wyłączaj ekran</string>
+    <string name="settings_screensaver_sleep_subtitle">Jak długo wygaszacz działa przed uśpieniem</string>
+    <string name="settings_screensaver_aerial">Filmy z lotu ptaka</string>
+    <string name="settings_screensaver_titles">Nowości w moich serwisach</string>
+    <string name="settings_screensaver_preview">Podgląd wygaszacza</string>
+    <string name="settings_screensaver_preview_action">Pokaż</string>
+    <string name="settings_section_backdrop">Tło i wygaszacz</string>
+    <string name="settings_section_backdrop_summary">Tapeta, spoczynek, wygaszacz</string>
+    <string name="settings_section_media">Mediateka</string>
+    <string name="settings_section_media_summary">DLNA, SMB, Jellyfin, Plex</string>
+    <string name="settings_wallpaper_group">TAPETA</string>
+    <string name="settings_wallpaper_source">Źródło tapet</string>
+    <string name="settings_wallpaper_theme">Motyw</string>
+    <string name="settings_startup_section">Pierwszy ekran</string>
+    <string name="settings_tv_countries">Kraje kanałów</string>
+    <string name="settings_home_channels_pinned">Przypięte kanały</string>
+    <string name="settings_home_button">Przycisk HOME</string>
+    <string name="settings_section_smart_home">Inteligentny dom</string>
+    <string name="settings_section_smart_home_summary">Home Assistant, polecenia głosowe</string>
+    <string name="settings_kids_mode">Tryb dziecięcy</string>
+    <string name="settings_kids_mode_subtitle">Bez horrorów i thrillerów w rzędach, propozycje z limitem wieku. Wyszukiwanie pokazuje wszystko. Wyłączenie wymaga PIN-u</string>
+    <string name="settings_pin_kids_off_prompt">Wpisz PIN, aby wyłączyć tryb dziecięcy</string>
+    <string name="settings_msg_kids_on">Tryb dziecięcy włączony</string>
+    <string name="settings_msg_kids_off">Tryb dziecięcy wyłączony</string>
+    <string name="settings_home_notifications">Powiadomienia</string>
+    <string name="settings_home_notifications_subtitle">Powiadomienia Androida w górnym menu: aktualizacje, miejsce, wiadomości</string>
+    <string name="settings_home_notifications_muted">Ukryte aplikacje</string>
+    <string name="settings_home_notifications_muted_subtitle">OK — znów pokazuj wszystkie</string>
+    <string name="settings_home_layout_group">UKŁAD GŁÓWNEJ</string>
 </resources>

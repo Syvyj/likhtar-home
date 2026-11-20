@@ -130,6 +130,11 @@ fun LanternLoader(
     subtitle: String? = null,
     modifier: Modifier = Modifier,
     phrases: List<String> = emptyList(),
+    /**
+     * true — у центрі сам ліхтар (порожнеча над ним); false — компактна група для блоку, де під
+     * текстами йде ще щось (підготовка джерела): без порожнечі зверху й запасу знизу.
+     */
+    lanternCentered: Boolean = true,
 ) {
     val defaults = stringArrayResource(R.array.ds_loader_phrases).toList()
     val lines = remember(subtitle, phrases, defaults) {
@@ -149,10 +154,10 @@ fun LanternLoader(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(textBlock))
+        if (lanternCentered) Spacer(Modifier.height(textBlock))
         LanternLoader()
         Column(
-            modifier = Modifier.height(textBlock),
+            modifier = if (lanternCentered) Modifier.height(textBlock) else Modifier,
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top),
         ) {

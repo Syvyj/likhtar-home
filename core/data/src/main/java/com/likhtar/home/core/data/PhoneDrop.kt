@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import androidx.core.content.edit
 
 /** Що відбувається з передачею з телефона — для вікна з QR. */
 sealed interface DropState {
@@ -51,7 +52,7 @@ sealed interface DropState {
  *
  * Файли лягають у загальні «Завантаження» → `Download/Likhtar` (MediaStore, без дозволів на
  * Android 10+) і лишаються там: їх видно будь-якому файловому менеджеру й плеєру
- * Ключ в адресі сталий, сервер піднімається
+ *. Ключ в адресі сталий, сервер піднімається
  * разом із лаунчером — закладка на телефоні працює й після перезапуску.
  *
  * ponytail: прийом по одному файлу; кілька — телефон шле по черзі.
@@ -62,7 +63,7 @@ class PhoneDrop @Inject constructor(@ApplicationContext private val context: Con
     private val token: String by lazy {
         val prefs = context.getSharedPreferences("likhtar_drop", Context.MODE_PRIVATE)
         prefs.getString("token", null) ?: ByteArray(8).also { SecureRandom().nextBytes(it) }
-            .joinToString("") { "%02x".format(it) }.also { prefs.edit().putString("token", it).apply() }
+            .joinToString("") { "%02x".format(it) }.also { prefs.edit { putString("token", it) } }
     }
     private val busy = AtomicBoolean(false)
     @Volatile private var received = 0

@@ -65,7 +65,7 @@ data class PlayRequest(
      *
      * Окремо від [ref], бо `ref` є лише на двох шляхах із трьох: кнопка «Дивитись» бере
      * потік прямо з агрегатора. Якість же відома на всіх — ми її показуємо людині, — і
-     * сервер бере спершу її, а `ref` лишає як спосіб дізнатися, ЯКА саме роздача.
+     * сервер бере спершу її, а `ref` лишає як спосіб дізнатися, ЯКИЙ саме варіант.
      */
     val quality: Int = 0,
     /** Субтитри від сервера: підпис → адреса. Плеєр покаже їх доріжками. */
@@ -121,7 +121,7 @@ data class TvLineup(
 class PlaybackController @Inject constructor(
     private val progress: WatchProgressRepository,
     private val showProgress: ShowProgressRepository,
-    private val ownTorrentServer: OwnTorrentServer,
+    private val ownStreamServer: OwnStreamServer,
     private val config: CatalogConfig,
     private val settings: com.likhtar.home.core.data.SettingsRepository,
     private val history: com.likhtar.home.core.data.RecentHistoryRepository,
@@ -171,7 +171,7 @@ class PlaybackController @Inject constructor(
      */
     private var playingWith: String = ""
 
-    /** Джерело сеансу — сервер бере за ним якість роздачі у звіті про спробу. */
+    /** Джерело сеансу — сервер бере за ним якість варіанта у звіті про спробу. */
     private var playingRef: String = ""
     private var playingSource: String = ""
     private var playingQuality: Int = 0
@@ -207,12 +207,11 @@ class PlaybackController @Inject constructor(
         playingRef = request.ref
         playingSource = request.source
         playingQuality = request.quality
-        val ts = ownTorrentServer.url
-        val fix = { u: String -> retargetTorrent(u, ts) }
+        val fix = ownStreamServer::retarget
         playingQueue = request.queue.map { it.copy(url = fix(it.url)) }
         playingQueueVariants = request.queueVariants.map { v -> v.map { (label, u) -> label to fix(u) } }
         return _requests.tryEmit(
-            if (ts == null) request else request.copy(
+            request.copy(
                 uri = fix(request.uri),
                 single = fix(request.single),
                 queue = request.queue.map { it.copy(url = fix(it.url)) },

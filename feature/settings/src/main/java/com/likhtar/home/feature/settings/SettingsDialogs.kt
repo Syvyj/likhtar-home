@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -117,22 +119,53 @@ private fun MoveArrow(glyph: String, enabled: Boolean, onClick: () -> Unit) {
 }
 
 /**
- * Вибір країн доступності: чекбокси плюс пошук.
+ * Бічна панель вибору — як список груп у «Ліхтар ТБ»: на всю висоту біля правого краю, назва з
+ * бурштиновою рискою, список гортається. Розділи налаштувань ліворуч лишаються видно — людина
+ * бачить, де вона, а сторінка не розтягується рядком на кожен варіант.
+ */
+@Composable
+internal fun SettingsPanel(
+    title: String,
+    onDismiss: () -> Unit,
+    armed: Boolean = false,
+    header: @Composable () -> Unit = {},
+    list: LazyListScope.() -> Unit,
+) {
+    LikhtarDialog(onDismiss = onDismiss, width = 460.dp, side = false, armed = armed) {
+        Text(
+            text = title,
+            style = androidx.compose.ui.text.TextStyle(
+                fontFamily = LikhtarType.Body,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                fontSize = androidx.compose.ui.unit.TextUnit(18f, androidx.compose.ui.unit.TextUnitType.Sp),
+            ),
+            color = LikhtarColors.GlassActive,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+        header()
+        LazyColumn(modifier = Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(2.dp), content = list)
+    }
+}
+
+/**
+ * Вибір країн: позначки плюс пошук.
  *
  * Список — той самий каталог iptv-org, що й у «Телебаченні»: там ISO-коди країн, тобто рівно
  * те, що приймає `country=` у `/api/watch`. Другого списку країн у проєкті не треба.
- *
- * Обрані — вгору, решта за назвою. Список повний: `LazyColumn` компонує лише видимі рядки,
- * тому обрізати його, як у «Телебаченні» (там звичайна `Column`), тут нема причини — і саме
- * обрізання ламало прокрутку, список закінчувався на Бурунді.
+ * Обрані — вгору, решта за назвою; `LazyColumn` компонує лише видимі рядки, тому список повний.
+ * [onAuto] — рядок «усі / автоматично» (порожній вибір), якщо для цього вибору він має сенс.
  */
 @Composable
 internal fun CountryPickerDialog(
+    title: String,
     countries: List<TvCountry>,
     selected: Set<String>,
     onToggle: (String) -> Unit,
-    onAuto: () -> Unit,
     onDismiss: () -> Unit,
+    autoLabel: String? = null,
+    onAuto: () -> Unit = {},
 ) {
     var filter by remember { mutableStateOf(TextFieldValue("")) }
     val filterFocus = remember { FocusRequester() }
@@ -141,17 +174,22 @@ internal fun CountryPickerDialog(
     // і вона з'їдає пів вікна ще до того, як користувач вирішив шукати. Поле — на крок вгору.
     LaunchedEffect(Unit) { runCatching { firstRowFocus.requestFocus() } }
     val query = filter.text.trim().lowercase()
+    // Порядок фіксуємо на відкритті: інакше позначена країна стрибала б угору з-під курсора.
+    val pinned = remember { selected }
     val visible = countries
         .filter { query.isBlank() || it.name.lowercase().contains(query) || it.code.lowercase() == query }
-        .sortedWith(compareByDescending<TvCountry> { it.code in selected }.thenBy { it.name })
+        // Collator, а не порівняння кодів: українська «І» в Unicode стоїть перед «А», і Ісландія
+        // з Італією випереджали Австралію.
+        .sortedWith(compareByDescending<TvCountry> { it.code in pinned }.thenBy(java.text.Collator.getInstance()) { it.name })
 
-    LikhtarDialog(onDismiss = onDismiss, width = 520.dp) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(text = stringResource(R.string.settings_availability_for), style = LikhtarType.Label, color = LikhtarColors.TextPrimary)
+    SettingsPanel(
+        title = title,
+        onDismiss = onDismiss,
+        header = {
             // Поле саме з'їдає «вниз» (курсор у тексті), тому фокус зі нього в список
             // штовхаємо руками — інакше з пошуку немає виходу до країн.
             Box(
-                modifier = Modifier.onPreviewKeyEvent { event ->
+                modifier = Modifier.padding(bottom = 8.dp).onPreviewKeyEvent { event ->
                     if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
                         firstRowFocus.tryFocus()
                     } else {
@@ -167,34 +205,28 @@ internal fun CountryPickerDialog(
                     onDone = { runCatching { firstRowFocus.requestFocus() } },
                 )
             }
+            if (countries.isEmpty()) Note(stringResource(R.string.settings_countries_loading))
+        },
+    ) {
+        if (autoLabel != null) {
+            item(key = "auto") {
+                ChoiceRow(text = autoLabel, selected = selected.isEmpty(), onSelect = onAuto, focusRequester = firstRowFocus)
+            }
+        }
+        itemsIndexed(visible, key = { _, it -> it.code }) { i, country ->
             ChoiceRow(
-                text = stringResource(R.string.settings_availability_auto),
-                selected = selected.isEmpty(),
-                onSelect = onAuto,
-                focusRequester = firstRowFocus,
+                text = "${country.flag} ${country.name}",
+                selected = country.code in selected,
+                onSelect = { onToggle(country.code) },
+                focusRequester = firstRowFocus.takeIf { autoLabel == null && i == 0 },
             )
-            if (countries.isEmpty()) {
-                Note(stringResource(R.string.settings_countries_loading))
-            }
-            LazyColumn(
-                modifier = Modifier.heightIn(max = 420.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                items(visible, key = { it.code }) { country ->
-                    ChoiceRow(
-                        text = "${country.flag} ${country.name}",
-                        selected = country.code in selected,
-                        onSelect = { onToggle(country.code) },
-                    )
-                }
-            }
         }
     }
 }
 
 /**
- * Вибір одного варіанта зі списку (мова, країна). Фокус — на поточному: людина бачить,
- * що вибрано зараз, і одним OK лишає як було.
+ * Вибір одного варіанта зі списку. Фокус — на поточному: людина бачить, що вибрано зараз,
+ * і одним OK лишає як було. Вибір закриває панель.
  */
 @Composable
 internal fun SingleChoiceDialog(
@@ -208,45 +240,49 @@ internal fun SingleChoiceDialog(
 ) {
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    LikhtarDialog(onDismiss = onDismiss, width = 460.dp, armed = armed) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(text = title, style = LikhtarType.Label, color = LikhtarColors.TextPrimary)
-            LazyColumn(
-                modifier = Modifier.heightIn(max = 420.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                items(options, key = { it.first }) { (code, name) ->
-                    ChoiceRow(
-                        text = name,
-                        selected = code == selected,
-                        onSelect = { onPick(code) },
-                        focusRequester = focus.takeIf { code == selected },
-                    )
-                }
-            }
+    val current = options.indexOfFirst { it.first == selected }.coerceAtLeast(0)
+    SettingsPanel(title = title, onDismiss = onDismiss, armed = armed) {
+        itemsIndexed(options, key = { _, it -> it.first }) { i, (code, name) ->
+            ChoiceRow(
+                text = name,
+                selected = code == selected,
+                onSelect = { onPick(code) },
+                focusRequester = focus.takeIf { i == current },
+            )
+        }
+    }
+}
+
+/** Кілька позначок зі списку; кожне OK перемикає, панель лишається відкритою до «Назад». */
+@Composable
+internal fun MultiChoiceDialog(
+    title: String,
+    options: List<Pair<String, String>>,
+    selected: Set<String>,
+    onToggle: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    SettingsPanel(title = title, onDismiss = onDismiss) {
+        itemsIndexed(options, key = { _, it -> it.first }) { i, (key, name) ->
+            ChoiceRow(
+                text = name,
+                selected = key in selected,
+                onSelect = { onToggle(key) },
+                focusRequester = focus.takeIf { i == 0 },
+            )
         }
     }
 }
 
 /** «Сховати сервіси»: позначені не з'являються в Кінозалі — ні плиткою, ні рядами. */
 @Composable
-internal fun HiddenServicesDialog(hidden: Set<String>, onToggle: (String) -> Unit, onDismiss: () -> Unit) {
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    LikhtarDialog(onDismiss = onDismiss, width = 460.dp) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(text = stringResource(R.string.settings_watch_hidden_services), style = LikhtarType.Label, color = LikhtarColors.TextPrimary)
-            LazyColumn(modifier = Modifier.heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                itemsIndexed(com.likhtar.home.core.model.StreamingService.withPage, key = { _, it -> it.key.orEmpty() }) { i, svc ->
-                    val key = svc.key ?: return@itemsIndexed
-                    ChoiceRow(
-                        text = svc.title,
-                        selected = key in hidden,
-                        onSelect = { onToggle(key) },
-                        focusRequester = if (i == 0) focus else null,
-                    )
-                }
-            }
-        }
-    }
-}
+internal fun HiddenServicesDialog(hidden: Set<String>, onToggle: (String) -> Unit, onDismiss: () -> Unit) =
+    MultiChoiceDialog(
+        title = stringResource(R.string.settings_watch_hidden_services),
+        options = com.likhtar.home.core.model.StreamingService.withPage.mapNotNull { svc -> svc.key?.let { it to svc.title } },
+        selected = hidden,
+        onToggle = onToggle,
+        onDismiss = onDismiss,
+    )

@@ -102,4 +102,18 @@
     <string name="search_advisor_offline">I can\'t reach the Likhtar server right now. Check your connection — the picks will be here as soon as it\'s back.</string>
     <string name="search_query_placeholder_plain">Title or description (OK — keyboard)</string>
     <string name="search_hint_plain">Title or description — “movie about blue aliens”. Long-press OK on a card to bookmark it.</string>
+    <string name="search_hero_new">New episode · out now</string>
+    <string name="search_hero_continue">Continue</string>
+    <string name="search_hero_advice">For you today</string>
+    <string name="search_hero_episode">Season %1$d · Episode %2$d</string>
+    <string name="search_hero_new_line">You follow this show — the next episode is out.</string>
+    <string name="search_hero_continue_line">Pick up where you stopped.</string>
+    <string name="search_hero_play">Watch S%1$dE%2$d</string>
+    <string name="search_hero_resume">Continue</string>
+    <string name="search_hero_all_episodes">All episodes</string>
+    <string name="search_hero_empty">Bookmark a show — its new episodes, this week\'s schedule and tips will show up here.</string>
+    <string name="search_hero_fresh_on">New on %1$s</string>
+    <string name="search_watched_q">Did you watch «%1$s» S%2$dE%3$d?</string>
+    <string name="search_watched_yes">Yes</string>
+    <string name="search_watched_no">Not yet</string>
 </resources>

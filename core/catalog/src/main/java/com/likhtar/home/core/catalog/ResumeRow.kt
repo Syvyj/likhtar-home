@@ -282,11 +282,11 @@ class ContinuePlayback @Inject constructor(
             else all.firstOrNull { it.episode == e.episode && it.source == host && host.isNotBlank() }
                 ?.let { e.copy(url = it.url) } ?: e
         }
-        // Фільм: ще й роздачі, яких TorrServer не знає, — інакше 4K, що ніхто не вмикав
-        // (Толока), у панелі «Якість» не з'являвся.
-        val cold = if (item.kind == TitleKind.TV) emptyList() else streams.coldTorrents(
+        // Фільм: ще й варіанти, яких немає серед уже відомих, — інакше 4K, що ніхто не вмикав,
+        // у панелі «Якість» не з'являвся.
+        val cold = if (item.kind == TitleKind.TV) emptyList() else streams.coldSources(
             item.asCatalogItem(),
-            (all.mapNotNull { torrentRefOf(it.url) } + listOfNotNull(torrentRefOf(played.url))).toSet(),
+            (all.mapNotNull { streams.warmableRef(it.url) } + listOfNotNull(streams.warmableRef(played.url))).toSet(),
         )
         val dvFirst = DolbyVision.supported
         val variants = episodeVariants(all + cold, item.nextEpisode, played.url, dvFirst)
@@ -357,7 +357,7 @@ fun variantLabel(raw: String): String {
 
 private val QUALITY_PART = Regex("""\d{3,4}p""")
 private val EPISODE_PART = Regex("""Серія \d+""")
-private val VARIANT_SITES = setOf("Торент", "роздача", "сайт студії") + FLAVOR_VARIANT_SITES
+private val VARIANT_SITES = setOf("сайт студії") + FLAVOR_VARIANT_SITES
 
 internal fun episodeVariants(
     all: List<StreamOption>,

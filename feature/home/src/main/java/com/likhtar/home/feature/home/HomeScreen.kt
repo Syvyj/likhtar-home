@@ -1,6 +1,8 @@
 package com.likhtar.home.feature.home
+import com.likhtar.home.core.designsystem.BrandColors
 
 import androidx.compose.ui.unit.Dp
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.animation.togetherWith
@@ -11,10 +13,16 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.border
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import com.likhtar.home.core.designsystem.PreparingScrim
 import com.likhtar.home.core.catalog.ResumeCard
@@ -24,8 +32,16 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
@@ -50,12 +66,20 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.foundation.focusGroup
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.graphics.drawable.toBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -116,6 +140,7 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val update by viewModel.update.collectAsStateWithLifecycle()
+    val inputs by viewModel.inputs.collectAsStateWithLifecycle()
     val updateProgress by viewModel.updateProgress.collectAsStateWithLifecycle()
     val updateError by viewModel.updateError.collectAsStateWithLifecycle()
     val updateAwaiting by viewModel.updateAwaitingPermission.collectAsStateWithLifecycle()
@@ -136,7 +161,45 @@ fun HomeScreen(
     // «Продовжити» перечитуємо на кожному поверненні на екран. Раніше цим займався
     // п'ятихвилинний цикл у ViewModel — рівно та затримка, з якою ряд оновлювався після
     // виходу з YouTube чи MEGOGO.
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshResume() }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { if (state.homeShowResume) viewModel.refreshResume() }
+
+    // Поки початковий стан ще збирається, лишаємо старий екран як безпечний fallback.
+    // Нова композиція бере ті самі дані й маршрути, що й попередня Головна.
+    if (state.tiles.isNotEmpty()) {
+        ModernHomeContent(
+            state = state,
+            onSelectSection = onSelectSection,
+            onOpenWeather = onOpenWeather,
+            onLaunch = { viewModel.launch(it) },
+            onToggleSmartDevice = viewModel::toggleSmartDevice,
+            onSetCombinedRows = viewModel::setHomeCombinedRows,
+            onSetRowPosition = viewModel::setHomeRowPosition,
+            onToggleSectionsFirst = viewModel::toggleHomeSectionsFirst,
+            onToggleAppsRowHidden = viewModel::toggleHomeAppsRowHidden,
+            onToggleHomeAppHidden = viewModel::toggleHomeAppHidden,
+            onUnhideAllHomeApps = viewModel::unhideAllHomeApps,
+            onMoveHomeApp = viewModel::moveHomeApp,
+            update = update,
+            onUpdate = { updateOpen = true },
+            inputs = inputs,
+            onOpenInput = viewModel::openInput,
+            onOpenResume = { card ->
+                card.open(
+                    onShow = onOpenShow,
+                    onTitle = { title ->
+                        viewModel.arrivalSeen(card)
+                        onOpenTitle(title)
+                    },
+                    onLaunch = { viewModel.openInApp(it) },
+                    onSection = onSelectSection,
+                )
+            },
+            onToggleShowResume = viewModel::toggleHomeShowResume,
+            onToggleShowGames = viewModel::toggleHomeShowGames,
+            onMoveSection = viewModel::moveSection,
+        )
+        return
+    }
 
     // Дата живе з годинником, а місто — тільки всередині погодного віджета.
     // Початковий фокус Головної свідомо на погоді: це перше, що користувач бачить,
@@ -206,7 +269,7 @@ fun HomeScreen(
 
     ) {
         // Без затінення шпалер: темні смуги згори й знизу та плями під годинником і погодою
-        // сприймаються як поломка телевізора — фото як є.
+        // (прототип) сприймали за поломку телевізора — фото як є.
 
         // Верхня зона: ліворуч ідентичність і годинник, праворуч віджет погоди.
         // Верхнього меню на Головній немає навмисно — навігація живе в доці внизу.
@@ -325,6 +388,8 @@ fun HomeScreen(
                         SearchLaunch.query = query
                         onSelectSection(LikhtarSection.SEARCH)
                     },
+                    inputs = inputs,
+                    onOpenInput = viewModel::openInput,
                     first = contextFocusRequester,
                     crossZone = contextCross,
                 )
@@ -399,10 +464,1771 @@ fun HomeScreen(
         }
         }
 
-        // Прогрів роздачі: сервер шукає джерело, яке реально тягне, і це секунди. Відсотків
+        // Підготовка джерела: сервер шукає джерело, яке реально тягне, і це секунди. Відсотків
         // тут немає навмисно — показувати прочитані байти як прогрес фільму нечесно.
         PreparingScrim(state.preparing)
 
+    }
+}
+
+private enum class ModernRowKind { APPS, LIKHTAR }
+
+/** Головна 2.0: постійні застосунки й розділи замість контекстної полиці доку. */
+@Composable
+internal fun ModernHomeContent(
+    state: HomeUiState,
+    onSelectSection: (LikhtarSection) -> Unit,
+    onOpenWeather: () -> Unit,
+    onLaunch: (LauncherApp) -> Unit,
+    update: com.likhtar.home.core.data.AppRelease?,
+    onUpdate: () -> Unit,
+    onToggleSmartDevice: (SmartDevice) -> Unit = {},
+    onSetCombinedRows: (Boolean) -> Unit = {},
+    onSetRowPosition: (com.likhtar.home.core.data.HomeRowPosition) -> Unit = {},
+    onToggleSectionsFirst: () -> Unit = {},
+    onToggleAppsRowHidden: () -> Unit = {},
+    onToggleHomeAppHidden: (String) -> Unit = {},
+    onUnhideAllHomeApps: () -> Unit = {},
+    onMoveHomeApp: (String, Boolean) -> Unit = { _, _ -> },
+    /** Входи HDMI й інші джерела ТВ — у швидкому меню. */
+    inputs: List<TvInputTile> = emptyList(),
+    onOpenInput: (TvInputTile) -> Unit = {},
+    onOpenResume: (ResumeCard) -> Unit = {},
+    onToggleShowResume: () -> Unit = {},
+    onToggleShowGames: () -> Unit = {},
+    /** Переставити розділ Ліхтаря на одну позицію (довге OK на плитці → ← →). */
+    onMoveSection: (LikhtarSection, Boolean) -> Unit = { _, _ -> },
+) {
+    var smartOpen by remember { mutableStateOf(false) }
+    var wasSmartOpen by remember { mutableStateOf(false) }
+    var gearMenuOpen by remember { mutableStateOf(false) }
+    var wasGearMenuOpen by remember { mutableStateOf(false) }
+    var desktopOpen by remember { mutableStateOf(false) }
+    var wasDesktopOpen by remember { mutableStateOf(false) }
+    var rowMenuKind by remember { mutableStateOf<ModernRowKind?>(null) }
+    var wasRowMenuKind by remember { mutableStateOf<ModernRowKind?>(null) }
+    var movingRowKind by remember { mutableStateOf<ModernRowKind?>(null) }
+    var appMenuTargetId by remember { mutableStateOf<String?>(null) }
+    var wasAppMenuOpen by remember { mutableStateOf(false) }
+    var lastAppMenuIndex by remember { mutableStateOf(0) }
+    var movingAppId by remember { mutableStateOf<String?>(null) }
+    /** Розділ Ліхтаря, який зараз переставляють (довге OK на плитці). */
+    var movingSection by remember { mutableStateOf<LikhtarSection?>(null) }
+    var rootOffset by remember { mutableStateOf(Offset.Zero) }
+    val appCardBounds = remember { androidx.compose.runtime.mutableStateMapOf<String, Rect>() }
+    val rowHandleBounds = remember { androidx.compose.runtime.mutableStateMapOf<ModernRowKind, Rect>() }
+    val firstApp = rememberInitialFocusRequester()
+    val weatherButton = remember { FocusRequester() }
+    val smartButton = remember { FocusRequester() }
+    val settingsButton = remember { FocusRequester() }
+    val panelButton = remember { FocusRequester() }
+    val gearFirstItem = remember { FocusRequester() }
+    val desktopFirstItem = remember { FocusRequester() }
+    val rowMenuFirstItem = remember { FocusRequester() }
+    val appMenuFirstItem = remember { FocusRequester() }
+    val appsRowHandle = remember { FocusRequester() }
+    val likhtarRowHandle = remember { FocusRequester() }
+    val sections = state.tiles.filterNot {
+        it.section == LikhtarSection.HOME ||
+            it.section == LikhtarSection.REALITY ||
+            it.section == LikhtarSection.SMART_HOME ||
+            it.section == LikhtarSection.APPS
+    }
+    val smartEnabled = state.tiles.any { it.section == LikhtarSection.SMART_HOME }
+    val weatherShown = state.showWeather && state.weather != null
+    val firstHeader = when {
+        weatherShown -> weatherButton
+        smartEnabled -> smartButton
+        else -> settingsButton
+    }
+    val showAppsRow = !state.homeAppsRowHidden || state.homeCombinedRows
+    val sectionsOnTop = (!showAppsRow || state.homeSectionsFirst) && !state.homeCombinedRows && sections.isNotEmpty()
+    val appsRowCount = state.pinnedApps.size + 1
+    val topRowCount = when {
+        state.homeCombinedRows -> state.pinnedApps.size + sections.size + 1
+        sectionsOnTop -> sections.size
+        else -> appsRowCount
+    }
+    val bottomRowCount = when {
+        state.homeCombinedRows -> 0
+        !showAppsRow -> 0
+        sectionsOnTop -> appsRowCount
+        else -> sections.size
+    }
+    val topRowRequesters = remember(topRowCount) {
+        List(topRowCount) { index -> if (index == 0) firstApp else FocusRequester() }
+    }
+    val bottomRowRequesters = remember(bottomRowCount) {
+        List(bottomRowCount) { FocusRequester() }
+    }
+    val appsRowRequesters = if (sectionsOnTop) bottomRowRequesters else topRowRequesters
+    // Один ряд: розділи Ліхтаря першими (за замовчуванням), застосунки — після них.
+    val combinedSectionsFirst = state.homeCombinedRows && state.homeSectionsFirst
+    val appOffset = if (combinedSectionsFirst) sections.size else 0
+    /** Вузол фокуса плитки розділу [index] — у тому ряду й на тому місці, де вона стоїть. */
+    fun sectionRequester(index: Int): FocusRequester? = when {
+        state.homeCombinedRows -> topRowRequesters.getOrNull(if (combinedSectionsFirst) index else state.pinnedApps.size + index)
+        sectionsOnTop -> topRowRequesters.getOrNull(index)
+        else -> bottomRowRequesters.getOrNull(index)
+    }
+    val idle = LocalAmbientIdle.current
+    val contentAlpha by animateFloatAsState(if (idle) 0f else 1f, tween(AMBIENT_FADE_MS), label = "homeContent")
+
+    val overlayOpen = smartOpen || gearMenuOpen || desktopOpen || rowMenuKind != null || appMenuTargetId != null
+    BackHandler(enabled = overlayOpen || movingAppId != null || movingRowKind != null || movingSection != null) {
+        when {
+            movingSection != null -> movingSection = null
+            movingAppId != null -> movingAppId = null
+            movingRowKind != null -> movingRowKind = null
+            appMenuTargetId != null -> appMenuTargetId = null
+            rowMenuKind != null -> rowMenuKind = null
+            desktopOpen -> desktopOpen = false
+            gearMenuOpen -> gearMenuOpen = false
+            smartOpen -> smartOpen = false
+        }
+    }
+    LaunchedEffect(smartOpen) {
+        if (smartOpen) {
+            wasSmartOpen = true
+            androidx.compose.runtime.withFrameNanos { }
+        } else if (wasSmartOpen) {
+            wasSmartOpen = false
+            androidx.compose.runtime.withFrameNanos { }
+            smartButton.requestWithRetry()
+        }
+    }
+    LaunchedEffect(gearMenuOpen) {
+        if (gearMenuOpen) {
+            wasGearMenuOpen = true
+            androidx.compose.runtime.withFrameNanos { }
+            gearFirstItem.requestWithRetry()
+        } else if (wasGearMenuOpen && !desktopOpen) {
+            wasGearMenuOpen = false
+            androidx.compose.runtime.withFrameNanos { }
+            settingsButton.requestWithRetry()
+        }
+    }
+    LaunchedEffect(desktopOpen) {
+        if (desktopOpen) {
+            wasDesktopOpen = true
+            wasGearMenuOpen = false
+            androidx.compose.runtime.withFrameNanos { }
+            desktopFirstItem.requestWithRetry()
+        } else if (wasDesktopOpen) {
+            wasDesktopOpen = false
+            androidx.compose.runtime.withFrameNanos { }
+            settingsButton.requestWithRetry()
+        }
+    }
+    LaunchedEffect(rowMenuKind) {
+        if (rowMenuKind != null) {
+            wasRowMenuKind = rowMenuKind
+            androidx.compose.runtime.withFrameNanos { }
+            rowMenuFirstItem.requestWithRetry()
+        } else if (wasRowMenuKind != null) {
+            val kind = wasRowMenuKind
+            wasRowMenuKind = null
+            if (movingRowKind == null) {
+                androidx.compose.runtime.withFrameNanos { }
+                if (kind == ModernRowKind.APPS && showAppsRow) {
+                    appsRowHandle.requestWithRetry()
+                } else if (kind == ModernRowKind.LIKHTAR && !state.homeCombinedRows) {
+                    likhtarRowHandle.requestWithRetry()
+                } else {
+                    firstApp.requestWithRetry()
+                }
+            }
+        }
+    }
+    LaunchedEffect(movingRowKind, state.homeSectionsFirst, showAppsRow) {
+        val kind = movingRowKind ?: return@LaunchedEffect
+        if (!showAppsRow || state.homeCombinedRows) {
+            movingRowKind = null
+            return@LaunchedEffect
+        }
+        androidx.compose.runtime.withFrameNanos { }
+        val handle = if (kind == ModernRowKind.APPS) appsRowHandle else likhtarRowHandle
+        handle.requestWithRetry()
+    }
+    LaunchedEffect(appMenuTargetId) {
+        if (appMenuTargetId != null) {
+            wasAppMenuOpen = true
+            val idx = state.pinnedApps.indexOfFirst { it.id == appMenuTargetId }
+            if (idx >= 0) lastAppMenuIndex = idx
+            androidx.compose.runtime.withFrameNanos { }
+            appMenuFirstItem.requestWithRetry()
+        } else if (wasAppMenuOpen) {
+            wasAppMenuOpen = false
+            if (movingAppId == null) {
+                androidx.compose.runtime.withFrameNanos { }
+                val targetRequester = appsRowRequesters.getOrNull((lastAppMenuIndex + appOffset).coerceIn(0, (appsRowRequesters.size - 1).coerceAtLeast(0))) ?: firstApp
+                targetRequester.requestWithRetry()
+            }
+        }
+    }
+    LaunchedEffect(movingAppId, state.pinnedApps, sectionsOnTop) {
+        val targetId = movingAppId ?: return@LaunchedEffect
+        val idx = state.pinnedApps.indexOfFirst { it.id == targetId }
+        if (idx < 0) {
+            movingAppId = null
+            return@LaunchedEffect
+        }
+        androidx.compose.runtime.withFrameNanos { }
+        appsRowRequesters.getOrNull(idx + appOffset)?.requestWithRetry()
+    }
+    // Плитка розділу їде за ← →: фокус іде слідом за нею на нове місце.
+    LaunchedEffect(movingSection, sections) {
+        val moving = movingSection ?: return@LaunchedEffect
+        val idx = sections.indexOfFirst { it.section == moving }
+        if (idx < 0) {
+            movingSection = null
+            return@LaunchedEffect
+        }
+        androidx.compose.runtime.withFrameNanos { }
+        sectionRequester(idx)?.requestWithRetry()
+    }
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { rootOffset = it.positionInRoot() }
+            .onPreviewKeyEvent { ev ->
+                val activeSection = movingSection
+                val activeAppId = movingAppId
+                if (activeSection != null) {
+                    when (ev.key) {
+                        Key.DirectionLeft -> {
+                            if (ev.type == KeyEventType.KeyDown) onMoveSection(activeSection, true)
+                            true
+                        }
+                        Key.DirectionRight -> {
+                            if (ev.type == KeyEventType.KeyDown) onMoveSection(activeSection, false)
+                            true
+                        }
+                        Key.DirectionUp, Key.DirectionDown -> true
+                        Key.DirectionCenter, Key.Enter, Key.NumPadEnter, Key.Back, Key.Escape -> {
+                            if (ev.type == KeyEventType.KeyDown) movingSection = null
+                            true
+                        }
+                        else -> false
+                    }
+                } else if (activeAppId != null) {
+                    when (ev.key) {
+                        Key.DirectionLeft -> {
+                            if (ev.type == KeyEventType.KeyDown) onMoveHomeApp(activeAppId, true)
+                            true
+                        }
+                        Key.DirectionRight -> {
+                            if (ev.type == KeyEventType.KeyDown) onMoveHomeApp(activeAppId, false)
+                            true
+                        }
+                        Key.DirectionUp, Key.DirectionDown -> true
+                        Key.DirectionCenter, Key.Enter, Key.NumPadEnter, Key.Back, Key.Escape -> {
+                            if (ev.type == KeyEventType.KeyDown) movingAppId = null
+                            true
+                        }
+                        else -> false
+                    }
+                } else {
+                    val activeRow = movingRowKind
+                    if (activeRow != null) {
+                        val isRowOnTop = if (activeRow == ModernRowKind.APPS) !state.homeSectionsFirst else state.homeSectionsFirst
+                        when (ev.key) {
+                            Key.DirectionUp -> {
+                                if (ev.type == KeyEventType.KeyDown && !isRowOnTop) onToggleSectionsFirst()
+                                true
+                            }
+                            Key.DirectionDown -> {
+                                if (ev.type == KeyEventType.KeyDown && isRowOnTop) onToggleSectionsFirst()
+                                true
+                            }
+                            Key.DirectionLeft, Key.DirectionRight -> true
+                            Key.DirectionCenter, Key.Enter, Key.NumPadEnter, Key.Back, Key.Escape -> {
+                                if (ev.type == KeyEventType.KeyDown) movingRowKind = null
+                                true
+                            }
+                            else -> false
+                        }
+                    } else {
+                        false
+                    }
+                }
+            },
+    ) {
+        val viewportWidth = maxWidth
+        val viewportHeight = maxHeight
+        val density = LocalDensity.current
+        val screenPadding = viewportWidth * 0.052f
+        val railGap = (viewportWidth * 0.0135f).coerceIn(12.dp, 24.dp)
+        val cardWidth = ((viewportWidth - screenPadding * 2 - railGap * 4) / 5.1f).coerceAtLeast(156.dp)
+        val appHeight = (viewportWidth * 0.082f).coerceIn(84.dp, 138.dp)
+        val sectionHeight = (viewportWidth * 0.068f).coerceIn(74.dp, 116.dp)
+        val titleSize = (viewportWidth.value * 0.015f).coerceIn(16f, 24f)
+        // CSS прототипу: затемнення поверх тих самих шпалер, без blur і важких ефектів.
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(
+            0f to LikhtarColors.BackgroundDeep.copy(alpha = 0.42f), 0.3f to LikhtarColors.BackgroundDeep.copy(alpha = 0.18f), 1f to LikhtarColors.BackgroundDeep.copy(alpha = 0.87f),
+        )))
+        CompositionLocalProvider(com.likhtar.home.core.designsystem.LocalFocusBlocked provides overlayOpen) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(start = screenPadding, end = screenPadding,
+                    top = viewportWidth * 0.037f, bottom = viewportWidth * 0.053f),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(state.time, style = DockLabelStyle.copy(fontSize = 18.sp, fontWeight = FontWeight.SemiBold), color = LikhtarColors.Ink, maxLines = 1)
+                        Spacer(Modifier.padding(horizontal = 4.dp).width(1.dp).height(24.dp).background(Color.White.copy(alpha = 0.22f)))
+                        state.weather?.takeIf { state.showWeather }?.let { weather ->
+                            ModernHomeSurface(
+                                onClick = onOpenWeather,
+                                modifier = Modifier.focusRequester(weatherButton).focusDown(firstApp).height(42.dp),
+                                corner = 100.dp,
+                                background = LikhtarColors.PillGlass,
+                                focusedBackground = LikhtarColors.BorderStrong,
+                                scale = 1.05f, lift = 2.dp,
+                            ) { focused ->
+                                val iconProgress by animateFloatAsState(if (focused) 1f else 0f, tween(220, easing = LightEase), label = "weatherIcon")
+                                Row(Modifier.fillMaxHeight().padding(horizontal = 15.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    LikhtarIcons.Sky(sky = weather.sky, night = weather.hourly.firstOrNull()?.isNight() ?: false,
+                                        tint = LikhtarColors.Glow, size = 22.dp, weight = 1.2f,
+                                        modifier = Modifier.graphicsLayer { rotationZ = 20f * iconProgress; scaleX = 1f + .12f * iconProgress; scaleY = scaleX })
+                                    Text(plainTemperature(weather.temperature), style = DockLabelStyle.copy(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
+                                        color = LikhtarColors.Ink, maxLines = 1)
+                                }
+                            }
+                        }
+                        if (smartEnabled) {
+                            ModernHeaderButton(
+                                text = stringResource(R.string.home_my_home), icon = R.drawable.ic_dock_smart,
+                                onClick = { smartOpen = true }, modifier = Modifier.focusRequester(smartButton).focusDown(firstApp),
+                            )
+                        }
+                        update?.let {
+                            HomePill(text = stringResource(R.string.home_update, it.version),
+                                icon = com.likhtar.home.core.designsystem.R.drawable.ic_solar_download, onClick = onUpdate,
+                                modifier = Modifier.focusDown(firstApp))
+                        }
+                        ModernHeaderButton(
+                            text = null, icon = R.drawable.ic_settings_solar,
+                            onClick = { gearMenuOpen = true },
+                            modifier = Modifier.focusRequester(settingsButton).focusDown(firstApp),
+                        )
+                    }
+                }
+                val reduceMotion = com.likhtar.home.core.designsystem.LocalReduceMotion.current
+                var bottomRowFocused by remember { mutableStateOf(false) }
+                // Додаткові ряди («Продовжити», «Ігри») — з швидкого меню, під основними.
+                var extraRowsFocused by remember { mutableStateOf(false) }
+                val hasTwoRows = bottomRowCount > 0
+                val targetRowShift = when {
+                    // Коли користувач спустився у другий ряд (і швидкі налаштування закриті),
+                    // плавно піднімаємо ряди, щоб другий ряд повністю був у безпечній зоні.
+                    (hasTwoRows && bottomRowFocused || extraRowsFocused) && !desktopOpen -> 0.dp
+                    hasTwoRows -> when (state.homeRowPosition) {
+                        com.likhtar.home.core.data.HomeRowPosition.TOP -> 0.dp
+                        com.likhtar.home.core.data.HomeRowPosition.MIDDLE -> 36.dp
+                        com.likhtar.home.core.data.HomeRowPosition.BOTTOM -> 96.dp
+                        com.likhtar.home.core.data.HomeRowPosition.MINIMAL -> 156.dp
+                    }
+                    else -> when (state.homeRowPosition) {
+                        com.likhtar.home.core.data.HomeRowPosition.TOP -> 0.dp
+                        com.likhtar.home.core.data.HomeRowPosition.MIDDLE -> 12.dp
+                        com.likhtar.home.core.data.HomeRowPosition.BOTTOM -> 22.dp
+                        com.likhtar.home.core.data.HomeRowPosition.MINIMAL -> 30.dp
+                    }
+                }
+                val rowShift by androidx.compose.animation.core.animateDpAsState(
+                    targetValue = targetRowShift,
+                    animationSpec = if (reduceMotion) androidx.compose.animation.core.snap()
+                    else androidx.compose.animation.core.spring(
+                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+                        stiffness = 220f,
+                    ),
+                    label = "homeRowShift",
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        // Зсув висоти рядів — ДО прокрутки: усередині неї прокрутка обрізала зсунуті вниз картки
+                        // («Один ряд» + «Внизу» різало картки навпіл).
+                        .graphicsLayer {
+                            alpha = contentAlpha
+                            translationY = rowShift.toPx()
+                        }
+                        // Прокрутка лише коли ввімкнені додаткові ряди («Продовжити», «Ігри»): вона обрізає все
+                        // за своїм краєм, і без потреби різала рамку збільшеної картки знизу.
+                        .then(
+                            if (state.homeShowResume || state.homeShowGames) {
+                                Modifier.verticalScroll(rememberScrollState()).padding(bottom = 18.dp)
+                            } else {
+                                Modifier
+                            },
+                        ),
+                    verticalArrangement = Arrangement.spacedBy((viewportWidth - screenPadding * 2) * 0.026f),
+                ) {
+                    // Плитки розділів в одному ряду: перед застосунками чи після — за налаштуванням.
+                    val emitCombinedSections: (androidx.compose.foundation.lazy.LazyListScope) -> Unit = { scope ->
+                        scope.items(sections.size, key = { "section-${sections[it].section.route}" }) { index ->
+                            val tile = sections[index]
+                            ModernSectionCard(
+                                tile = tile,
+                                label = if (tile.section == LikhtarSection.SEARCH) stringResource(LikhtarSection.SEARCH.titleRes)
+                                    else tile.labelRes?.let { stringResource(it) } ?: tile.label,
+                                onClick = { if (movingSection != null) movingSection = null else onSelectSection(tile.section) },
+                                onLongClick = { movingAppId = null; movingSection = tile.section },
+                                highlighted = movingSection == tile.section,
+                                modifier = Modifier
+                                    .then(sectionRequester(index)?.let { Modifier.focusRequester(it) } ?: Modifier)
+                                    .focusUp(firstHeader),
+                                width = cardWidth,
+                                height = appHeight,
+                                combined = true,
+                            )
+                        }
+                    }
+                    val renderAppsSection: @Composable (Boolean) -> Unit = { isTopRow ->
+                        val rowRequesters = if (isTopRow) topRowRequesters else bottomRowRequesters
+                        val otherRequesters = if (isTopRow) bottomRowRequesters else topRowRequesters
+                        val showHandle = !state.homeCombinedRows
+                        var firstCardFocused by remember { mutableStateOf(false) }
+                        ModernContextSection(
+                            label = stringResource(if (state.homeCombinedRows) R.string.home_apps_and_sections else R.string.home_your_apps),
+                            gap = railGap,
+                            titleSize = titleSize,
+                            handleRequester = appsRowHandle.takeIf { showHandle },
+                            handleHighlighted = rowMenuKind == ModernRowKind.APPS || movingRowKind == ModernRowKind.APPS,
+                            handleMoving = movingRowKind == ModernRowKind.APPS,
+                            onHandlePositioned = { rowHandleBounds[ModernRowKind.APPS] = it.translate(-rootOffset.x, -rootOffset.y) },
+                            firstCardRequester = rowRequesters.firstOrNull(),
+                            firstCardFocused = firstCardFocused,
+                            upFromHandle = if (isTopRow) firstHeader else otherRequesters.firstOrNull(),
+                            onRowFocusChanged = if (!isTopRow) ({ bottomRowFocused = it }) else null,
+                            followIndex = movingAppId?.let { id -> state.pinnedApps.indexOfFirst { it.id == id }.takeIf { it >= 0 }?.plus(appOffset) }
+                                ?: movingSection?.takeIf { state.homeCombinedRows }?.let { sec ->
+                                    sections.indexOfFirst { it.section == sec }.takeIf { it >= 0 }
+                                        ?.let { if (combinedSectionsFirst) it else state.pinnedApps.size + it }
+                                },
+                            onOpenRowMenu = if (showHandle) ({
+                                if (movingRowKind != null) movingRowKind = null else rowMenuKind = ModernRowKind.APPS
+                            }) else null,
+                        ) {
+                            if (combinedSectionsFirst) emitCombinedSections(this)
+                            items(state.pinnedApps.size, key = { state.pinnedApps[it].id }) { index ->
+                                val app = state.pinnedApps[index]
+                                val crossTarget = otherRequesters.getOrNull(index.coerceAtMost(otherRequesters.lastIndex))
+                                    ?.takeIf { otherRequesters.isNotEmpty() && !state.homeCombinedRows }
+                                val isMovingThis = movingAppId == app.id
+                                val isHighlightedThis = isMovingThis || appMenuTargetId == app.id
+                                ModernAppCard(
+                                    app = app,
+                                    onClick = { if (movingAppId != null) movingAppId = null else onLaunch(app) },
+                                    onLongClick = {
+                                        movingAppId = null
+                                        movingRowKind = null
+                                        appMenuTargetId = app.id
+                                    },
+                                    width = cardWidth,
+                                    height = appHeight,
+                                    highlighted = isHighlightedThis,
+                                    isMoving = isMovingThis,
+                                    canMoveLeft = index > 0,
+                                    canMoveRight = index < state.pinnedApps.lastIndex,
+                                    modifier = Modifier
+                                        .onGloballyPositioned { coords ->
+                                            appCardBounds[app.id] = coords.boundsInRoot().translate(-rootOffset.x, -rootOffset.y)
+                                        }
+                                        .focusRequester(rowRequesters[appOffset + index])
+                                        .then(if (appOffset + index == 0) Modifier.onFocusChanged { firstCardFocused = it.isFocused } else Modifier)
+                                        .focusUp(if (isTopRow) firstHeader else crossTarget)
+                                        .focusDown(if (isTopRow) crossTarget else null),
+                                )
+                            }
+                            if (state.homeCombinedRows && !combinedSectionsFirst) emitCombinedSections(this)
+                            item(key = "all-apps") {
+                                val allAppsIndex = rowRequesters.lastIndex
+                                val crossTarget = otherRequesters.getOrNull(allAppsIndex.coerceAtMost(otherRequesters.lastIndex))
+                                    ?.takeIf { otherRequesters.isNotEmpty() && !state.homeCombinedRows }
+                                ModernSectionCard(
+                                    tile = HomeTile(LikhtarSection.APPS, 0),
+                                    label = stringResource(R.string.home_all_apps),
+                                    onClick = { onSelectSection(LikhtarSection.APPS) },
+                                    modifier = Modifier
+                                        .focusRequester(rowRequesters[allAppsIndex])
+                                        .then(if (allAppsIndex == 0) Modifier.onFocusChanged { firstCardFocused = it.isFocused } else Modifier)
+                                        .focusUp(if (isTopRow) firstHeader else crossTarget)
+                                        .focusDown(if (isTopRow) crossTarget else null),
+                                    width = cardWidth,
+                                    height = appHeight,
+                                    combined = true,
+                                )
+                            }
+                        }
+                    }
+                    val renderLikhtarSection: @Composable (Boolean) -> Unit = { isTopRow ->
+                        val rowRequesters = if (isTopRow) topRowRequesters else bottomRowRequesters
+                        val otherRequesters = if (isTopRow) bottomRowRequesters else topRowRequesters
+                        var firstCardFocused by remember { mutableStateOf(false) }
+                        ModernContextSection(
+                            label = stringResource(R.string.home_likhtar_sections),
+                            gap = railGap,
+                            titleSize = titleSize,
+                            showBrandLantern = true,
+                            handleRequester = likhtarRowHandle,
+                            handleHighlighted = rowMenuKind == ModernRowKind.LIKHTAR || movingRowKind == ModernRowKind.LIKHTAR,
+                            handleMoving = movingRowKind == ModernRowKind.LIKHTAR,
+                            onHandlePositioned = { rowHandleBounds[ModernRowKind.LIKHTAR] = it.translate(-rootOffset.x, -rootOffset.y) },
+                            firstCardRequester = rowRequesters.firstOrNull(),
+                            firstCardFocused = firstCardFocused,
+                            upFromHandle = if (isTopRow) firstHeader else otherRequesters.firstOrNull(),
+                            onRowFocusChanged = if (!isTopRow) ({ bottomRowFocused = it }) else null,
+                            onOpenRowMenu = {
+                                if (movingRowKind != null) movingRowKind = null else rowMenuKind = ModernRowKind.LIKHTAR
+                            },
+                            followIndex = movingSection?.let { sec -> sections.indexOfFirst { it.section == sec }.takeIf { it >= 0 } },
+                        ) {
+                            items(sections.size, key = { sections[it].section.route }) { index ->
+                                val tile = sections[index]
+                                val crossTarget = otherRequesters.getOrNull(index.coerceAtMost(otherRequesters.lastIndex))
+                                    ?.takeIf { otherRequesters.isNotEmpty() }
+                                ModernSectionCard(
+                                    tile = tile,
+                                    label = if (tile.section == LikhtarSection.SEARCH) stringResource(LikhtarSection.SEARCH.titleRes)
+                                        else tile.labelRes?.let { stringResource(it) } ?: tile.label,
+                                    onClick = { if (movingSection != null) movingSection = null else onSelectSection(tile.section) },
+                                    onLongClick = { movingAppId = null; movingSection = tile.section },
+                                    highlighted = movingSection == tile.section,
+                                    modifier = Modifier
+                                        .focusRequester(rowRequesters[index])
+                                        .then(if (index == 0) Modifier.onFocusChanged { firstCardFocused = it.isFocused } else Modifier)
+                                        .focusUp(if (isTopRow) firstHeader else crossTarget)
+                                        .focusDown(if (isTopRow) crossTarget else null),
+                                    width = cardWidth,
+                                    height = sectionHeight,
+                                )
+                            }
+                        }
+                    }
+                    if (sectionsOnTop) {
+                        renderLikhtarSection(true)
+                        if (showAppsRow) renderAppsSection(false)
+                    } else {
+                        if (showAppsRow) renderAppsSection(true)
+                        if (sections.isNotEmpty() && !state.homeCombinedRows) {
+                            renderLikhtarSection(!showAppsRow)
+                        }
+                    }
+                    val resume = state.resume
+                    val games = state.games
+                    // Увімкнений ряд видно й порожнім — з підказкою: інакше перемикач нічого не міняв би.
+                    if (state.homeShowResume || (state.homeShowGames && games.isNotEmpty())) {
+                        Column(
+                            modifier = Modifier.onFocusChanged { extraRowsFocused = it.hasFocus },
+                            verticalArrangement = Arrangement.spacedBy((viewportWidth - screenPadding * 2) * 0.026f),
+                        ) {
+                            if (state.homeShowResume) {
+                                ModernContextSection(label = stringResource(R.string.home_continue_watching), gap = railGap, titleSize = titleSize) {
+                                    if (resume.isEmpty()) item { Text(stringResource(R.string.home_continue_watching_empty), style = LikhtarType.Body2, color = LikhtarColors.InkFaint) }
+                                    items(resume.size, key = { "resume-$it" }) { index ->
+                                        ContinueCard(card = resume[index], onClick = { onOpenResume(resume[index]) })
+                                    }
+                                }
+                            }
+                            // Ігор нема — ряду теж: підказку в самому низу, без фокуса, не прокрутити до видимого.
+                            if (state.homeShowGames && games.isNotEmpty()) {
+                                ModernContextSection(label = stringResource(R.string.home_your_games), gap = railGap, titleSize = titleSize) {
+                                    items(games.size, key = { "game-${games[it].id}" }) { index ->
+                                        ModernAppCard(app = games[index], onClick = { onLaunch(games[index]) }, width = cardWidth, height = appHeight)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (gearMenuOpen) {
+            ModernGearDropdown(
+                firstItemRequester = gearFirstItem,
+                topOffset = viewportWidth * 0.037f + 50.dp,
+                endOffset = screenPadding,
+                onOpenQuickSettings = {
+                    gearMenuOpen = false
+                    desktopOpen = true
+                },
+                onOpenAllSettings = {
+                    gearMenuOpen = false
+                    onSelectSection(LikhtarSection.SETTINGS)
+                },
+            )
+        }
+        if (desktopOpen) {
+            ModernDesktopSettingsDrawer(
+                state = state,
+                firstItemRequester = desktopFirstItem,
+                onSetCombinedRows = onSetCombinedRows,
+                onSetRowPosition = onSetRowPosition,
+                onOpenAllSettings = {
+                    desktopOpen = false
+                    onSelectSection(LikhtarSection.SETTINGS)
+                },
+                onClose = { desktopOpen = false },
+                inputs = inputs,
+                onOpenInput = { desktopOpen = false; onOpenInput(it) },
+                onToggleShowResume = onToggleShowResume,
+                onToggleShowGames = onToggleShowGames,
+            )
+        }
+        rowMenuKind?.let { kind ->
+            val rect = rowHandleBounds[kind]
+            val rawLeft = if (rect != null) with(density) { rect.left.toDp() } else screenPadding
+            val rawTop = if (rect != null) with(density) { rect.bottom.toDp() } + 6.dp else (viewportHeight * 0.45f)
+            ModernRowDropdown(
+                kind = kind,
+                state = state,
+                firstItemRequester = rowMenuFirstItem,
+                startOffset = rawLeft.coerceIn(screenPadding, (viewportWidth - 236.dp).coerceAtLeast(screenPadding)),
+                topOffset = rawTop.coerceIn(16.dp, (viewportHeight - 164.dp).coerceAtLeast(16.dp)),
+                onStartMoveRow = {
+                    rowMenuKind = null
+                    movingRowKind = kind
+                },
+                onToggleAppsRowHidden = {
+                    rowMenuKind = null
+                    onToggleAppsRowHidden()
+                },
+                onUnhideAllApps = {
+                    rowMenuKind = null
+                    onUnhideAllHomeApps()
+                },
+            )
+        }
+        appMenuTargetId?.let { targetId ->
+            val appIndex = state.pinnedApps.indexOfFirst { it.id == targetId }
+            val targetApp = state.pinnedApps.getOrNull(appIndex)
+            if (targetApp == null) {
+                appMenuTargetId = null
+            } else {
+                val rect = appCardBounds[targetId]
+                val rawLeft = if (rect != null) with(density) { rect.left.toDp() } else screenPadding
+                // Під карткою, а коли там нема місця (ряд унизу екрана) — над нею: інакше меню лягало
+                // на саму картку, і не було видно, що саме переставляють.
+                val menuHeight = 100.dp
+                val rawTop = if (rect != null) with(density) {
+                    val below = rect.bottom.toDp() + 6.dp
+                    if (below + menuHeight <= viewportHeight - 8.dp) below else rect.top.toDp() - menuHeight - 8.dp
+                } else (viewportHeight * 0.45f)
+                ModernAppDropdown(
+                    firstItemRequester = appMenuFirstItem,
+                    startOffset = rawLeft.coerceIn(screenPadding, (viewportWidth - 200.dp).coerceAtLeast(screenPadding)),
+                    topOffset = rawTop.coerceIn(16.dp, (viewportHeight - 114.dp).coerceAtLeast(16.dp)),
+                    onStartMove = {
+                        appMenuTargetId = null
+                        movingAppId = targetApp.id
+                    },
+                    onHide = {
+                        appMenuTargetId = null
+                        onToggleHomeAppHidden(targetApp.id)
+                    },
+                )
+            }
+        }
+        if (smartOpen) {
+            ModernSmartHomeDrawer(
+                devices = state.smartDevices,
+                panelButton = panelButton,
+                onToggleDevice = onToggleSmartDevice,
+                onOpenAllDevices = {
+                    smartOpen = false
+                    onSelectSection(LikhtarSection.SMART_HOME)
+                },
+                onClose = { smartOpen = false },
+            )
+        }
+        PreparingScrim(state.preparing)
+    }
+}
+
+@Composable
+private fun BoxScope.ModernGearDropdown(
+    firstItemRequester: FocusRequester,
+    topOffset: Dp,
+    endOffset: Dp,
+    onOpenQuickSettings: () -> Unit,
+    onOpenAllSettings: () -> Unit,
+) {
+    val secondItemRequester = remember { FocusRequester() }
+    Column(
+        modifier = Modifier
+            .align(Alignment.TopEnd)
+            .padding(top = topOffset, end = endOffset)
+            .width(252.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(LikhtarColors.Surface)
+            .border(1.dp, LikhtarColors.GlassBorderStrong, RoundedCornerShape(14.dp))
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        ModernHomeSurface(
+            onClick = onOpenQuickSettings,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp)
+                .focusRequester(firstItemRequester)
+                .focusDown(secondItemRequester),
+            corner = 9.dp,
+            background = LikhtarColors.Surface.copy(alpha = 0f),
+            focusedBackground = LikhtarColors.BorderStrong,
+            scale = 1.02f,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    stringResource(R.string.home_quick_settings),
+                    style = DockLabelStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                    color = LikhtarColors.GlassActive,
+                )
+                Text(
+                    "›",
+                    style = DockLabelStyle.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
+                    color = LikhtarColors.Glow,
+                )
+            }
+        }
+        ModernHomeSurface(
+            onClick = onOpenAllSettings,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp)
+                .focusRequester(secondItemRequester)
+                .focusUp(firstItemRequester),
+            corner = 9.dp,
+            background = LikhtarColors.Surface.copy(alpha = 0f),
+            focusedBackground = LikhtarColors.BorderStrong,
+            scale = 1.02f,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    stringResource(R.string.home_all_settings),
+                    style = DockLabelStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                    color = LikhtarColors.GlassActive,
+                )
+                Text(
+                    "→",
+                    style = DockLabelStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                    color = LikhtarColors.WarmMuted,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.ModernDesktopSettingsDrawer(
+    state: HomeUiState,
+    firstItemRequester: FocusRequester,
+    onSetCombinedRows: (Boolean) -> Unit,
+    onSetRowPosition: (com.likhtar.home.core.data.HomeRowPosition) -> Unit,
+    onOpenAllSettings: () -> Unit,
+    onClose: () -> Unit,
+    inputs: List<TvInputTile> = emptyList(),
+    onOpenInput: (TvInputTile) -> Unit = {},
+    onToggleShowResume: () -> Unit = {},
+    onToggleShowGames: () -> Unit = {},
+) {
+    val resumeToggleRequester = remember { FocusRequester() }
+    val gamesToggleRequester = remember { FocusRequester() }
+    val inputRequesters = remember(inputs.size) { List(inputs.size) { FocusRequester() } }
+    val closeRequester = remember { FocusRequester() }
+    val oneRowRequester = remember { FocusRequester() }
+    val rowPositionRequester = remember { FocusRequester() }
+    val allSettingsRequester = remember { FocusRequester() }
+    val positionLabel = stringResource(
+        when (state.homeRowPosition) {
+            com.likhtar.home.core.data.HomeRowPosition.TOP -> R.string.home_row_position_top
+            com.likhtar.home.core.data.HomeRowPosition.MIDDLE -> R.string.home_row_position_middle
+            com.likhtar.home.core.data.HomeRowPosition.BOTTOM -> R.string.home_row_position_bottom
+            com.likhtar.home.core.data.HomeRowPosition.MINIMAL -> R.string.home_row_position_minimal
+        },
+    )
+    // М'яке затемнення, щоб позаду панелі було добре видно живе превʼю висоти рядів.
+    Box(Modifier.fillMaxSize().background(LikhtarColors.Shade.copy(alpha = 0.32f)))
+    Column(
+        modifier = Modifier
+            .align(Alignment.CenterEnd)
+            .fillMaxHeight()
+            .width(340.dp)
+            .background(LikhtarColors.Panel)
+            .border(1.dp, LikhtarColors.PillBorder)
+            // Пунктів більше, ніж висота екрана: панель прокручується до фокуса.
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 26.dp, vertical = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.home_quick_settings),
+                style = DockLabelStyle.copy(fontSize = 24.sp, fontWeight = FontWeight.SemiBold),
+                color = LikhtarColors.GlassActive,
+            )
+            ModernHomeSurface(
+                onClick = onClose,
+                modifier = Modifier
+                    .focusRequester(closeRequester)
+                    .focusDown(firstItemRequester)
+                    .size(40.dp),
+                corner = 100.dp,
+                background = LikhtarColors.SurfaceHigh,
+                focusedBackground = LikhtarColors.BorderStrong,
+                scale = 1.05f,
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("×", style = DockLabelStyle.copy(fontSize = 21.sp, fontWeight = FontWeight.Medium), color = LikhtarColors.GlassActive)
+                }
+            }
+        }
+        Text(
+            stringResource(R.string.home_desktop_subtitle),
+            style = LikhtarType.Body2.copy(fontSize = 13.5.sp),
+            color = LikhtarColors.WarmMuted,
+        )
+
+        Text(
+            stringResource(R.string.home_rows_group),
+            style = DockLabelStyle.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+            color = LikhtarColors.WarmGoldSoft,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(LikhtarColors.Surface)
+                .border(1.dp, LikhtarColors.GlassBorder, RoundedCornerShape(14.dp))
+                .padding(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            ModernHomeSurface(
+                onClick = { onSetCombinedRows(false) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+                    .focusRequester(firstItemRequester)
+                    .focusUp(closeRequester)
+                    .focusDown(oneRowRequester),
+                corner = 10.dp,
+                background = if (!state.homeCombinedRows) LikhtarColors.SurfaceHigh else LikhtarColors.Surface.copy(alpha = 0f),
+                focusedBackground = LikhtarColors.BorderStrong,
+                scale = 1.015f,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        stringResource(R.string.home_layout_two_rows),
+                        style = DockLabelStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                        color = LikhtarColors.GlassActive,
+                    )
+                    if (!state.homeCombinedRows) {
+                        Text(
+                            "✓",
+                            style = DockLabelStyle.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold),
+                            color = LikhtarColors.Glow,
+                        )
+                    }
+                }
+            }
+            ModernHomeSurface(
+                onClick = { onSetCombinedRows(true) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+                    .focusRequester(oneRowRequester)
+                    .focusUp(firstItemRequester)
+                    .focusDown(rowPositionRequester),
+                corner = 10.dp,
+                background = if (state.homeCombinedRows) LikhtarColors.SurfaceHigh else LikhtarColors.Surface.copy(alpha = 0f),
+                focusedBackground = LikhtarColors.BorderStrong,
+                scale = 1.015f,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        stringResource(R.string.home_layout_one_row),
+                        style = DockLabelStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                        color = LikhtarColors.GlassActive,
+                    )
+                    if (state.homeCombinedRows) {
+                        Text(
+                            "✓",
+                            style = DockLabelStyle.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold),
+                            color = LikhtarColors.Glow,
+                        )
+                    }
+                }
+            }
+        }
+
+        Text(
+            stringResource(R.string.home_row_position_group),
+            style = DockLabelStyle.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+            color = LikhtarColors.WarmGoldSoft,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(LikhtarColors.Surface)
+                .border(1.dp, LikhtarColors.GlassBorder, RoundedCornerShape(14.dp))
+                .padding(6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ModernHomeSurface(
+                onClick = { onSetRowPosition(state.homeRowPosition.next()) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .focusRequester(rowPositionRequester)
+                    .focusUp(oneRowRequester)
+                    .focusDown(resumeToggleRequester)
+                    .onPreviewKeyEvent { ev ->
+                        if (ev.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                        when (ev.key) {
+                            Key.DirectionLeft -> {
+                                onSetRowPosition(state.homeRowPosition.step(-1))
+                                true
+                            }
+                            Key.DirectionRight -> {
+                                onSetRowPosition(state.homeRowPosition.step(+1))
+                                true
+                            }
+                            else -> false
+                        }
+                    },
+                corner = 10.dp,
+                background = LikhtarColors.SurfaceHigh,
+                focusedBackground = LikhtarColors.BorderStrong,
+                scale = 1.015f,
+            ) { focused ->
+                val canStepLeft = state.homeRowPosition.ordinal > 0
+                val canStepRight = state.homeRowPosition.ordinal < com.likhtar.home.core.data.HomeRowPosition.entries.lastIndex
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        "‹",
+                        style = DockLabelStyle.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        color = if (canStepLeft) (if (focused) LikhtarColors.Glow else LikhtarColors.GlassActive) else LikhtarColors.BorderMuted,
+                    )
+                    Text(
+                        positionLabel,
+                        style = DockLabelStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                        color = LikhtarColors.GlassActive,
+                    )
+                    Text(
+                        "›",
+                        style = DockLabelStyle.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        color = if (canStepRight) (if (focused) LikhtarColors.Glow else LikhtarColors.GlassActive) else LikhtarColors.BorderMuted,
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.home_row_position_hint),
+                    style = LikhtarType.Body2.copy(fontSize = 11.5.sp),
+                    color = LikhtarColors.WarmMuted,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    com.likhtar.home.core.data.HomeRowPosition.entries.forEach { stop ->
+                        val active = stop == state.homeRowPosition
+                        Box(
+                            modifier = Modifier
+                                .size(width = if (active) 14.dp else 5.dp, height = 5.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(if (active) LikhtarColors.Glow else LikhtarColors.BorderMuted),
+                        )
+                    }
+                }
+            }
+        }
+
+        QuickGroupTitle(stringResource(R.string.home_extra_rows_group))
+        QuickGroup {
+            QuickSwitchRow(
+                text = stringResource(R.string.home_continue_watching),
+                on = state.homeShowResume,
+                onClick = onToggleShowResume,
+                modifier = Modifier.focusRequester(resumeToggleRequester).focusUp(rowPositionRequester).focusDown(gamesToggleRequester),
+            )
+            QuickSwitchRow(
+                text = stringResource(R.string.home_your_games),
+                on = state.homeShowGames,
+                onClick = onToggleShowGames,
+                modifier = Modifier.focusRequester(gamesToggleRequester).focusUp(resumeToggleRequester)
+                    .focusDown(inputRequesters.firstOrNull() ?: allSettingsRequester),
+            )
+        }
+        if (inputs.isNotEmpty()) {
+            QuickGroupTitle(stringResource(R.string.home_devices))
+            QuickGroup {
+                inputs.forEachIndexed { index, input ->
+                    ModernHomeSurface(
+                        onClick = { onOpenInput(input) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .focusRequester(inputRequesters[index])
+                            .focusUp(inputRequesters.getOrNull(index - 1) ?: gamesToggleRequester)
+                            .focusDown(inputRequesters.getOrNull(index + 1) ?: allSettingsRequester),
+                        corner = 10.dp,
+                        background = LikhtarColors.Surface.copy(alpha = 0f),
+                        focusedBackground = LikhtarColors.BorderStrong,
+                        scale = 1.015f,
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Image(
+                                painter = painterResource(input.icon()),
+                                contentDescription = null,
+                                colorFilter = ColorFilter.tint(LikhtarColors.Glow),
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text(
+                                input.name,
+                                style = DockLabelStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                                color = LikhtarColors.GlassActive,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            if (input.port.isNotBlank()) {
+                                Text(input.port, style = LikhtarType.Body2, color = LikhtarColors.WarmMuted, maxLines = 1)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        ModernHomeSurface(
+            onClick = onOpenAllSettings,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .focusRequester(allSettingsRequester)
+                .focusUp(inputRequesters.lastOrNull() ?: gamesToggleRequester),
+            corner = 12.dp,
+            background = LikhtarColors.SurfaceHigh,
+            focusedBackground = LikhtarColors.BorderStrong,
+            scale = 1.03f,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    stringResource(R.string.home_all_settings),
+                    style = DockLabelStyle.copy(fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold),
+                    color = LikhtarColors.GlassActive,
+                )
+                Text(
+                    "→",
+                    style = DockLabelStyle.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+                    color = LikhtarColors.GlassActive,
+                )
+            }
+        }
+    }
+}
+
+/** Заголовок групи швидкого меню. */
+@Composable
+private fun QuickGroupTitle(text: String) {
+    Text(
+        text,
+        style = DockLabelStyle.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+        color = LikhtarColors.WarmGoldSoft,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+}
+
+/** Рамка групи швидкого меню — та сама, що в «Рядах» і «Висоті». */
+@Composable
+private fun QuickGroup(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(LikhtarColors.Surface)
+            .border(1.dp, LikhtarColors.GlassBorder, RoundedCornerShape(14.dp))
+            .padding(6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        content = content,
+    )
+}
+
+/** Рядок з перемикачем-пігулкою: OK перемикає. */
+@Composable
+private fun QuickSwitchRow(text: String, on: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    ModernHomeSurface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth().height(46.dp),
+        corner = 10.dp,
+        background = LikhtarColors.Surface.copy(alpha = 0f),
+        focusedBackground = LikhtarColors.BorderStrong,
+        scale = 1.015f,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text,
+                style = DockLabelStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                color = LikhtarColors.GlassActive,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            com.likhtar.home.core.designsystem.LikhtarSwitch(on)
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.ModernRowDropdown(
+    kind: ModernRowKind,
+    state: HomeUiState,
+    firstItemRequester: FocusRequester,
+    startOffset: Dp,
+    topOffset: Dp,
+    onStartMoveRow: () -> Unit,
+    onToggleAppsRowHidden: () -> Unit,
+    onUnhideAllApps: () -> Unit,
+) {
+    val isAppsRow = kind == ModernRowKind.APPS
+    val canMoveRow = !state.homeAppsRowHidden
+    val actions = buildList<Triple<String, String?, () -> Unit>> {
+        if (canMoveRow) {
+            add(Triple(stringResource(R.string.home_row_move), "↑↓", onStartMoveRow))
+        }
+        if (isAppsRow) {
+            add(Triple(stringResource(R.string.home_row_hide), null, onToggleAppsRowHidden))
+            if (state.homeHiddenApps.isNotEmpty()) {
+                add(Triple(stringResource(R.string.home_restore_hidden_apps), null, onUnhideAllApps))
+            }
+        } else {
+            if (state.homeAppsRowHidden) {
+                add(Triple(stringResource(R.string.home_row_show_apps), null, onToggleAppsRowHidden))
+            }
+            if (state.homeHiddenApps.isNotEmpty()) {
+                add(Triple(stringResource(R.string.home_restore_hidden_apps), null, onUnhideAllApps))
+            }
+        }
+    }
+    if (actions.isEmpty()) return
+    val itemRequesters = remember(actions.size) {
+        List(actions.size) { index -> if (index == 0) firstItemRequester else FocusRequester() }
+    }
+    Column(
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .padding(start = startOffset, top = topOffset)
+            .width(228.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(LikhtarColors.Surface)
+            .border(1.dp, LikhtarColors.GlassBorderStrong, RoundedCornerShape(14.dp))
+            .padding(7.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        actions.forEachIndexed { index, (label, badge, action) ->
+            ModernHomeSurface(
+                onClick = action,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .focusRequester(itemRequesters[index])
+                    .then(if (index > 0) Modifier.focusUp(itemRequesters[index - 1]) else Modifier)
+                    .then(if (index < itemRequesters.lastIndex) Modifier.focusDown(itemRequesters[index + 1]) else Modifier),
+                corner = 9.dp,
+                background = LikhtarColors.Surface.copy(alpha = 0f),
+                focusedBackground = LikhtarColors.BorderStrong,
+                scale = 1.02f,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        label,
+                        style = DockLabelStyle.copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold),
+                        color = LikhtarColors.GlassActive,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (badge != null) {
+                        Text(
+                            badge,
+                            style = DockLabelStyle.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                            color = LikhtarColors.Glow,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.ModernAppDropdown(
+    firstItemRequester: FocusRequester,
+    startOffset: Dp,
+    topOffset: Dp,
+    onStartMove: () -> Unit,
+    onHide: () -> Unit,
+) {
+    val secondItemRequester = remember { FocusRequester() }
+    Column(
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .padding(start = startOffset, top = topOffset)
+            .width(192.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(LikhtarColors.Surface)
+            .border(1.dp, LikhtarColors.GlassBorderStrong, RoundedCornerShape(14.dp))
+            .padding(7.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        ModernHomeSurface(
+            onClick = onStartMove,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .focusRequester(firstItemRequester)
+                .focusDown(secondItemRequester),
+            corner = 9.dp,
+            background = LikhtarColors.Surface.copy(alpha = 0f),
+            focusedBackground = LikhtarColors.BorderStrong,
+            scale = 1.02f,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    stringResource(R.string.home_app_move),
+                    style = DockLabelStyle.copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold),
+                    color = LikhtarColors.GlassActive,
+                )
+                Text(
+                    "‹ ›",
+                    style = DockLabelStyle.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                    color = LikhtarColors.Glow,
+                )
+            }
+        }
+        ModernHomeSurface(
+            onClick = onHide,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .focusRequester(secondItemRequester)
+                .focusUp(firstItemRequester),
+            corner = 9.dp,
+            background = LikhtarColors.Surface.copy(alpha = 0f),
+            focusedBackground = LikhtarColors.BorderStrong,
+            scale = 1.02f,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    stringResource(R.string.home_app_hide),
+                    style = DockLabelStyle.copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold),
+                    color = LikhtarColors.GlassActive,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+@Composable
+fun BoxScope.ModernSmartHomeDrawer(
+    devices: List<SmartDevice>,
+    panelButton: FocusRequester,
+    onToggleDevice: (SmartDevice) -> Unit,
+    onOpenAllDevices: (() -> Unit)? = null,
+    onClose: () -> Unit,
+) {
+    val closeRequester = remember { FocusRequester() }
+    val tempDevice = devices.firstOrNull {
+        it.kind == com.likhtar.home.core.smarthome.SmartDeviceKind.CLIMATE ||
+            it.unit?.contains("°") == true ||
+            it.unit?.contains("C", ignoreCase = true) == true
+    }
+    val listDevices = devices.filter { it != tempDevice }
+    val firstDeviceRequester = remember { FocusRequester() }
+    androidx.activity.compose.BackHandler(onBack = onClose)
+    // Фокус ставить сама панель (на першу річ, якою можна керувати): вона одна знає, що в ній є.
+    LaunchedEffect(Unit) {
+        (if (listDevices.isNotEmpty()) firstDeviceRequester else if (onOpenAllDevices != null) panelButton else closeRequester).requestWithRetry()
+    }
+    Box(Modifier.fillMaxSize().background(LikhtarColors.Shade.copy(alpha = 0.66f)))
+    Column(
+        modifier = Modifier
+            // Фокус не виходить з панелі на картки позаду: закривають її Back або «×».
+            .focusProperties { exit = { FocusRequester.Cancel } }
+            .focusGroup()
+            .align(Alignment.CenterEnd)
+            .fillMaxHeight()
+            .width(360.dp)
+            .background(LikhtarColors.Panel)
+            .border(1.dp, LikhtarColors.PillBorder)
+            .padding(horizontal = 28.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.home_my_home),
+                style = DockLabelStyle.copy(fontSize = 26.sp, fontWeight = FontWeight.SemiBold),
+                color = LikhtarColors.GlassActive,
+            )
+            ModernHomeSurface(
+                onClick = onClose,
+                modifier = Modifier
+                    .focusRequester(closeRequester)
+                    .focusDown(if (listDevices.isNotEmpty()) firstDeviceRequester else if (onOpenAllDevices != null) panelButton else null)
+                    .size(42.dp),
+                corner = 100.dp,
+                background = LikhtarColors.SurfaceHigh,
+                focusedBackground = LikhtarColors.BorderStrong,
+                scale = 1.05f,
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("×", style = DockLabelStyle.copy(fontSize = 22.sp, fontWeight = FontWeight.Medium), color = LikhtarColors.GlassActive)
+                }
+            }
+        }
+        Text(
+            stringResource(R.string.home_smart_subtitle),
+            style = LikhtarType.Body2.copy(fontSize = 14.sp),
+            color = LikhtarColors.WarmMuted,
+        )
+        if (tempDevice != null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(LikhtarColors.Surface)
+                    .border(1.dp, LikhtarColors.GlassBorder, RoundedCornerShape(16.dp))
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    stringResource(R.string.home_smart_temp_title),
+                    style = DockLabelStyle.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp),
+                    color = LikhtarColors.WarmStone,
+                )
+                Text(
+                    tempDevice.readableState ?: tempDevice.state,
+                    style = DockLabelStyle.copy(fontSize = 36.sp, fontWeight = FontWeight.SemiBold),
+                    color = LikhtarColors.GlassActive,
+                )
+                Text(
+                    tempDevice.room ?: tempDevice.name,
+                    style = LikhtarType.Body2.copy(fontSize = 14.sp),
+                    color = LikhtarColors.WarmMuted,
+                )
+            }
+        }
+        if (devices.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(LikhtarColors.Surface)
+                    .border(1.dp, LikhtarColors.GlassBorder, RoundedCornerShape(16.dp))
+                    .padding(18.dp),
+            ) {
+                Text(stringResource(R.string.home_smart_empty), style = LikhtarType.Body2, color = LikhtarColors.WarmMuted)
+            }
+        } else if (listDevices.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(LikhtarColors.Surface)
+                    .border(1.dp, LikhtarColors.GlassBorder, RoundedCornerShape(16.dp))
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                listDevices.forEachIndexed { index, device ->
+                    ModernHomeSurface(
+                        onClick = { if (device.isControllable) onToggleDevice(device) else onOpenAllDevices?.invoke() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .thenFirst(index, firstDeviceRequester)
+                            .then(if (index == 0) Modifier.focusUp(closeRequester) else Modifier)
+                            .then(if (index == listDevices.lastIndex && onOpenAllDevices != null) Modifier.focusDown(panelButton) else Modifier),
+                        corner = 12.dp,
+                        background = LikhtarColors.Surface.copy(alpha = 0f),
+                        focusedBackground = LikhtarColors.SurfaceHigh,
+                        scale = 1.02f,
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_dock_smart),
+                                contentDescription = null,
+                                colorFilter = ColorFilter.tint(LikhtarColors.Glow),
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Text(
+                                device.name,
+                                style = DockLabelStyle.copy(fontSize = 15.sp, fontWeight = FontWeight.Medium),
+                                color = LikhtarColors.GlassActive,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            if (device.isControllable) {
+                                com.likhtar.home.core.designsystem.LikhtarSwitch(device.isOn)
+                            } else {
+                                Text(
+                                    deviceStateLabel(device),
+                                    style = LikhtarType.Body2,
+                                    color = LikhtarColors.WarmMuted,
+                                    maxLines = 1,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (onOpenAllDevices != null) {
+            ModernHomeSurface(
+                onClick = onOpenAllDevices,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .focusRequester(panelButton)
+                    .focusUp(if (listDevices.isNotEmpty()) firstDeviceRequester else closeRequester),
+                corner = 12.dp,
+                background = LikhtarColors.SurfaceHigh,
+                focusedBackground = LikhtarColors.BorderStrong,
+                scale = 1.03f,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        stringResource(R.string.home_all_devices),
+                        style = DockLabelStyle.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+                        color = LikhtarColors.GlassActive,
+                    )
+                    Text(
+                        "→",
+                        style = DockLabelStyle.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
+                        color = LikhtarColors.GlassActive,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModernContextSection(
+    label: String,
+    gap: Dp,
+    titleSize: Float,
+    showBrandLantern: Boolean = false,
+    handleRequester: FocusRequester? = null,
+    handleHighlighted: Boolean = false,
+    handleMoving: Boolean = false,
+    onHandlePositioned: ((Rect) -> Unit)? = null,
+    firstCardRequester: FocusRequester? = null,
+    firstCardFocused: Boolean = false,
+    upFromHandle: FocusRequester? = null,
+    onRowFocusChanged: ((Boolean) -> Unit)? = null,
+    onOpenRowMenu: (() -> Unit)? = null,
+    /** Картку переставляють: ряд прокручується слідом за нею, навіть за край екрана. */
+    followIndex: Int? = null,
+    content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
+) {
+    val railState = androidx.compose.foundation.lazy.rememberLazyListState()
+    LaunchedEffect(followIndex) {
+        val target = followIndex ?: return@LaunchedEffect
+        val visible = railState.layoutInfo.visibleItemsInfo
+        val fullyShown = visible.firstOrNull { it.index == target }?.let { item ->
+            item.offset >= railState.layoutInfo.viewportStartOffset &&
+                item.offset + item.size <= railState.layoutInfo.viewportEndOffset
+        } == true
+        // Лише коли картка не вся на екрані — без смикання ряду на кожен крок.
+        if (!fullyShown) railState.scrollToItem((target - 1).coerceAtLeast(0))
+    }
+    Column(
+        modifier = Modifier
+            .then(if (onRowFocusChanged != null) Modifier.onFocusChanged { onRowFocusChanged(it.hasFocus) } else Modifier)
+            .onPreviewKeyEvent { ev ->
+                if (firstCardFocused && handleRequester != null && ev.type == KeyEventType.KeyDown && ev.key == Key.DirectionLeft) {
+                    runCatching { handleRequester.requestFocus() }.isSuccess
+                } else {
+                    false
+                }
+            },
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (onOpenRowMenu != null && handleRequester != null) {
+                ModernHomeSurface(
+                    onClick = onOpenRowMenu,
+                    onLongClick = onOpenRowMenu,
+                    modifier = Modifier
+                        .size(width = if (handleMoving) 36.dp else 28.dp, height = 28.dp)
+                        .then(if (onHandlePositioned != null) Modifier.onGloballyPositioned { onHandlePositioned(it.boundsInRoot()) } else Modifier)
+                        .focusRequester(handleRequester)
+                        .focusUp(upFromHandle)
+                        .focusDown(firstCardRequester)
+                        .onKeyEvent { ev ->
+                            if (ev.type == KeyEventType.KeyDown && ev.key == Key.DirectionRight) {
+                                firstCardRequester?.let { runCatching { it.requestFocus() }.isSuccess } ?: false
+                            } else {
+                                false
+                            }
+                        },
+                    corner = 8.dp,
+                    background = LikhtarColors.PillGlass,
+                    focusedBackground = LikhtarColors.BorderStrong,
+                    scale = 1.06f,
+                    highlighted = handleHighlighted,
+                ) { focused ->
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (handleMoving) "↑↓" else "≡",
+                            style = DockLabelStyle.copy(fontSize = if (handleMoving) 12.sp else 14.sp, fontWeight = FontWeight.Bold),
+                            color = if (focused || handleHighlighted) LikhtarColors.Glow else LikhtarColors.WarmMuted,
+                        )
+                    }
+                }
+            }
+            if (showBrandLantern) {
+                LikhtarIcons.Lantern(size = 24.dp)
+            }
+            Text(
+                label,
+                style = DockLabelStyle.copy(
+                    fontSize = titleSize.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = if (showBrandLantern) 0.8.sp else (-.02).sp,
+                ),
+                color = if (handleMoving) LikhtarColors.Glow else LikhtarColors.GlassActive,
+            )
+        }
+        com.likhtar.home.core.designsystem.LikhtarRail(state = railState, gap = gap, verticalAlignment = Alignment.CenterVertically, bleed = 16.dp, content = content)
+    }
+}
+
+@Composable
+private fun ModernSectionCard(
+    tile: HomeTile,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier,
+    width: Dp,
+    height: Dp,
+    combined: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    /** Плитку зараз переставляють: бурштинове кільце, як у застосунку. */
+    highlighted: Boolean = false,
+) {
+    val all = tile.section == LikhtarSection.APPS
+    ModernHomeSurface(
+        onClick = onClick, onLongClick = onLongClick, modifier = modifier.size(width, height), corner = 16.dp,
+        background = if (all) LikhtarColors.ScrimPanel else LikhtarColors.Surface.copy(alpha = 0.93f),
+        scale = 1.055f, lift = if (all || highlighted) 4.dp else 4.dp, pointerParallax = true,
+        highlighted = highlighted,
+    ) { focused ->
+        val iconScale by animateFloatAsState(if (focused) 1.14f else 1f, tween(220, easing = LightEase), label = "sectionIcon")
+        val icon: @Composable () -> Unit = {
+            Box(Modifier.graphicsLayer { scaleX = iconScale; scaleY = iconScale }) { DockGlyph(tile, focused = false, size = 26.dp) }
+        }
+        val text: @Composable () -> Unit = {
+            Text(label, style = DockLabelStyle.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold), color = LikhtarColors.GlassActive, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (combined && !all) {
+            Column(Modifier.fillMaxSize().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)) { icon(); text() }
+        } else {
+            Row(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (all) Arrangement.spacedBy(11.dp, Alignment.CenterHorizontally) else Arrangement.spacedBy(13.dp)) { icon(); text() }
+        }
+    }
+}
+
+@Composable
+private fun ModernHeaderButton(text: String?, icon: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    ModernHomeSurface(
+        onClick = onClick,
+        modifier = modifier.height(42.dp).then(if (text == null) Modifier.width(42.dp) else Modifier),
+        corner = 100.dp, background = LikhtarColors.PillGlass, focusedBackground = LikhtarColors.BorderStrong,
+        scale = 1.05f, lift = 2.dp,
+    ) { focused ->
+        val iconProgress by animateFloatAsState(if (focused) 1f else 0f, tween(220, easing = LightEase), label = "headerIcon")
+        Row(Modifier.fillMaxHeight().then(if (text == null) Modifier.fillMaxWidth() else Modifier.wrapContentWidth())
+            .padding(horizontal = if (text == null) 0.dp else 15.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            Image(painterResource(icon), contentDescription = text ?: stringResource(R.string.home_settings),
+                colorFilter = ColorFilter.tint(LikhtarColors.Glow), modifier = Modifier.size(if (text == null) 20.dp else 19.dp)
+                    .graphicsLayer { scaleX = 1f + (if (text == null) .1f else .14f) * iconProgress; scaleY = scaleX; rotationZ = if (text == null) 30f * iconProgress else 0f })
+            if (text != null) {
+                Spacer(Modifier.width(9.dp))
+                Text(text, style = DockLabelStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold), color = LikhtarColors.Ink, maxLines = 1)
+            }
+        }
+    }
+}
+
+/** Єдина темна підкладка, як у макеті; іконка береться зі встановленого застосунку. */
+@Composable
+private fun ModernAppCard(
+    app: LauncherApp,
+    onClick: () -> Unit,
+    width: Dp,
+    height: Dp,
+    modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+    highlighted: Boolean = false,
+    isMoving: Boolean = false,
+    canMoveLeft: Boolean = false,
+    canMoveRight: Boolean = false,
+) {
+    // Оригінальний TV-банер застосунку (банер активності → застосунку), а не наш знак; немає банера —
+    // знак сервісу чи іконка з назвою, як було. Спільний кеш — без повторного декодування на кожну появу.
+    val artwork = com.likhtar.home.core.designsystem.rememberAppArtwork(app.packageName, app.activityName)
+    val icon = artwork?.takeIf { !it.banner }?.image
+    ModernHomeSurface(
+        onClick = onClick,
+        onLongClick = onLongClick,
+        modifier = modifier.size(width, height),
+        corner = 16.dp,
+        background = LikhtarColors.ScrimPanel,
+        focusedBackground = if (highlighted || isMoving) LikhtarColors.SurfaceHigh else LikhtarColors.ScrimPanel,
+        scale = 1.055f,
+        lift = if (highlighted || isMoving) 4.dp else 0.dp,
+        pointerParallax = true,
+        highlighted = highlighted || isMoving,
+    ) { focused ->
+        val contentScale by animateFloatAsState(if (focused) 1.03f else 1f, tween(200, easing = LightEase), label = "appContent")
+        Box(Modifier.fillMaxSize()) {
+            if (artwork?.banner == true) {
+                Image(
+                    bitmap = artwork.image,
+                    contentDescription = app.label,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else Row(
+                Modifier.fillMaxSize().padding(horizontal = if (isMoving) 22.dp else 12.dp).graphicsLayer { scaleX = contentScale; scaleY = contentScale },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                val name = app.label.lowercase()
+                when {
+                    name.contains("netflix") -> Text("NETFLIX", style = DockLabelStyle.copy(fontWeight = FontWeight.Black, fontSize = 20.sp), color = BrandColors.Netflix, maxLines = 1)
+                    name.contains("youtube") -> {
+                        Box(Modifier.size(width = 25.dp, height = 18.dp).background(BrandColors.YouTubeRed, RoundedCornerShape(5.dp)), contentAlignment = Alignment.Center) {
+                            Text("▶", style = TextStyle(fontSize = 11.5.sp), color = Color.White)
+                        }
+                        Spacer(Modifier.width(7.dp))
+                        Text("YouTube", style = DockLabelStyle.copy(fontWeight = FontWeight.Black, fontSize = 18.sp), color = Color.White, maxLines = 1)
+                    }
+                    name.contains("megogo") -> {
+                        Box(Modifier.size(18.dp).graphicsLayer { rotationZ = 45f }.background(BrandColors.Megogo, RoundedCornerShape(4.dp)))
+                        Spacer(Modifier.width(10.dp))
+                        Text("MEGOGO", style = DockLabelStyle.copy(fontWeight = FontWeight.Black, fontSize = 16.sp, letterSpacing = 1.2.sp), color = Color.White, maxLines = 1)
+                    }
+                    name.contains("spotify") -> {
+                        Box(Modifier.size(24.dp).background(BrandColors.Spotify, RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+                            Text("≋", style = TextStyle(fontWeight = FontWeight.Black, fontSize = 16.sp), color = LikhtarColors.TileFloor)
+                        }
+                        Spacer(Modifier.width(6.dp))
+                        Text("Spotify", style = DockLabelStyle.copy(fontWeight = FontWeight.Black, fontSize = 18.sp), color = BrandColors.Spotify, maxLines = 1)
+                    }
+                    name.contains("sweet") -> Text("sweet.tv", style = DockLabelStyle.copy(fontWeight = FontWeight.Black, fontSize = 18.sp), color = Color.White, maxLines = 1)
+                    else -> {
+                        icon?.let { Image(it, contentDescription = null, modifier = Modifier.size(26.dp)) }
+                        if (icon != null) Spacer(Modifier.width(8.dp))
+                        Text(app.label, style = DockLabelStyle.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold), color = LikhtarColors.GlassActive,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+            if (isMoving) {
+                Text(
+                    "‹",
+                    style = DockLabelStyle.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                    color = LikhtarColors.Glow.copy(alpha = if (canMoveLeft) 0.95f else 0.25f),
+                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp),
+                )
+                Text(
+                    "›",
+                    style = DockLabelStyle.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                    color = LikhtarColors.Glow.copy(alpha = if (canMoveRight) 0.95f else 0.25f),
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp),
+                )
+            }
+        }
     }
 }
 
@@ -648,7 +2474,7 @@ private fun NavTile(
  * на фокусі темніє, бо стоїть на теплій білій пігулці.
  */
 @Composable
-private fun DockGlyph(tile: HomeTile, focused: Boolean) {
+private fun DockGlyph(tile: HomeTile, focused: Boolean, size: Dp = DockIconSize) {
     // Заливні іконки Solar бурштином — світлом, як у прототипі; на білій пігулці темніють.
     val icon = when (tile.section) {
         LikhtarSection.CINEMA -> R.drawable.ic_dock_cinema
@@ -663,7 +2489,7 @@ private fun DockGlyph(tile: HomeTile, focused: Boolean) {
         painter = painterResource(icon),
         contentDescription = null,
         colorFilter = ColorFilter.tint(if (focused) LikhtarColors.AmberOnPaper else LikhtarColors.Glow),
-        modifier = Modifier.size(DockIconSize),
+        modifier = Modifier.size(size),
     )
 }
 
@@ -725,6 +2551,7 @@ private fun ContextSection(
  * Контекст самої Головної: Ліхтарик і налаштування. Новин (RSS) більше немає — читати їх
  * на ТБ незручно; стрічку, якщо буде, зробимо не з RSS.
  */
+@Suppress("ModifierParameter") // crossZone — модифікатор для дітей (фокус між зонами), не для кореня
 @Composable
 private fun HomeContextRow(
     showTorch: Boolean,
@@ -733,10 +2560,31 @@ private fun HomeContextRow(
     onOpenSettings: () -> Unit,
     onOpenTorch: () -> Unit,
     onAsk: (String) -> Unit,
+    inputs: List<TvInputTile>,
+    onOpenInput: (TvInputTile) -> Unit,
     first: FocusRequester,
     crossZone: Modifier,
 ) {
-    // «Ліхтарик підкаже»: готові запити одразу запускають Ліхтарика.
+    // «Пристрої» — над пігулками: ↑ з доку лишається на пігулках, ↓/↑ між двома рядами явні.
+    val devicesFirst = remember { FocusRequester() }
+    // Column: AnimatedContent кладе вміст у Box, і два ряди лягли б один на одного.
+    Column {
+    if (inputs.isNotEmpty()) {
+        ContextSection(label = stringResource(R.string.home_devices)) {
+            items(inputs.size, key = { inputs[it].id }) { index ->
+                val input = inputs[index]
+                HomePill(
+                    text = input.name,
+                    icon = input.icon(),
+                    small = input.port.ifBlank { null },
+                    onClick = { onOpenInput(input) },
+                    modifier = crossZone.focusDown(first).thenFirst(index, devicesFirst),
+                )
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+    }
+    // «Ліхтарик підкаже» (прототип): готові запити одразу запускають Ліхтарика.
     var support by remember { mutableStateOf(false) }
     if (support) com.likhtar.home.core.designsystem.SupportDialog(onDismiss = { support = false })
     // «Новинки українською» — лише українському інтерфейсу: поляк бачив «Nowości po ukraińsku»
@@ -759,9 +2607,19 @@ private fun HomeContextRow(
     ContextSection(label = if (showTorch) stringResource(R.string.home_torch_suggests) else null) {
         items(pills.size) { index ->
             val (text, icon, onClick) = pills[index]
-            HomePill(text = text, icon = icon, onClick = onClick, modifier = crossZone.thenFirst(index, first))
+            HomePill(
+                text = text, icon = icon, onClick = onClick,
+                modifier = crossZone.focusUp(devicesFirst.takeIf { inputs.isNotEmpty() }).thenFirst(index, first),
+            )
         }
     }
+    }
+}
+
+private fun TvInputTile.icon(): Int = when (kind) {
+    TvInputTile.Kind.GAME -> R.drawable.ic_dock_games
+    TvInputTile.Kind.PLAYER -> com.likhtar.home.core.designsystem.R.drawable.ic_solar_play
+    TvInputTile.Kind.OTHER -> R.drawable.ic_dock_tv
 }
 
 /** Пігулка полиці: іконка бурштином і підпис; фокус — тепла біла пігулка. */
@@ -802,7 +2660,7 @@ private fun HomePill(
                 small?.let {
                     Text(
                         it,
-                        style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Medium, fontSize = 10.sp),
+                        style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.Medium, fontSize = 11.5.sp),
                         color = when {
                             focused -> LikhtarColors.AmberMuted
                             lit -> LikhtarColors.Glow
@@ -855,6 +2713,7 @@ private val ShelfTitleStyle = TextStyle(fontFamily = LikhtarType.Body, fontWeigh
 private val LightEase = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.7f, 0.1f, 1f)
 
 /** ТБ Ефір: канали, які вмикали з лаунчера. */
+@Suppress("ModifierParameter") // crossZone — модифікатор для дітей (фокус між зонами), не для кореня
 @Composable
 private fun ChannelsContextRow(
     channels: List<RecentChannel>,
@@ -940,6 +2799,7 @@ private fun ChannelCard(channel: RecentChannel, pinned: Boolean, onClick: () -> 
 }
 
 /** Пошук: запити, з яких щось відкривали. Перша пігулка завжди веде в чистий пошук. */
+@Suppress("ModifierParameter") // crossZone — модифікатор для дітей (фокус між зонами), не для кореня
 @Composable
 private fun SearchContextRow(
     queries: List<String>,
@@ -964,6 +2824,7 @@ private fun SearchContextRow(
 }
 
 /** Смарт дім: компактний зріз того, що зараз удома. */
+@Suppress("ModifierParameter") // crossZone — модифікатор для дітей (фокус між зонами), не для кореня
 @Composable
 private fun SmartHomeContextRow(
     devices: List<SmartDevice>,
@@ -1042,7 +2903,7 @@ private const val AMBIENT_FADE_MS = 900
 
 /**
  * Тінь лише під самим текстом годинника й дати — щоб біле читалось на світлих шпалерах.
- * Великі темні плями під ним сприймаються як поломка телевізора.
+ * Великі темні плями під ним сприймали за поломку телевізора.
  */
 private val TextShade = androidx.compose.ui.graphics.Shadow(
     color = LikhtarColors.Shade.copy(alpha = 0.6f),
@@ -1078,6 +2939,7 @@ private val ContextCardHeight = 52.dp
  * нижньою полицею Головної й тягнув їх із собою; тепер він — контекст рівно одного
  * пункту доку, а застосунки мають у доці власну плитку.
  */
+@Suppress("ModifierParameter") // crossZone — модифікатор для дітей (фокус між зонами), не для кореня
 @Composable
 private fun CinemaContextRow(
     cards: List<ResumeCard>,
@@ -1088,7 +2950,7 @@ private fun CinemaContextRow(
 ) {
     ContextSection(label = stringResource(R.string.home_continue_watching)) {
         if (cards.isEmpty()) {
-            item { ContextHint(stringResource(R.string.home_continue_watching_empty)) }
+            item { Text(stringResource(R.string.home_continue_watching_empty), style = LikhtarType.Body2, color = LikhtarColors.InkFaint) }
         } else {
             // Чотири картки і вхід у повну історію п'ятим слотом. Кількість була
             // налаштуванням, але вибирати тут нічого: п'ять слотів — це вся ширина,
@@ -1111,6 +2973,7 @@ private fun CinemaContextRow(
  * Ряд над «Реаліті»: випуски, на яких зупинились, — те саме «Продовжити», що в самому
  * розділі. Досі над плиткою не було нічого: гілки для Реаліті в доці просто не існувало.
  */
+@Suppress("ModifierParameter") // crossZone — модифікатор для дітей (фокус між зонами), не для кореня
 @Composable
 private fun RealityContextRow(
     cards: List<ResumeCard>,
@@ -1240,6 +3103,7 @@ private val BrandIconSize = 26.dp
  * «Застосунками», зі стрілкою для циклу. Він плутав два різні рівні: док — це розділи
  * лаунчера, а конкретний застосунок розділом не є. Тепер він там, де й решта контексту.
  */
+@Suppress("ModifierParameter") // crossZone — модифікатор для дітей (фокус між зонами), не для кореня
 @Composable
 private fun AppsContextRow(
     apps: List<LauncherApp>,
@@ -1330,7 +3194,7 @@ private val WeatherCityStyle = TextStyle(
 
 private val HourTimeStyle = TextStyle(
     fontFamily = LikhtarType.MonoFamily,
-    fontSize = 10.sp,
+    fontSize = 11.5.sp,
 )
 
 private val HourTempStyle = TextStyle(

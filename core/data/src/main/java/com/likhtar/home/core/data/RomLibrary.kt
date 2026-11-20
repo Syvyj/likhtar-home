@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import androidx.core.net.toUri
+import androidx.core.content.edit
 
 /**
  * Приставка, для якої образ: назва на екрані, тека обкладинок libretro і ядро RetroArch
@@ -161,6 +163,7 @@ class RomLibrary @Inject constructor(@ApplicationContext private val context: Co
     }
 
     /** Запустити гру. `null` — запущено; інакше — що сказати людині. */
+    @android.annotation.SuppressLint("SdCardPath") // шлях до ядра в даних RetroArch, див. нижче
     fun launch(game: RetroGame): String? {
         val pm = context.packageManager
         val retroArch = RETROARCH.firstOrNull { pkg -> runCatching { pm.getPackageInfo(pkg, 0) }.isSuccess }
@@ -168,6 +171,7 @@ class RomLibrary @Inject constructor(@ApplicationContext private val context: Co
             Intent(Intent.ACTION_MAIN)
                 .setComponent(ComponentName(retroArch, "com.retroarch.browser.retroactivity.RetroActivityFuture"))
                 .putExtra("ROM", game.path)
+                // Ядро лежить у даних самого RetroArch, не в наших — шлях його, getFilesDir() тут ні до чого.
                 .putExtra("LIBRETRO", "/data/data/$retroArch/cores/${game.system.core}_libretro_android.so")
                 .putExtra("CONFIGFILE", "${Environment.getExternalStorageDirectory()}/Android/data/$retroArch/files/retroarch.cfg")
         } else {
@@ -183,7 +187,7 @@ class RomLibrary @Inject constructor(@ApplicationContext private val context: Co
 
     /** Системний екран доступу до всіх файлів: без нього лаунчер бачить лише образи з телефона. */
     fun openFileAccessSettings() {
-        val pkg = Uri.parse("package:${context.packageName}")
+        val pkg = "package:${context.packageName}".toUri()
         val intents = buildList {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 add(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, pkg))
@@ -196,7 +200,7 @@ class RomLibrary @Inject constructor(@ApplicationContext private val context: Co
 
     private fun remember(path: String) {
         val list = (listOf(path) + _recent.value.filterNot { it == path }).take(RECENT_MAX)
-        prefs.edit().putString(KEY_RECENT, list.joinToString("\n")).apply()
+        prefs.edit { putString(KEY_RECENT, list.joinToString("\n")) }
         _recent.value = list
     }
 

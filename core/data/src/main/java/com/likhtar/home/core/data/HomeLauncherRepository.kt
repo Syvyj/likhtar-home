@@ -10,6 +10,7 @@ import android.provider.Settings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.net.toUri
 
 /** Хто зараз обробляє кнопку HOME і що з цим можна зробити. */
 data class HomeLauncherStatus(
@@ -182,7 +183,7 @@ class HomeLauncherRepository @Inject constructor(
             add(Intent(Settings.ACTION_HOME_SETTINGS))
             add(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
             if (!holdsHomeRole()) add(Intent(HOME_INTENT).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            add(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
+            add(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri()))
         }.map { it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
     }
 
@@ -200,7 +201,7 @@ class HomeLauncherRepository @Inject constructor(
     fun autostartIntents(): List<Intent> = listOf(
         Intent(
             Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-            Uri.parse("package:${context.packageName}"),
+            "package:${context.packageName}".toUri(),
         ),
         Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION),
     ).map { it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
@@ -210,8 +211,8 @@ class HomeLauncherRepository @Inject constructor(
      * на приставках без Play Store лишається браузер, і це краще за мовчазну відмову.
      */
     fun storeIntents(packageName: String): List<Intent> = listOf(
-        Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName")),
-        Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$packageName")),
+        Intent(Intent.ACTION_VIEW, "market://details?id=$packageName".toUri()),
+        Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=$packageName".toUri()),
     ).map { it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
 
     /** Зовнішня інструкція з ADB-кроками: в самій апці команд немає навмисно. */

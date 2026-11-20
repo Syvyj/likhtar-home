@@ -1,5 +1,8 @@
 package com.likhtar.home.feature.cinema
 
+import com.likhtar.home.core.designsystem.RailRestore
+import com.likhtar.home.core.designsystem.rememberRailRestore
+
 import androidx.compose.ui.res.stringResource
 import com.likhtar.home.core.designsystem.PreparingScrim
 import com.likhtar.home.core.model.SearchLaunch
@@ -9,6 +12,10 @@ import com.likhtar.home.core.designsystem.LocalFocusBlocked
 import com.likhtar.home.core.designsystem.cardSlot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.items
@@ -30,6 +37,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -92,6 +100,8 @@ fun CinemaScreen(
     onOpenStreamings: () -> Unit,
     /** Сторінка шоу порталу — для творів українського каталогу без TMDB. */
     onOpenShow: (String) -> Unit = {},
+    /** Повна сторінка «Реаліті» з кнопки «Відкрити всі» у ряді Реаліті. */
+    onOpenReality: () -> Unit = {},
     viewModel: CinemaViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -133,9 +143,6 @@ fun CinemaScreen(
     // на початок, другий веде у верхнє меню, і лише третій (уже з меню) виходить із
     // розділу — його обробляє навігація застосунку.
     var contentHasFocus by remember { mutableStateOf(false) }
-    var advisorOpen by remember { mutableStateOf(false) }
-    var candidatesOpen by remember { mutableStateOf(false) }
-    var candidateIndex by remember { mutableStateOf(0) }
     // Закриваючи оверлей, фокус треба комусь віддати: сторінка позаду під час його
     // існування фокус не брала, тож після зникнення він лишався б у нікуди — і ↓ починало
     // гуляти рядами без видимої підсвітки.
@@ -148,33 +155,28 @@ fun CinemaScreen(
         viewModel.resetPreview()
         sliderFocusAsk += 1
     }
-    BackHandler(enabled = candidatesOpen) {
-        candidatesOpen = false
-        backToPage()
-    }
-    BackHandler(enabled = !candidatesOpen && advisorOpen) {
-        advisorOpen = false
-        backToPage()
-    }
     SectionBackHandler(
         inRails = inRails,
         contentHasFocus = contentHasFocus,
         menuFocus = menuFocusRequester,
         onCollapseRails = backToPage,
-        enabled = !candidatesOpen && !advisorOpen,
+        enabled = true,
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // У рядах тло рівне, як на сторінках всесвітів (подача Apple TV): кадр на весь екран, що мінявся на кожен рух пульта, забирав половину
-        // екрана під шапку й перемальовувався щокроку — на приставці це найдорожче.
-        if (inRails) {
-            Box(modifier = Modifier.fillMaxSize().background(LikhtarColors.Background))
-        } else {
-            SlideBackdrop(state.advisorPick?.item ?: state.slide, state.slideForward)
+        // У рядах тло рівне; при переході Hero ↔ Ряди кадр плавно згасає за 320 мс.
+        Box(modifier = Modifier.fillMaxSize().background(LikhtarColors.Background))
+        AnimatedVisibility(
+            visible = !inRails,
+            enter = fadeIn(tween(320, easing = FastOutSlowInEasing)),
+            exit = fadeOut(tween(280, easing = FastOutSlowInEasing)),
+        ) {
+            SlideBackdrop(state.slide, state.slideForward)
         }
+        val inactiveHeroFocus = remember { FocusRequester() }
         // Поки відкрито оверлей, сторінка позаду фокус не бере: інакше ↓ із панелі
         // провалювався крізь неї й починав гуляти рядами під затемненням.
-        CompositionLocalProvider(LocalFocusBlocked provides (advisorOpen || candidatesOpen)) {
+        CompositionLocalProvider(LocalFocusBlocked provides false) {
         LikhtarScreenScaffold(
             contentModifier = Modifier.onFocusChanged { contentHasFocus = it.hasFocus },
             section = LikhtarSection.CINEMA,
@@ -182,17 +184,15 @@ fun CinemaScreen(
             menuFocusRequester = menuFocusRequester,
             contentFocusRequester = contentFocusRequester,
             loading = state.loading,
+            showTopBar = !inRails,
         ) {
-            // Якір ↓ з меню — кнопка «Дивитись» у превʼю: перше, що бачить око, і перше,
-            // куди має стати фокус. На контейнері зі focusGroup якір не працює — фокус
-            // просто лишався в меню, і наступне → перемикало розділи.
-            //
-            // Якщо цей елемент не скомпонований (список повернувся прокрученим), запит
-            // фокуса впаде — і його спіймає focusDown() у меню. Раніше на цьому місці
-            // застосунок падав із FocusRequester is not initialized.
-            // Верхній блок не прокручується: він і є сторінкою, а рядки під ним — додаток
-            // до неї. Заголовка сторінки немає навмисно: назва розділу вже стоїть у меню.
-            if (!inRails) {
+            // Плавне згортання/розгортання Hero при переході в ряди (як у tvOS / likhtar-cinema-modern.html).
+            AnimatedVisibility(
+                visible = !inRails,
+                enter = fadeIn(tween(240, easing = FastOutSlowInEasing)) + expandVertically(tween(320, easing = FastOutSlowInEasing)),
+                exit = fadeOut(tween(180, easing = FastOutSlowInEasing)) + shrinkVertically(tween(320, easing = FastOutSlowInEasing)),
+            ) {
+                val heroFocus = if (!inRails) contentFocusRequester else inactiveHeroFocus
                 Column(
                     modifier = Modifier.padding(
                         start = LikhtarDimens.ScreenPadding,
@@ -202,27 +202,46 @@ fun CinemaScreen(
                         bottom = 18.dp,
                     ),
                 ) {
-                    // Висота блока = висота колонки: превʼю тягнеться рівно по низ кнопки
-                    // «більше», а не по вигаданій константі.
-                    // Саме слайд або підбір радника — і нічого більше. `state.hero` сюди не
-                    // годиться: воно йде ще й за сфокусованою карткою ряду, тому нагорі лишався
-                    // матеріал, якого в пулі немає, а разом із ним зникали крапки.
-                    val heroItem = state.advisorPick?.item ?: state.slide
+                    val heroItem = state.slide
                     val openFranchise = stringResource(R.string.cinema_open_franchise)
                     val watchText = stringResource(R.string.cinema_watch)
-                    if (heroItem != null) CinemaHero(
+                    val trivia by viewModel.game.state.collectAsStateWithLifecycle()
+                    val question = trivia.shown
+                    if (heroItem != null && state.triviaOn && question != null) {
+                        Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(HeroFraction)) {
+                            TriviaPanel(
+                                statement = question,
+                                answered = trivia.answered,
+                                kicker = stringResource(R.string.trivia_slide_kicker),
+                                onAnswer = { viewModel.game.answer(it) },
+                                nextLabel = stringResource(R.string.trivia_more),
+                                onNext = { viewModel.game.next() },
+                                onOpen = { onOpenTitle(question.item) },
+                                firstFocus = heroFocus,
+                                menuFocus = menuFocusRequester,
+                                onEdgeLeft = { viewModel.prevSlide(); sliderFocusAsk += 1 },
+                                onEdgeRight = { viewModel.nextSlide(); sliderFocusAsk += 1 },
+                                modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 32.dp),
+                                width = 520.dp,
+                            )
+                        }
+                    } else if (heroItem != null) CinemaHero(
                         item = heroItem,
                         pool = state.trendingPool,
                         uaAudio = heroItem.tmdbId in state.uaAudio,
-                        watchFocus = contentFocusRequester,
+                        watchFocus = heroFocus,
                         // У слайдері бувають і франшизи (сервер, heroDoors) — вони ведуть на свою
                         // сторінку, як широка секція в рядах.
                         onWatch = { item -> item.opensListing?.let { (kind, key) -> onOpenListing(kind, key) } ?: onOpenTitle(item) },
                         watchLabel = { item -> if (item.opensListing != null) openFranchise else watchText },
-                        onNext = viewModel::nextSlide,
-                        onPrev = viewModel::prevSlide,
+                        // На слайд питання кнопки інші — фокус треба поставити заново.
+                        onNext = { viewModel.nextSlide(); sliderFocusAsk += 1 },
+                        onPrev = { viewModel.prevSlide(); sliderFocusAsk += 1 },
                         menuFocus = menuFocusRequester,
-                    )
+                        moreHint = stringResource(R.string.cinema_more_tip),
+                    ) else if (state.loading && state.rows.isEmpty()) {
+                        com.likhtar.home.core.designsystem.CatalogSkeleton()
+                    }
                 }
             }
 
@@ -384,23 +403,6 @@ fun CinemaScreen(
                     first = false
                     scope.item(key = "resume") {
                         val ownResume = remember { FocusRequester() }
-                        // Якір ↓ з меню в режимі рядів — саме ця картка.
-                        //
-                        // Навіщо: `contentFocusRequester` причеплений до кнопки «Дивитись»
-                        // у превʼю, а в режимі рядів превʼю не малюється взагалі — у шапці
-                        // стоїть `RailHeroBlock` без кнопок. Тобто якоря в цьому стані не
-                        // існувало, запит фокуса гинув, далі працював геометричний пошук —
-                        // і ПЕРШЕ ↓ з меню витрачалось даремно. На екрані це виглядало як
-                        // «вниз не працює»: список зʼїжджав на початок, підсвітки не було,
-                        // і лише друге ↓ ставало на картку.
-                        //
-                        // Саме радник, а не перша картка першого ряду: там уже живе
-                        // `restoreFocus`, і два requester'и на одному вузлі — це дефект,
-                        // закритий у `9ed1490`. Радник у цьому режимі перший і є завжди.
-                        //
-                        // Один requester на вузол, а не два: гілки `if (inRails)` взаємно
-                        // виключні, тож `contentFocusRequester` завжди причеплений рівно
-                        // до одного вузла — або до кнопки превʼю, або до цієї картки.
                         val firstResume = if (inRails) contentFocusRequester else ownResume
                         // Вхід на першу картку й відмотку ряду робить сам LikhtarRail.
                         Column {
@@ -408,38 +410,13 @@ fun CinemaScreen(
                             LikhtarRail {
                                 // Радник стоїть тут завжди й першим — саме тому, що працює
                                 // він тоді, коли продовжувати нема чого.
-                                item(key = "advisor") {
-                                    ShortcutCard(
-                                        title = stringResource(R.string.cinema_what_to_watch),
-                                        subtitle = stringResource(R.string.cinema_advisor_subtitle),
-                                        icon = { LikhtarIcons.Lantern(size = 23.dp) },
+                                // Одна плитка «Ліхтарик» замість «Що подивитись» і «Закладок»:
+                                // головна фішка, тож розміром як кадри поруч і з тим, що нового саме для мене.
+                                item(key = "likhtarik") {
+                                    LikhtarikTile(
+                                        bookmarks = state.watchlist.size,
                                         focus = firstResume,
-                                        onClick = { advisorOpen = true },
-                                        onFocused = {
-                                            railIndex = index
-                                            viewModel.onRowFocus()
-                                        },
-                                        onExitUp = exitUpIfFirst(isFirst),
-                                    )
-                                }
-                                // «Закладки» — ярлик на ряд закладок Ліхтарика: окремого ряду в
-                                // Кінозалі більше немає.
-                                item(key = "bookmarks") {
-                                    ShortcutCard(
-                                        title = stringResource(R.string.cinema_bookmarks),
-                                        subtitle = state.watchlist.size.takeIf { it > 0 }?.let { stringResource(R.string.cinema_in_list_count, it) } ?: stringResource(R.string.cinema_my_list),
-                                        icon = { focused ->
-                                            androidx.tv.material3.Icon(
-                                                androidx.compose.ui.res.painterResource(com.likhtar.home.core.designsystem.R.drawable.ic_solar_bookmark),
-                                                contentDescription = null,
-                                                tint = if (focused) LikhtarColors.AmberOnPaper else LikhtarColors.Glow,
-                                                modifier = Modifier.size(21.dp),
-                                            )
-                                        },
-                                        onClick = {
-                                            SearchLaunch.focusBookmarks = true
-                                            onSelectSection(LikhtarSection.SEARCH)
-                                        },
+                                        onClick = { onSelectSection(LikhtarSection.SEARCH) },
                                         onFocused = {
                                             railIndex = index
                                             viewModel.onRowFocus()
@@ -461,8 +438,8 @@ fun CinemaScreen(
                                             // решта веде в розділ.
                                             //
                                             // Сторінка, а не одразу плеєр: запуск звідси
-                                            // йшов без жодного індикатора, і поки торент
-                                            // думав, натискання виглядало так, ніби картка
+                                            // йшов без жодного індикатора, і поки джерело
+                                            // готувалось, натискання виглядало так, ніби картка
                                             // не відкривається. На сторінці перша кнопка —
                                             // «Продовжити SxxEyy», тож це один OK зверху.
                                             card.open(
@@ -576,6 +553,36 @@ fun CinemaScreen(
                 }
 
                 emitTop()
+                if (state.realityItems.isNotEmpty()) {
+                    val isFirst = first
+                    val index = railCount
+                    railCount += 1
+                    first = false
+                    scope.item(key = "reality-row", contentType = "rail") {
+                        CollectionRail(
+                            posters = false,
+                            title = stringResource(LikhtarSection.REALITY.titleRes),
+                            items = state.realityItems,
+                            watched = state.watched,
+                            uaConfirmed = state.uaAudio,
+                            onOpen = { item -> viewModel.openReality(item, onOpenShow, onOpenTitle) },
+                            onLongOpen = viewModel.rowMarks::open,
+                            restoreId = viewModel.railItem?.id,
+                            restore = restore,
+                            rowIndex = index,
+                            onFocused = { focusedItem ->
+                                railIndex = index
+                                viewModel.onRailFocus(focusedItem)
+                            },
+                            onExitUp = exitUpIfFirst(isFirst),
+                            onOpenAll = onOpenReality,
+                            onAnyFocus = {
+                                railIndex = index
+                                railPin += 1
+                            },
+                        )
+                    }
+                }
                 if (state.brands.isNotEmpty()) {
                     val isFirst = first
                     val index = railCount
@@ -616,41 +623,6 @@ fun CinemaScreen(
 
         }
 
-        // Панель радника — поверх сторінки, а не замість неї: за нею видно Кінозал, тому
-        // зрозуміло, куди повертає BACK.
-        AnimatedVisibility(
-            visible = advisorOpen,
-            enter = slideInHorizontally(tween(PanelSlideMs, easing = FastOutSlowInEasing)) { it },
-            exit = slideOutHorizontally(tween(PanelSlideMs, easing = FastOutSlowInEasing)) { it },
-        ) {
-            AdvisorPanel(
-                state = state,
-                onTime = viewModel::selectTime,
-                onMood = viewModel::selectMood,
-                onShow = {
-                    viewModel.showAdvisorPick()
-                    candidateIndex = 0
-                    candidatesOpen = true
-                },
-                onClose = { advisorOpen = false },
-            )
-        }
-
-        if (candidatesOpen) {
-            CandidatesOverlay(
-                candidates = state.candidates,
-                index = candidateIndex,
-                onIndex = { candidateIndex = it },
-                onOpen = { item ->
-                    candidatesOpen = false
-                    onOpenTitle(item)
-                },
-                onEmptyBack = {
-                    candidatesOpen = false
-                    backToPage()
-                },
-            )
-        }
 
         // Поки добірки та локальні стрічки збираються, не показуємо напівготову геометрію
         // сторінки: на телевізорі її послідовне "доїжджання" виглядає як ривок. Оверлей
@@ -663,7 +635,7 @@ fun CinemaScreen(
 
         // Довге OK на картці — та сама «Позначити», що на сторінці тайтла, без уточнень, яких
         // з ряду не видно (сезон, де зупинились, жанри): їх дає сторінка.
-        RowMarkPanel(viewModel.rowMarks)
+        RowMarkPanel(viewModel.rowMarks, onOpen = onOpenTitle)
         PreparingScrim(viewModel.preparing.collectAsStateWithLifecycle().value)
     }
 }
@@ -692,74 +664,6 @@ private const val STREAMINGS_ALL = "__all__"
  * Постера в неї немає навмисно, як і в решти плиток-переходів: випадковий кадр обіцяв би
  * конкретний фільм, а тут його ще нема — його треба підібрати.
  */
-@Composable
-private fun ShortcutCard(
-    title: String,
-    subtitle: String,
-    icon: @Composable (focused: Boolean) -> Unit,
-    onClick: () -> Unit,
-    onFocused: () -> Unit,
-    onExitUp: (() -> Unit)?,
-    focus: FocusRequester? = null,
-) {
-    val exitUp = if (onExitUp == null) {
-        Modifier
-    } else {
-        Modifier.onKeyEvent { event ->
-            if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
-                onExitUp()
-                true
-            } else {
-                false
-            }
-        }
-    }
-    // .short прототипу: 272×225 px, поле 22 px, тло --deep з тонкою рамкою; знак угорі, назва
-    // 28 px і підпис моно 18 px унизу. Фокус — тепла біла заливка, 1.07 і тепла тінь.
-    Column(modifier = Modifier.width(ShortcutWidth).cardSlot()) {
-        FocusableSurface(
-            onClick = onClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(CatalogBannerWidth * 9f / 16f)
-                .then(if (focus != null) Modifier.focusRequester(focus) else Modifier)
-                .then(exitUp)
-                .onFocusChanged { if (it.isFocused) onFocused() }
-                .focusGlow(com.likhtar.home.core.designsystem.ProtoCardCorner),
-            shape = RoundedCornerShape(com.likhtar.home.core.designsystem.ProtoCardCorner),
-            background = LikhtarColors.BackgroundDeep,
-            focusedBackground = LikhtarColors.Paper,
-            borderColor = LikhtarColors.Faint,
-            focusedScale = LikhtarDimens.CardFocusScale,
-            instantFill = true,
-        ) { focused ->
-            Column(modifier = Modifier.fillMaxSize().padding(11.dp)) {
-                icon(focused)
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = title,
-                    style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Body, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 14.sp),
-                    color = if (focused) ShortcutInk else androidx.compose.ui.graphics.Color.White,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = subtitle,
-                    style = androidx.compose.ui.text.TextStyle(fontFamily = LikhtarType.Mono, fontSize = 9.sp),
-                    color = if (focused) ShortcutInk else LikhtarColors.TextDim,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 3.dp),
-                )
-            }
-        }
-    }
-}
-
-private val ShortcutInk = com.likhtar.home.core.designsystem.LikhtarColors.OnGlassActive
-
-/** Ширина картки-ярлика в «Продовжити перегляд»: радник і закладки. */
-private val ShortcutWidth = 136.dp
 
 /** Ключ ряду «З медіатеки»: без «Відкрити всі». */
 private const val LOCAL_ROW = "local-media"

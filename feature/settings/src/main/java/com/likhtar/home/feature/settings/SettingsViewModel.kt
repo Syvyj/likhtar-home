@@ -50,8 +50,11 @@ import kotlinx.coroutines.launch
  */
 enum class SettingsSection(@StringRes val title: Int, @StringRes val summary: Int?) {
     HOME(R.string.settings_section_home, R.string.settings_section_home_summary),
+    BACKDROP(R.string.settings_section_backdrop, R.string.settings_section_backdrop_summary),
     WATCH(R.string.settings_section_watch, R.string.settings_section_watch_summary),
     TV(R.string.settings_section_tv, R.string.settings_section_tv_summary),
+    MEDIA(R.string.settings_section_media, R.string.settings_section_media_summary),
+    SMART_HOME(R.string.settings_section_smart_home, R.string.settings_section_smart_home_summary),
     PROFILES(R.string.settings_section_profiles, R.string.settings_section_profiles_summary),
     STARTUP(R.string.settings_section_startup, R.string.settings_section_startup_summary),
     CONNECTIONS(R.string.settings_section_connections, R.string.settings_section_connections_summary),
@@ -149,7 +152,6 @@ class SettingsViewModel @Inject constructor(
 
     override fun onCleared() {
         keyCatcher.stop()
-        super.onCleared()
     }
 
     /**
@@ -343,9 +345,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingsRepository.setGamesEnabled(!settingsRepository.settings.first().gamesEnabled) }
     }
 
-    fun toggleDockSection(route: String) {
-        viewModelScope.launch { settingsRepository.toggleDockSection(route) }
+    fun toggleNotificationFeed() {
+        viewModelScope.launch { settingsRepository.setNotificationFeed(!settingsRepository.settings.first().notificationFeed) }
     }
+
+    fun unmuteNotificationApps() {
+        viewModelScope.launch { settingsRepository.clearMutedNotificationApps() }
+    }
+
 
     fun toggleHiddenService(key: String) {
         viewModelScope.launch { settingsRepository.toggleHiddenService(key) }
@@ -622,6 +629,10 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun toggleHomeCombinedRows() {
+        viewModelScope.launch { settingsRepository.toggleHomeCombinedRows() }
+    }
+
     fun cycleHomeAppsCount() {
         viewModelScope.launch { settingsRepository.cycleHomeAppsCount() }
     }
@@ -726,6 +737,31 @@ class SettingsViewModel @Inject constructor(
             ?.label
             ?: packageName
     }
+
+    fun cycleScreensaverMinutes() {
+        viewModelScope.launch {
+            val current = settingsRepository.settings.first().screensaverMinutes
+            settingsRepository.setScreensaverMinutes(nextOf(SCREENSAVER_MINUTES, current))
+        }
+    }
+
+    fun cycleScreensaverSleep() {
+        viewModelScope.launch {
+            val current = settingsRepository.settings.first().screensaverSleepMinutes
+            settingsRepository.setScreensaverSleepMinutes(nextOf(SCREENSAVER_SLEEP, current))
+        }
+    }
+
+    fun toggleScreensaverAerial() {
+        viewModelScope.launch { settingsRepository.setScreensaverAerial(!settingsRepository.settings.first().screensaverAerial) }
+    }
+
+    fun toggleScreensaverTitles() {
+        viewModelScope.launch { settingsRepository.setScreensaverTitles(!settingsRepository.settings.first().screensaverTitles) }
+    }
+
+    private fun nextOf(options: List<Int>, current: Int): Int =
+        options[((options.indexOf(current).takeIf { it >= 0 } ?: -1) + 1) % options.size]
 
     fun cycleAmbientTimeout() {
         viewModelScope.launch {
@@ -862,7 +898,36 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /** Для чого просимо PIN: скинути його чи вимкнути дитячий режим. */
+    private var pinForKidsOff = false
+
+    /**
+     * Дитячий режим: увімкнути — одразу; вимкнути — через PIN, якщо його задано (інакше дитина
+     * вимкне сама). Діє лише в Ліхтарі — системних налаштувань лаунчер не замикає.
+     */
+    fun toggleKidsMode() {
+        viewModelScope.launch {
+            val on = settingsRepository.settings.first().kidsMode
+            when {
+                !on -> {
+                    settingsRepository.setKidsMode(true)
+                    message.value = str(R.string.settings_msg_kids_on)
+                }
+                uiState.value.pinSet -> {
+                    pinForKidsOff = true
+                    pinError.value = null
+                    pinPrompt.value = str(R.string.settings_pin_kids_off_prompt)
+                }
+                else -> {
+                    settingsRepository.setKidsMode(false)
+                    message.value = str(R.string.settings_msg_kids_off)
+                }
+            }
+        }
+    }
+
     fun requestPinReset() {
+        pinForKidsOff = false
         if (!uiState.value.pinSet) {
             message.value = str(R.string.settings_msg_pin_not_set)
             return
@@ -874,6 +939,12 @@ class SettingsViewModel @Inject constructor(
     fun submitPin(pin: String) {
         viewModelScope.launch {
             if (parentalControlRepository.verifyPin(pin)) {
+                if (pinForKidsOff) {
+                    settingsRepository.setKidsMode(false)
+                    dismissPin()
+                    message.value = str(R.string.settings_msg_kids_off)
+                    return@launch
+                }
                 parentalControlRepository.clearPin()
                 dismissPin()
                 message.value = str(R.string.settings_msg_pin_reset)
@@ -884,6 +955,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun dismissPin() {
+        pinForKidsOff = false
         pinPrompt.value = null
         pinError.value = null
     }
@@ -915,6 +987,8 @@ class SettingsViewModel @Inject constructor(
         val DIM_LEVELS = listOf(0, 15, 30, 45, 60)
         val REFRESH_INTERVALS = listOf(5, 15, 30, 60)
         val AMBIENT_TIMEOUTS = listOf(30, 60, 180, 300, 0)
+        val SCREENSAVER_MINUTES = listOf(3, 5, 10, 15, 30, 0)
+        val SCREENSAVER_SLEEP = listOf(30, 60, 120, 0)
     }
 }
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Watch option buttons; %1$s is a service or app name -->
     <string name="catalog_watch_in">Watch on %1$s</string>
     <string name="catalog_open_in">Open in %1$s</string>
@@ -91,7 +91,7 @@
     <string name="catalog_recap_no_server">Likhtar server isn\'t set up</string>
     <string name="catalog_recap_no_reply">The server didn\'t respond — try again</string>
     <string name="catalog_recap_failed">Couldn\'t make a recap</string>
-    <string name="catalog_recap_season">Season %1$d recap</string>
+    <string name="catalog_recap_season" tools:ignore="PluralsCandidate">Season %1$d recap</string>
     <string name="catalog_trailer">Trailer</string>
     <string name="catalog_video">Video</string>
 
@@ -119,4 +119,16 @@
     <string name="catalog_media_status_tmdb">Looking up titles in TMDB… (files: %1$d)</string>
     <string name="catalog_media_summary">Files: %1$d, titles: %2$d</string>
     <string name="catalog_media_summary_other">, unrecognised: %1$d</string>
+    <string name="catalog_because_liked">Because you liked “%1$s”</string>
+    <string name="catalog_mood_gems">Hidden gems</string>
+    <string name="catalog_mood_short">Under 100 minutes</string>
+    <string name="catalog_mood_true">Based on true stories</string>
+    <string name="catalog_row_of_day">Row of the day · %1$s</string>
+    <string name="catalog_day_heist">Heists</string>
+    <string name="catalog_day_time_travel">Time travel</string>
+    <string name="catalog_day_space">Space</string>
+    <string name="catalog_day_survival">Survival</string>
+    <string name="catalog_day_small_town">Small towns</string>
+    <string name="catalog_day_dystopia">Dystopias</string>
+    <string name="catalog_day_ai">Artificial intelligence</string>
 </resources>

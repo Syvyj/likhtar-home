@@ -66,7 +66,7 @@ class WallpaperRepository @Inject constructor(
 
     internal companion object {
         private val PROVIDER_ORDER =
-            listOf(MixWallpaperProvider.ID, "bing", "themed", "bundled", "manifest", "plain")
+            listOf(MixWallpaperProvider.ID, "aerial", "fresh", "bing", "themed", "bundled", "manifest", "plain")
 
         /**
          * Ротація набору одного джерела. Виділено окремо, щоб її можна було перевірити

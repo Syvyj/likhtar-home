@@ -92,11 +92,13 @@ class CatalogRepository @Inject constructor(
     private val cards: LikhtarCards,
     private val watchOptions: WatchOptionsResolver,
     private val resolver: ResolverClient,
+    private val wikidata: WikidataLinks,
     private val config: CatalogConfig,
     private val settings: SettingsRepository,
     private val ukrainian: UkrainianCatalog,
     private val sectionRows: SectionRowsRepository,
     private val ownAi: OwnAiAdvisor,
+    private val marks: TitleMarksRepository,
 ) : TitleSearch {
     suspend fun load(): CatalogState {
         if (config.tmdbKey() == null) {
@@ -160,14 +162,21 @@ class CatalogRepository @Inject constructor(
         kind: CatalogListingKind,
         key: String,
         limit: Int = SectionRowsRepository.BRAND_LIMIT,
-    ): CatalogListing = when (kind) {
-        CatalogListingKind.STUDIO -> studioListing(key, limit)
-        CatalogListingKind.CHRONOLOGY -> chronologyListing(key)
-        CatalogListingKind.FRANCHISE -> franchiseListing(key.toIntOrNull())
-        CatalogListingKind.COLLECTION -> collectionListing(key)
-        CatalogListingKind.UKRAINIAN -> ukrainianListing()
-        CatalogListingKind.NETWORK -> networkListing(key)
-        CatalogListingKind.COMPANY -> companyListing(key)
+    ): CatalogListing {
+        val listing = when (kind) {
+            CatalogListingKind.STUDIO -> studioListing(key, limit)
+            CatalogListingKind.CHRONOLOGY -> chronologyListing(key)
+            CatalogListingKind.FRANCHISE -> franchiseListing(key.toIntOrNull())
+            CatalogListingKind.COLLECTION -> collectionListing(key)
+            CatalogListingKind.UKRAINIAN -> ukrainianListing()
+            CatalogListingKind.NETWORK -> networkListing(key)
+            CatalogListingKind.COMPANY -> companyListing(key)
+        }
+        // «Відкрити всі», сторінки сервісів, франшиз і добірок — одна точка: дитячий режим діє й тут.
+        if (!settings.settings.first().kidsMode) return listing
+        return coroutineScope {
+            listing.copy(rows = listing.rows.map { row -> async { row.copy(items = kidsCheckedItems(row.items)) } }.map { it.await() })
+        }
     }
 
     /**
@@ -296,6 +305,16 @@ class CatalogRepository @Inject constructor(
         }.map { it.await() }
     }
 
+    /** Опис для карток, що прийшли без нього (вітрина стрімінгу: ряд «Нове» опису не несе). */
+    suspend fun withOverview(items: List<CatalogItem>): List<CatalogItem> = coroutineScope {
+        items.map { item ->
+            async {
+                if (item.overview.isNotBlank()) item
+                else tmdb.card(item.tmdbId, item.kind)?.let { card -> item.copy(overview = card.overview) } ?: item
+            }
+        }.map { it.await() }
+    }
+
     suspend fun attachLogos(items: List<CatalogItem>): List<CatalogItem> = coroutineScope {
         items.map { item ->
             async { withLogo(item) }
@@ -329,15 +348,102 @@ class CatalogRepository @Inject constructor(
      * Порядок і склад екрана живуть на сервері, а не в enum на клієнті: підбірки
      * стрімінгів там, і на чужій інсталяції вони приїдуть ті самі.
      */
-    suspend fun cinemaSection(): List<SectionRow> = withoutAnime(sectionRows.cinema(onlyPlayable()))
+    suspend fun cinemaSection(): List<SectionRow> = forViewer(sectionRows.cinema(onlyPlayable()))
+
+    /** D2: розділ (`cinema`, `reality`), чиї свіжі ряди щойно підмінили знімок з диска. */
+    val freshRows: kotlinx.coroutines.flow.SharedFlow<String> get() = sectionRows.fresh
+
+    /**
+     * «Бо сподобалось «X»» — за двома найсвіжішими like, з рекомендацій TMDB (Nottilo). Ряди
+     * світові, як решта: за українськими мітками не відсіюємо (каталог для проду).
+     */
+    suspend fun likedRows(): List<SectionRow> = coroutineScope {
+        val liked = runCatching { marks.likedTitles() }.getOrDefault(emptyList())
+        liked.take(LIKED_ROWS).map { source ->
+            async {
+                val recs = runCatching { tmdb.details(source).similar }.getOrDefault(emptyList())
+                val items = likedRowItems(source, recs, liked).takeIf { it.isNotEmpty() } ?: return@async null
+                SectionRow(
+                    title = context.getString(R.string.catalog_because_liked, source.title),
+                    items = attachLogos(items),
+                    russian = emptySet(),
+                    ukrainian = emptySet(),
+                    open = emptyMap(),
+                    extKeys = emptyMap(),
+                    key = "liked:${source.kind.tmdbPath}:${source.tmdbId}",
+                )
+            }
+        }.mapNotNull { it.await() }.let { kidsChecked(forViewer(it)) }
+    }
+
+    /**
+     * C3: ряди за настроєм — «Приховані перлини», «До 100 хвилин», «За реальними подіями» й «Ряд дня»
+     * (тема на добу). Прямо з TMDB, без нашого сервера; «Відкрити всі» — той самий запит ([collectionListing]).
+     */
+    suspend fun moodRows(): List<SectionRow> = coroutineScope {
+        moodCollections(java.time.LocalDate.now().toEpochDay()).map { collection ->
+            async {
+                val items = runCatching { tmdb.discover(collection.path, collection.params, ROW_LIMIT) }.getOrDefault(emptyList())
+                    .takeIf { it.isNotEmpty() } ?: return@async null
+                SectionRow(
+                    title = label(collection),
+                    items = attachLogos(items),
+                    russian = emptySet(),
+                    ukrainian = emptySet(),
+                    open = emptyMap(),
+                    extKeys = emptyMap(),
+                    key = collection.key,
+                )
+            }
+        }.mapNotNull { it.await() }.let { kidsChecked(forViewer(it)) }
+    }
+
+    private fun label(collection: WatchCollection): String = when {
+        collection.titleRes == 0 -> collection.title
+        collection.daily -> context.getString(R.string.catalog_row_of_day, context.getString(collection.titleRes))
+        else -> context.getString(collection.titleRes)
+    }
 
     /**
      * «Показувати аніме» вимкнено — аніме немає ніде: ні в героїні, ні в топах, ні в рядах
      * (раніше ховався лише ряд «Аніме»). Ряд «Аніме» при цьому лишається порожнім і
      * не показується.
      */
-    private suspend fun withoutAnime(rows: List<SectionRow>): List<SectionRow> =
-        if (settings.settings.first().showAnime) rows else rows.map { row -> row.copy(items = row.items.filterNot { it.anime }) }
+    private suspend fun forViewer(rows: List<SectionRow>): List<SectionRow> =
+        rows.map { row -> row.copy(items = forViewerItems(row.items)) }
+
+    /**
+     * Що бачить глядач: без аніме, якщо його вимкнено, і без жахів і трилерів у дитячому режимі
+     * ([kidsSafe]). Один фільтр на ряди, полиці й «Бо сподобалось» — не латками по екранах.
+     */
+    private suspend fun forViewerItems(items: List<CatalogItem>): List<CatalogItem> {
+        val current = settings.settings.first()
+        val noAnime = if (current.showAnime) items else items.filterNot { it.anime }
+        // Тут — лише жанри: ряди не чекають на рейтинги. Рейтинги — другим кроком, [kidsChecked].
+        return if (!current.kidsMode) noAnime else noAnime.filter { kidsSafe(tmdb.genreIds(it.genres)) }
+    }
+
+    /**
+     * Дитячий режим, другий крок: віковий рейтинг кожного тайтлу (паралельно; TmdbClient обмежує запити й
+     * кешує). Окремо від [forViewer], бо перший раз це сотні запитів — ряди чекали на них 20–30 с, і
+     * Кінозал тим часом показував «сервер не відповідає».
+     */
+    suspend fun kidsChecked(rows: List<SectionRow>): List<SectionRow> {
+        if (!settings.settings.first().kidsMode) return rows
+        return coroutineScope { rows.map { row -> async { row.copy(items = kidsCheckedItems(row.items)) } }.map { it.await() } }
+    }
+
+    /** Жанри й віковий рейтинг кожного тайтлу паралельно ([kidsAllowed]). */
+    private suspend fun kidsCheckedItems(items: List<CatalogItem>): List<CatalogItem> = coroutineScope {
+        items.map { item ->
+            async {
+                // Спершу дешеве (картка-сторінка, жанр) — рейтинг питаємо лише в тих, хто пройшов.
+                val genres = tmdb.genreIds(item.genres)
+                item.takeIf { it.opens.isEmpty() && kidsSafe(genres) && kidsCard(it, tmdb.certification(it), genres) }
+            }
+        }
+            .mapNotNull { it.await() }
+    }
 
     /** Плитки стрімінгів у кінці Кінозалу — тією ж відповіддю, що й ряди. */
     /**
@@ -361,7 +467,7 @@ class CatalogRepository @Inject constructor(
      */
     suspend fun cinemaTop(): SectionRow? =
         cinemaTiles().filter { it.top }.shuffled().take(3).firstNotNullOfOrNull { brand ->
-            withoutAnime(sectionRows.cinemaBrandRows(brand.key, limit = 10)).firstOrNull { it.top && it.items.isNotEmpty() }
+            forViewer(sectionRows.cinemaBrandRows(brand.key, limit = 10)).firstOrNull { it.top && it.items.isNotEmpty() }
         }
 
     private suspend fun onlyPlayable(): Boolean =
@@ -427,9 +533,11 @@ class CatalogRepository @Inject constructor(
             ?: return serverRowListing(key)
         // Те саме джерело, що в ряду: сторінка «Відкрити всі» не має показувати інше, ніж
         // ряд, з якого в неї зайшли.
-        val ours = runCatching {
+        // Ряди за настроєм сервер не знає — одразу TMDB.
+        val ours = if (collection.titleRes != 0) null else runCatching {
             sectionRows.cinemaRow(collection.title, onlyPlayable())
         }.getOrNull()?.items
+        val title = label(collection)
         val items = if (!ours.isNullOrEmpty()) {
             // Логотипи назв — окремий запит на картку, і він потрібен сітці так само, як
             // ряду: інакше «Відкрити всі» виглядає інакше за ряд, з якого в неї зайшли.
@@ -438,19 +546,19 @@ class CatalogRepository @Inject constructor(
             tmdb.discover(collection.path, collection.params, LISTING_LIMIT)
         }
         return CatalogListing(
-            title = collection.title,
+            title = title,
             subtitle = context.getString(R.string.catalog_subtitle_catalog),
             rows = listOf(
                 CatalogRow(
                     id = collection.key,
-                    title = collection.title,
+                    title = title,
                     source = "tmdb",
                     path = collection.path,
                     params = collection.params,
                     items = items,
                 ),
             ),
-            message = if (items.isEmpty()) context.getString(R.string.catalog_msg_tmdb_nothing_for, collection.title) else null,
+            message = if (items.isEmpty()) context.getString(R.string.catalog_msg_tmdb_nothing_for, title) else null,
         )
     }
 
@@ -484,6 +592,7 @@ class CatalogRepository @Inject constructor(
                     // «≈ 90 хв» — це фільм на вечір, а не три серії по 40 (було: серіали 43 хв).
                     if (time == WatchTime.NINETY) append("&time=90&kind=movie")
                     if (time == WatchTime.EPISODE) append("&kind=tv")
+                    append(advisorKidsParam(current.kidsMode))
                 }
                 val body = httpGet(url, ADVISOR_TIMEOUT_MS) ?: return@runCatching emptyList()
                 // `results: null` — сервер нічого не підібрав; це не помилка, а відповідь.
@@ -954,9 +1063,17 @@ class CatalogRepository @Inject constructor(
         )
         // Черга сервера — після деталей: назву для тайтлів поза каталогом він бере з
         // `original`, а в маршрут сторінки приходить лише тип і TMDB id.
+        // Wikidata — паралельно із сервером і лише коли тайтл є в сервісі, сторінку якого вона знає.
+        val directTask = async {
+            if (base.providerNames.any { com.likhtar.home.core.model.StreamingService.byProvider(it) in WIKIDATA_SERVICES }) {
+                wikidata.links(base.item)
+            } else {
+                emptyMap()
+            }
+        }
         val resolved = resolver.watch(base.item)
         base.copy(
-            watchOptions = watchOptions.resolve(base, resolved),
+            watchOptions = watchOptions.resolve(base, resolved, directTask.await()),
             dubStudios = resolver.dubStudiosOf(base.item),
             scan = resolver.scanOf(base.item),
         )
@@ -986,7 +1103,7 @@ class CatalogRepository @Inject constructor(
         ).map { (title, path) ->
             async { SearchShelf(context.getString(title), runCatching { tmdb.discover(path, emptyMap(), ROW_LIMIT) }.getOrDefault(emptyList()), emptySet()) }
         }.awaitAll().let { shelves ->
-            if (settings.settings.first().showAnime) shelves else shelves.map { it.copy(items = it.items.filterNot(CatalogItem::anime)) }
+            shelves.map { it.copy(items = forViewerItems(it.items)) }
         }.filter { it.items.isNotEmpty() }
     }
 
@@ -1015,6 +1132,13 @@ class CatalogRepository @Inject constructor(
     )
 
     private companion object {
+        /** Сервіси, сторінку тайтлу яких дає [WikidataLinks]. */
+        val WIKIDATA_SERVICES = setOf(
+            com.likhtar.home.core.model.StreamingService.NETFLIX,
+            com.likhtar.home.core.model.StreamingService.DISNEY,
+            com.likhtar.home.core.model.StreamingService.PRIME,
+            com.likhtar.home.core.model.StreamingService.APPLE,
+        )
         /** Група курації з українськими рядами в `likhtar-rows.json`. */
         const val UKRAINIAN_SOURCE = "Українською"
 

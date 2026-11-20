@@ -17,6 +17,9 @@
     <string name="fsmarthome_link_opened">Telefon otworzył stronę — zaloguj się do HA…</string>
     <string name="fsmarthome_link_done">Połączono ✓</string>
     <string name="fsmarthome_link_failed">Nie udało się: %1$s</string>
+    <string name="fsmarthome_google_home">Google Home</string>
+    <string name="fsmarthome_google_home_needs_gtv">Panel Google Home działa tylko przy włączonym Google TV: pobiera z niego konto. Włącz Google TV w ustawieniach aplikacji.</string>
+    <string name="fsmarthome_google_home_unavailable">Panel Google Home jest niedostępny na tym urządzeniu.</string>
     <string name="fsmarthome_voice">Głosem</string>
     <string name="fsmarthome_voice_prompt">Powiedz polecenie dla domu</string>
     <string name="fsmarthome_connecting">Łączę…</string>
@@ -31,4 +34,14 @@
     <string name="fsmarthome_reading_air">powietrze</string>
     <string name="fsmarthome_reading_humidity">wilgotność</string>
     <string name="fsmarthome_unit_ugm3">µg/m³</string>
+    <string name="fsmarthome_tv">Telewizor</string>
+    <string name="fsmarthome_tv_woken">Telewizor włączony i przełączony na przystawkę</string>
+    <string name="fsmarthome_tv_failed">Brak dostępu do telewizora (debugowanie ADB) — nic nie wysłano</string>
+    <string name="fsmarthome_tv_devices">Na HDMI: %1$s</string>
+    <string name="fsmarthome_tv_device_tv">telewizor</string>
+    <string name="fsmarthome_tv_device_audio">system audio</string>
+    <string name="fsmarthome_tv_wake">Włącz TV i przełącz na przystawkę</string>
+    <string name="fsmarthome_tv_volume_on">Głośność pilota: przez HDMI-CEC ✓</string>
+    <string name="fsmarthome_tv_volume_off">Głośność pilota: stała (OK — przez HDMI-CEC)</string>
+    <string name="fsmarthome_tv_volume_note">Przyciski głośności pilota przystawki sterują telewizorem lub soundbarem przez HDMI-CEC.</string>
 </resources>

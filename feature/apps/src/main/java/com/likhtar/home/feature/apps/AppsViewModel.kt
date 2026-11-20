@@ -31,6 +31,7 @@ import kotlinx.coroutines.delay
 import com.likhtar.home.core.catalog.SectionRowsRepository
 import com.likhtar.home.core.catalog.ServiceContinueRepository
 import com.likhtar.home.core.catalog.TmdbImages
+import androidx.core.net.toUri
 
 /** Дії довгого натискання на застосунку. */
 enum class AppAction { LAUNCH, PIN_HOME, HIDE, LOCK, PIN_CINEMA, PIN_LIVE_TV, CATEGORY, FORCE_STOP, UNINSTALL }
@@ -43,6 +44,12 @@ data class AppSection(
     val games: List<RetroGame> = emptyList(),
     /** Хмарні сервіси — ярлики в «Іграх». */
     val clouds: List<CloudGame> = emptyList(),
+    /** Хмарні ігри з каталогу — ряд нагорі «Ігор». */
+    val cloudGames: List<com.likhtar.home.core.data.cloud.CloudGame> = emptyList(),
+    /** Хмарний ряд: «now» — «Граю зараз», «fav» — «Улюблені», «mine» — «Мої ігри»; порожньо — не хмарний. */
+    val cloudKind: String = "",
+    /** Ряд приставки: показуємо перші [RETRO_ROW] і «Відкрити всі» — сітку її образів. */
+    val system: String? = null,
     /** Лічильник у заголовку: у «Усіх застосунках» — усі, а не лише перший ряд. */
     val count: Int = apps.size + games.size + clouds.size,
 )
@@ -106,6 +113,7 @@ class AppsViewModel @Inject constructor(
     private val sectionRows: SectionRowsRepository,
     private val serviceContinue: ServiceContinueRepository,
     private val romLibrary: RomLibrary,
+    private val cloudCatalog: com.likhtar.home.core.data.cloud.CloudCatalogRepository,
 ) : ViewModel() {
 
     private val romsReadable = MutableStateFlow(true)
@@ -176,6 +184,8 @@ class AppsViewModel @Inject constructor(
     fun refreshRoms() {
         romsReadable.value = romLibrary.canReadAll
         viewModelScope.launch { romLibrary.refresh() }
+        // Хмарний каталог — раз на добу, і лише з увімкненими «Іграми» (перевіряє репозиторій).
+        cloudCatalog.refreshInBackground()
     }
 
     /** OK на грі: RetroArch з ядром. Текст — чому не вийшло, якщо не вийшло. */
@@ -188,9 +198,9 @@ class AppsViewModel @Inject constructor(
         uiState.value.apps.firstOrNull { it.app.packageName in cloud.packages }?.let { launch(it); return null }
         val pkg = cloud.packages.first()
         val intents = listOfNotNull(
-            cloud.web?.let { Intent(Intent.ACTION_VIEW, Uri.parse(it)) },
-            Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg")),
-            Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkg")),
+            cloud.web?.let { Intent(Intent.ACTION_VIEW, it.toUri()) },
+            Intent(Intent.ACTION_VIEW, "market://details?id=$pkg".toUri()),
+            Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=$pkg".toUri()),
         )
         val opened = intents.any { runCatching { context.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess }
         return if (opened) null else context.getString(R.string.apps_cloud_open_failed, cloud.title)

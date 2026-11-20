@@ -129,7 +129,7 @@ internal fun WorthTab(card: LikhtarCard) {
                     ) { focused ->
                         Text(
                             fact,
-                            style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 10.5.sp, lineHeight = 15.2.sp),
+                            style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp, lineHeight = 15.2.sp),
                             color = LikhtarColors.TextPrimary,
                             overflow = TextOverflow.Ellipsis,
                             maxLines = 5,
@@ -160,10 +160,10 @@ internal fun WorthTab(card: LikhtarCard) {
 private fun WhoBlock(label: String, text: String) {
     if (text.isBlank()) return
     Column(Modifier.padding(top = 10.dp)) {
-        Text(label, style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 10.5.sp), color = LikhtarColors.TextPrimary)
+        Text(label, style = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp), color = LikhtarColors.TextPrimary)
         Text(
             text,
-            style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.sp, lineHeight = 16.sp),
+            style = TextStyle(fontFamily = LikhtarType.Body, fontSize = 11.5.sp, lineHeight = 16.sp),
             color = LikhtarColors.TextDim,
             modifier = Modifier.padding(top = 1.dp),
         )
@@ -191,5 +191,5 @@ private fun ScoreBlock(label: String, score: Int, note: String) {
     }
 }
 
-private val ScoreLabel = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+private val ScoreLabel = TextStyle(fontFamily = LikhtarType.Body, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp)
 private val ScoreNote = TextStyle(fontFamily = LikhtarType.Body, fontSize = 9.5.sp, lineHeight = 13.3.sp)

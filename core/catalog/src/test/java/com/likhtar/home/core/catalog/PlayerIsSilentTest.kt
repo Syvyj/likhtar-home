@@ -4,7 +4,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Форми відповідей узяті з живого `/api/torrent/reading` (заміряно 03.09.2026). */
+/** Форми відповідей узяті з живого сервера (заміряно 03.09.2026). */
 class PlayerIsSilentTest {
 
     private val noReaders = ReadingCheck(reading = false, readers = 0, moved = 0)

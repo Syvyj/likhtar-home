@@ -14,7 +14,7 @@
     <string name="ds_save">Zapisz</string>
     <string name="ds_cancel">Anuluj</string>
     <string name="ds_clear">Wyczyść</string>
-    <string name="ds_preparing_title">Łączenie z torrentem…</string>
+    <string name="ds_preparing_title">Łączenie…</string>
     <string name="ds_preparing_subtitle">Szukamy źródła, które daje deklarowaną jakość</string>
     <!-- Фрази лоадера за замовчуванням: без «завантажую», про те, що справді відбувається. -->
     <string-array name="ds_loader_phrases">
@@ -33,4 +33,10 @@
     <string name="ds_support_bmc_note">Kawa, dowolna kwota</string>
     <string name="ds_support_mono">Słoik Monobank</string>
     <string name="ds_support_mono_note">Karta, Apple Pay, Google Pay</string>
+    <string name="ds_notifications">Powiadomienia</string>
+    <string name="ds_my_home">Inteligentny dom</string>
+    <string name="ds_weather">Pogoda</string>
+    <string name="ds_settings">Ustawienia</string>
+    <string name="ds_profile">Kto ogląda</string>
+    <string name="ds_badge_ukr">UKR</string>
 </resources>

@@ -69,7 +69,7 @@ fun MetaChip(text: String, kind: ChipKind = ChipKind.PLAIN, modifier: Modifier =
         }
         Text(
             text = text,
-            style = LikhtarType.MonoSmall.copy(fontWeight = FontWeight.Medium, fontSize = 11.sp),
+            style = LikhtarType.MonoSmall.copy(fontWeight = FontWeight.Medium, fontSize = 11.5.sp),
             color = if (kind == ChipKind.RATING) kind.tint else LikhtarColors.ChipInk,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

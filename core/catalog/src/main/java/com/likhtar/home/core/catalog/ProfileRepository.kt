@@ -18,6 +18,15 @@ data class Profile(
 )
 
 /**
+ * Ім'я для кнопки «Хто дивиться» у верхньому меню; `null` — вибирати нема з кого (один профіль
+ * чи сервер не відповів). Активного вже немає на сервері — усе й так падає в «default».
+ */
+fun profileChipName(profiles: List<Profile>, activeId: String): String? {
+    if (profiles.size < 2) return null
+    return (profiles.firstOrNull { it.id == activeId } ?: profiles.firstOrNull { it.id == "default" } ?: profiles.first()).name
+}
+
+/**
  * Профілі живуть на сервері, активний — на приставці.
  *
  * Це зручність, а не безпека: жодної автентифікації тут немає й не планується, сервер

@@ -3,6 +3,7 @@ package com.likhtar.home.core.catalog
 import android.content.Intent
 import android.net.Uri
 import android.os.Parcelable
+import androidx.core.net.toUri
 
 /**
  * Що саме віддати зовнішньому плеєру — чиста функція над [PlayRequest], без Android.
@@ -28,10 +29,10 @@ data class PlayerPlan(
 
     fun toIntent(): Intent = Intent(Intent.ACTION_VIEW).apply {
         val plan = this@PlayerPlan
-        setDataAndType(Uri.parse(plan.data), plan.mime)
+        setDataAndType(plan.data.toUri(), plan.mime)
         // Програма ТБ-режиму — файл лаунчера: дозвіл на читання їде через ClipData (extras його не несуть).
         (plan.extras["likhtar.tv.guide"] as? String)?.let { guide ->
-            clipData = android.content.ClipData.newRawUri("guide", Uri.parse(guide))
+            clipData = android.content.ClipData.newRawUri("guide", guide.toUri())
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         if (plan.packageName.isNotBlank()) setPackage(plan.packageName)
@@ -41,7 +42,7 @@ data class PlayerPlan(
                 is Boolean -> putExtra(key, value)
                 is Int -> putExtra(key, value)
                 is Long -> putExtra(key, value)
-                is UriList -> putExtra(key, value.uris.map { Uri.parse(it) }.toTypedArray<Parcelable>())
+                is UriList -> putExtra(key, value.uris.map { it.toUri() }.toTypedArray<Parcelable>())
                 is Array<*> -> putExtra(key, value.map { it.toString() }.toTypedArray())
             }
         }
@@ -74,14 +75,19 @@ fun PlayRequest.playerPlan(takesM3u: Boolean, companion: Map<String, String>): P
     }
     if (asQueue && queue.size > 1) {
         extras["video_list"] = PlayerPlan.UriList(queue.map { it.url })
-        // «Шьоґун · S01E01 · Анджін · 1080p · WEB-DL · Торент»: джерело — у назві, інакше
+        // «Шьоґун · S01E01 · Анджін · 1080p · WEB-DL · Джерело»: джерело — у назві, інакше
         // після переходу на іншу серію не видно, з чого вона грає.
         val show = title?.item?.title.orEmpty()
         extras["video_list.name"] = queue.map { e ->
             listOf(show, cleanStreamLabel(e.name)).filter(String::isNotBlank).joinToString(" · ")
         }.toTypedArray()
-        TmdbImages.poster(title?.item?.posterPath)?.let { poster ->
-            extras["video_list.thumbnail"] = queue.map { poster }.toTypedArray()
+        // Кадр серії, де він є, інакше — постер серіалу.
+        val poster = TmdbImages.poster(title?.item?.posterPath).orEmpty()
+        if (poster.isNotBlank() || queue.any { it.still.isNotBlank() }) {
+            extras["video_list.thumbnail"] = queue.map { it.still.ifBlank { poster } }.toTypedArray()
+        }
+        if (queue.any { it.overview.isNotBlank() }) {
+            extras["video_list.description"] = queue.map { it.overview }.toTypedArray()
         }
         extras["video_list.season"] = queue.map { (title?.season ?: 0).toString() }.toTypedArray()
         extras["video_list.episode"] = queue.map { it.episode.toString() }.toTypedArray()
@@ -96,7 +102,7 @@ fun PlayRequest.playerPlan(takesM3u: Boolean, companion: Map<String, String>): P
         extras["extra_position"] = resumeMs
         extras["startfrom"] = resumeMs.toInt()
     }
-    // Назва в плеєрі — замість імені файлу роздачі чи «index.m3u8». `title` читають MX,
+    // Назва в плеєрі — замість імені файлу чи «index.m3u8». `title` читають MX,
     // Just Player і VLC, `forcename` — ViMu.
     if (title == null && displayName.isNotBlank()) {
         extras["title"] = displayName
@@ -111,6 +117,12 @@ fun PlayRequest.playerPlan(takesM3u: Boolean, companion: Map<String, String>): P
         TmdbImages.poster(t.item.posterPath)?.let { extras["thumbnail"] = it }
         // Шапка панелі паузи Just+: що це, рік, оцінка й опис (інші плеєри ключі ігнорують).
         extras["likhtar.name"] = t.item.title
+        // Знак тайтла на паузі Just+ — той самий, що в шапці сторінки; іншомовний — з українською
+        // назвою плашкою під ним, як у лаунчері (TitleLogoArea).
+        TmdbImages.logo(t.item.logoPath)?.let { logo ->
+            extras["likhtar.logo"] = logo
+            if (TmdbImages.needsLocalTitle(t.item.logoPath, t.item.title)) extras["likhtar.logo.local"] = true
+        }
         if (t.item.overview.isNotBlank()) extras["likhtar.overview"] = t.item.overview
         if (t.item.year.isNotBlank()) extras["likhtar.year"] = t.item.year
         if (t.item.rating > 0) extras["likhtar.rating"] = String.format(java.util.Locale.ROOT, "%.1f", t.item.rating)

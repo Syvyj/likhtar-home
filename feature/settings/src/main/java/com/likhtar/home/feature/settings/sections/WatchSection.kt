@@ -15,7 +15,6 @@ import com.likhtar.home.feature.settings.GroupTitle
 import com.likhtar.home.feature.settings.ToggleRow
 import com.likhtar.home.feature.settings.ValueRow
 import com.likhtar.home.feature.settings.TitleActionsDialog
-import com.likhtar.home.feature.settings.CountryPickerDialog
 import com.likhtar.home.feature.settings.HiddenServicesDialog
 
 // ─── ПЕРЕГЛЯД ─────────────────────────────────────────────────────────
@@ -109,23 +108,6 @@ internal fun WatchSection(
             label = viewModel::titleActionLabel,
             onMove = viewModel::moveTitleAction,
             onDismiss = { actionsOpen = false },
-        )
-    }
-    // Вікно вибору — стан екрана, моделі тут робити нічого.
-    var countriesOpen by remember { mutableStateOf(false) }
-    ValueRow(
-        text = stringResource(R.string.settings_watch_availability),
-        value = viewModel.availabilityCountriesLabel(state.settings.availabilityCountries),
-        onClick = { countriesOpen = true },
-        subtitle = stringResource(R.string.settings_watch_availability_subtitle),
-    )
-    if (countriesOpen) {
-        CountryPickerDialog(
-            countries = state.tvCountries,
-            selected = state.settings.availabilityCountries,
-            onToggle = viewModel::toggleAvailabilityCountry,
-            onAuto = viewModel::clearAvailabilityCountries,
-            onDismiss = { countriesOpen = false },
         )
     }
 }

@@ -9,6 +9,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -22,8 +23,8 @@ import org.json.JSONObject
  * придатних було нуль — ми платили запитами за те, що самі ж викидали. Причина не в
  * фільтрі: у TMDB немає відповіді на питання «що з цього можна ввімкнути тут».
  *
- * Тепер відповідає сервер, бо саме він знає всі чотири джерела — свої роздачі, портали
- * мовників, ютуб і сервіси. Клієнт лишає собі те, чого сервер не знає: що встановлено на
+ * Тепер відповідає сервер, бо саме він знає усі джерела — портали
+ * мовників, ютуб, сервіси й джерела збірки. Клієнт лишає собі те, чого сервер не знає: що встановлено на
  * цій приставці й де людина зупинилась.
  */
 @Singleton
@@ -34,6 +35,15 @@ class SectionRowsRepository @Inject constructor(
     private val tmdb: TmdbClient,
     private val curation: LikhtarRows,
 ) {
+    /** D2: остання відповідь кожного розділу на диску — холодний старт малює з неї. */
+    private val snapshots = com.likhtar.home.core.data.DiskSnapshots(java.io.File(context.cacheDir, "rows-snapshots"))
+    private val background = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.IO)
+    /** Ключі, які цей процес уже показав зі знімка: знімок — лише перший кадр, далі мережа. */
+    private val fromDisk = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+    private val _fresh = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 8)
+
+    /** Назва розділу (`cinema`, `reality`), чиї свіжі ряди щойно підмінили знімок, — екрану перечитати. */
+    val fresh: kotlinx.coroutines.flow.SharedFlow<String> = _fresh
 
     /**
      * Спільні параметри рядів: `&country=PL` — країна людини (див. нижче); `&apps=netflix,amazon` — сервіси, застосунки яких стоять на
@@ -184,6 +194,17 @@ class SectionRowsRepository @Inject constructor(
         // замок на ключ, якщо це колись стане помітно.
         return fetchLock.withLock {
             synchronized(cache) { cache[key] }?.let { return@withLock it }
+            // Холодний старт: одразу знімок з диска, а свіжі — у фоні, і екран перечитає їх за [fresh].
+            if (!com.likhtar.home.core.model.Distribution.store && fromDisk.add(key)) {
+                val saved = withContext(Dispatchers.IO) { snapshots.read(key, SNAPSHOT_MAX_AGE_MS)?.let { apply(it, name, key) } }
+                if (!saved.isNullOrEmpty()) {
+                    background.launch {
+                        val rows = fetchLock.withLock { fetch(name, limit, onlyPlayable, profile, apps, key) }
+                        if (rows.isNotEmpty()) _fresh.emit(name)
+                    }
+                    return@withLock saved
+                }
+            }
             fetch(name, limit, onlyPlayable, profile, apps, key)
         }
     }
@@ -203,6 +224,13 @@ class SectionRowsRepository @Inject constructor(
                 .onFailure { Log.w(TAG, "Ряди розділу не приїхали", it) }
                 .getOrNull()
         } ?: return synchronized(cache) { cache[key].orEmpty() }
+        val rows = apply(body, name, key)
+        if (rows.isNotEmpty()) withContext(Dispatchers.IO) { snapshots.write(key, body) }
+        return rows
+    }
+
+    /** Розібрати відповідь `/api/rows` (з мережі чи зі знімка) і покласти в кеші. */
+    private fun apply(body: String, name: String, key: String): List<SectionRow> {
         val rows = runCatching { parseRows(body) }
             .onFailure { Log.w(TAG, "Ряди розділу не розібрались", it) }
             .getOrDefault(emptyList())
@@ -347,6 +375,8 @@ class SectionRowsRepository @Inject constructor(
     }
 
     internal companion object {
+        /** Знімок старший за тиждень — не показуємо: краще ліхтарик, ніж минулорічні новинки. */
+        const val SNAPSHOT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000L
         const val TAG = "LikhtarRows"
 
         /**

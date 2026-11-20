@@ -23,6 +23,8 @@ fun PhoneQrDialog(
     onDismiss: () -> Unit,
     status: String? = null,
     statusOk: Boolean = false,
+    /** QR веде на приставку в домашній мережі; `false` — публічна адреса: без рядка «та сама мережа». */
+    localNetwork: Boolean = true,
 ) {
     LikhtarDialog(onDismiss = onDismiss, width = 600.dp) {
         // Крупно: діалог читають з дивана, а не з монітора.
@@ -43,7 +45,7 @@ fun PhoneQrDialog(
                 QrCode(content = url, size = 200.dp)
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     lines.forEach { Text(text = it, style = LikhtarType.TitleLead, color = LikhtarColors.TextPrimary) }
-                    Text(text = stringResource(R.string.ds_qr_same_network, url), style = LikhtarType.Body1, color = LikhtarColors.TextSecondary)
+                    if (localNetwork) Text(text = stringResource(R.string.ds_qr_same_network, url), style = LikhtarType.Body1, color = LikhtarColors.TextSecondary)
                 }
             }
         }

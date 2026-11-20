@@ -33,7 +33,7 @@ import com.likhtar.home.feature.settings.ValueRow
  * Сторонній компонент у APK: назва, ліцензія і файл її тексту в `assets/licenses/`.
  *
  * Список ведеться руками з `./gradlew :app:dependencies --configuration playReleaseRuntimeClasspath`
- * (21.10.2026). Дрібні модулі одного автора під однією ліцензією зведені в один рядок.
+ *. Дрібні модулі одного автора під однією ліцензією зведені в один рядок.
  */
 internal data class Component(val name: String, val license: String, val file: String)
 
@@ -125,6 +125,38 @@ internal fun AboutSection(appUpdate: com.likhtar.home.core.data.AppUpdate) {
     }
     if (SOURCE_URL.isNotBlank()) {
         ValueRow(text = stringResource(R.string.settings_about_source), value = SOURCE_URL, onClick = {})
+    }
+    // Повідомити про помилку — QR на нову issue з уже вписаними приставкою й версією (як у Nottilo).
+    var report by remember { mutableStateOf(false) }
+    if (SOURCE_URL.isNotBlank()) {
+        ValueRow(
+            text = stringResource(R.string.settings_about_report),
+            value = "",
+            subtitle = stringResource(R.string.settings_about_report_subtitle),
+            onClick = { report = true },
+        )
+    }
+    if (report) {
+        val url = remember {
+            com.likhtar.home.feature.settings.bugReportUrl(
+                SOURCE_URL,
+                com.likhtar.home.feature.settings.BugReportDevice(
+                    maker = android.os.Build.MANUFACTURER,
+                    model = android.os.Build.MODEL,
+                    android = android.os.Build.VERSION.RELEASE,
+                    sdk = android.os.Build.VERSION.SDK_INT,
+                    version = version.substringBefore('+'), // «0.3.3+personal» — збірку пишемо окремо
+                    build = if (com.likhtar.home.core.model.Distribution.store) "play" else "personal",
+                ),
+            )
+        }
+        com.likhtar.home.core.designsystem.PhoneQrDialog(
+            title = stringResource(R.string.settings_about_report),
+            url = url,
+            lines = listOf(stringResource(R.string.settings_about_report_qr1), stringResource(R.string.settings_about_report_qr2)),
+            onDismiss = { report = false },
+            localNetwork = false,
+        )
     }
     // Підтримати — три QR на сторінки оплати: з телевізора картку не введеш.
     var support by remember { mutableStateOf(false) }

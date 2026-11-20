@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name" translatable="false">LIKHTAR HOME</string>
     <string name="app_open_with">Open with</string>
+    <string name="now_playing_listener_label">LIKHTAR: what\'s playing</string>
     <string name="home_key_service_label">LIKHTAR: Home button</string>
     <string name="home_key_service_description">The remote\'s Home button opens LIKHTAR. The service only sees Home presses and reads nothing from the screen.</string>
     <string name="assistant_listening">Listening. Ask anything: the weather, a fact, “open Live TV”</string>
@@ -19,8 +20,8 @@
     <string name="assistant_no_time">Didn\'t catch when to remind you.</string>
     <string name="assistant_service_off">Turn on the remote buttons service in Settings — I can\'t do this without it.</string>
     <string name="drop_title">Send to TV from your phone</string>
-    <string name="new_episodes_title">New episodes</string>
-    <string name="new_episodes_hint">Last two weeks, from shows you watch or saved</string>
+    <string name="new_episodes_title">New for you</string>
+    <string name="new_episodes_hint">New episodes from shows you watch or saved, and news about your watchlist — last two weeks</string>
     <string name="drop_no_network">The box is not on your home network — there is nowhere to show the QR code.</string>
     <string name="drop_step1">1. Point the phone camera at the code</string>
     <string name="drop_step2">2. Pick a file or paste a link</string>
@@ -37,4 +38,17 @@
     <string name="drop_open_link">Open</string>
     <string name="drop_close">Close</string>
     <string name="live_reminder_text">%1$s at %2$s — “%3$s”</string>
+    <string name="wallpaper_provider_aerial">Aerial video</string>
+    <string name="wallpaper_provider_fresh">New on my services</string>
+    <string name="screensaver_new_on">New on %1$s</string>
+    <string name="screensaver_open_hint">OK — open</string>
+    <string name="screensaver_aerial_source">aerial · Apple</string>
+    <string name="profiles_title">Who\'s watching</string>
+    <string name="profiles_hint">Bookmarks, Continue and recommendations are per profile</string>
+    <string name="profiles_kids">Kids</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_clear">Clear</string>
+    <string name="notifications_mute_app">Hide from this app</string>
+    <string name="bell_news_service">Now on %1$s</string>
+    <string name="bell_news_trailer">New trailer · %1$s</string>
 </resources>

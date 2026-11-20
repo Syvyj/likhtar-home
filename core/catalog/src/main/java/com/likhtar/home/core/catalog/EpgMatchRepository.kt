@@ -31,6 +31,13 @@ class EpgMatchRepository @Inject constructor(
 ) {
     private val cache = ConcurrentHashMap<String, EpgMatch>()
 
+    /** Лише вже відомі зіставлення — без мережі: ними ТБ Ефір малює перший кадр (D2). */
+    fun cached(titles: Collection<String>): Map<String, EpgMatch> =
+        titles.mapNotNull { title -> cache[title]?.let { title to it } }.toMap()
+
+    /** Чи є серед [titles] ще не зіставлені — тоді має сенс [match]. */
+    fun hasMissing(titles: Collection<String>): Boolean = titles.any { it.isNotBlank() && cache[it]?.item == null }
+
     suspend fun match(titles: Collection<String>): Map<String, EpgMatch> {
         val missing = titles.filter { it.isNotBlank() && cache[it]?.item == null }.distinct()
         val base = config.homeOnlyUrl()

@@ -14,7 +14,7 @@
     <string name="ds_save">Зберегти</string>
     <string name="ds_cancel">Скасувати</string>
     <string name="ds_clear">Очистити</string>
-    <string name="ds_preparing_title">Підключення до роздачі…</string>
+    <string name="ds_preparing_title">Підключення…</string>
     <string name="ds_preparing_subtitle">Шукаємо джерело, яке віддає свою якість</string>
     <!-- Фрази лоадера за замовчуванням: без «завантажую», про те, що справді відбувається. -->
     <string-array name="ds_loader_phrases">
@@ -33,4 +33,10 @@
     <string name="ds_support_bmc_note">Кава, будь-яка сума</string>
     <string name="ds_support_mono">Банка Monobank</string>
     <string name="ds_support_mono_note">Картка, Apple Pay, Google Pay</string>
+    <string name="ds_notifications">Сповіщення</string>
+    <string name="ds_my_home">Смарт дім</string>
+    <string name="ds_weather">Погода</string>
+    <string name="ds_settings">Налаштування</string>
+    <string name="ds_profile">Хто дивиться</string>
+    <string name="ds_badge_ukr">УКР</string>
 </resources>

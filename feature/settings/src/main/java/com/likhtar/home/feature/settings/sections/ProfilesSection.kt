@@ -10,6 +10,7 @@ import com.likhtar.home.feature.settings.SettingsUiState
 import com.likhtar.home.feature.settings.SettingsViewModel
 import com.likhtar.home.feature.settings.GroupTitle
 import com.likhtar.home.feature.settings.ValueRow
+import com.likhtar.home.feature.settings.ToggleRow
 import com.likhtar.home.feature.settings.ActionRow
 
 // ─── ПРОФІЛІ Й PIN ────────────────────────────────────────────────────
@@ -44,5 +45,12 @@ internal fun ProfilesSection(
         value = stringResource(if (state.pinSet) R.string.settings_pin_created else R.string.settings_pin_not_created),
         onClick = viewModel::requestPinReset,
         subtitle = stringResource(R.string.settings_pin_subtitle),
+    )
+    // Дитячий режим (Nottilo): ряди без жахів і трилерів, поради — з віковою межею; вимкнути — з PIN.
+    ToggleRow(
+        text = stringResource(R.string.settings_kids_mode),
+        subtitle = stringResource(R.string.settings_kids_mode_subtitle),
+        checked = state.settings.kidsMode,
+        onToggle = viewModel::toggleKidsMode,
     )
 }

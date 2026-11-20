@@ -1,5 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_all_apps">Усі застосунки</string>
+    <string name="home_my_home">Смарт дім</string>
+    <string name="home_likhtar_sections">LIKHTAR HOME</string>
+    <string name="home_apps_and_sections">Мої застосунки та розділи</string>
+    <string name="home_all_devices">Усі пристрої</string>
+    <string name="home_close_panel">Закрити</string>
+    <string name="home_smart_subtitle">Ваш дім під рукою</string>
+    <string name="home_smart_temp_title">ТЕМПЕРАТУРА ВДОМА</string>
+    <string name="home_quick_settings">Швидкі налаштування</string>
+    <string name="home_all_settings">Усі налаштування</string>
+    <string name="home_desktop_subtitle">Вигляд головного екрана</string>
+    <string name="home_rows_group">ВИГЛЯД ГОЛОВНОЇ</string>
+    <string name="home_extra_rows_group">ЩЕ РЯДИ</string>
+    <string name="home_layout_mode">Розташування</string>
+    <string name="home_layout_two_rows">Два ряди</string>
+    <string name="home_layout_one_row">Один ряд</string>
+    <string name="home_row_position_group">ВИСОТА РЯДІВ</string>
+    <string name="home_row_position_top">Вгорі</string>
+    <string name="home_row_position_middle">Посередині</string>
+    <string name="home_row_position_bottom">Внизу</string>
+    <string name="home_row_position_minimal">Мінімум</string>
+    <string name="home_row_position_hint">← → змінити висоту</string>
+    <string name="home_row_move">Переставити ряд</string>
+    <string name="home_row_move_up">Перемістити ряд вище ↑</string>
+    <string name="home_row_move_down">Перемістити ряд нижче ↓</string>
+    <string name="home_row_hide">Приховати ряд</string>
+    <string name="home_row_show_apps">Показати ряд «Мої застосунки»</string>
+    <string name="home_restore_hidden_apps">Повернути приховані застосунки</string>
+    <string name="home_app_move">Переставити</string>
+    <string name="home_app_open">Відкрити</string>
+    <string name="home_app_move_left">Перемістити лівіше ←</string>
+    <string name="home_app_move_right">Перемістити правіше →</string>
+    <string name="home_app_hide">Приховати</string>
+    <string name="home_likhtar_permanent_note">Ряд «LIKHTAR HOME» приховати не можна</string>
     <string name="home_tile_live_tv">ТБ Ефір</string>
     <string name="home_tile_search">Пошук</string>
     <string name="home_ua_arrived_title">Вийшла українською: %1$s</string>
@@ -24,7 +58,7 @@
     <string name="home_continue_reality_empty">Тут будуть шоу, які ви почали дивитись</string>
     <string name="home_all_history">Вся історія</string>
     <string name="home_your_games">Ваші ігри</string>
-    <string name="home_your_apps">Ваші застосунки</string>
+    <string name="home_your_apps">Мої застосунки</string>
     <string name="home_your_apps_empty">Встановлені застосунки з\'являться тут</string>
     <string name="home_weather_loading">Погода ще завантажується…</string>
     <string name="home_weather_attribution">Дані: Open-Meteo</string>
@@ -69,4 +103,5 @@
     </string-array>
     <string name="home_support">Підтримати автора</string>
     <string name="home_update">Оновлення %1$s</string>
+    <string name="home_devices">Пристрої</string>
 </resources>

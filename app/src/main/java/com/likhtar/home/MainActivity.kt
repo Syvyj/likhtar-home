@@ -113,7 +113,7 @@ class MainActivity : ComponentActivity() {
         // Стрілка, з якою Compose нічого не зробив (униз із доку, де нижче нічого немає),
         // далі дістається системі: ViewRootImpl сам шукає фокус, «перезаходить» у вікно
         // й ставить фокус на сусіда по ряду — ↓ їздив по доку й рядах Застосунків
-        // (на приставці). Стрілки цілком наші: неопрацьована — просто нічого.
+        //. Стрілки цілком наші: неопрацьована — просто нічого.
         return super.dispatchKeyEvent(event) || isArrow
     }
 
@@ -124,12 +124,19 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(com.likhtar.home.core.data.AppLanguage.wrap(newBase))
     }
 
+    override fun onStop() {
+        super.onStop()
+        // «Подивились?» у Ліхтарику питає лише після справжнього виходу в застосунок сервісу.
+        if (!isChangingConfigurations) com.likhtar.home.core.catalog.AppForeground.stoppedAt = System.currentTimeMillis()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Стан навмисно не відновлюємо (`null` замість savedInstanceState): інакше Android
         // після перезапуску повертає збережений back stack NavHost'а і відкриває розділ,
         // у якому користувач був востаннє, перебиваючи налаштування «Поведінка запуску».
         // Домашній екран не має «попереднього стану» — він завжди починається спочатку.
         super.onCreate(null)
+        com.likhtar.home.core.designsystem.LaunchClock.windowCreatedAt = SystemClock.uptimeMillis()
         intent?.openRequest(debuggable)?.let(openRequests::trySend)
         setContent {
             // Масштаб 960 dp — і тут, а не лише в контексті (AppLanguage.wrap): коли приставка

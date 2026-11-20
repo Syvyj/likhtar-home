@@ -271,12 +271,6 @@ class SettingsPhoneLink @Inject constructor(
             f["section_order"]?.split(',')?.filter { it.isNotBlank() }?.let { order ->
                 if (order != orderable(current).map { it.route }) { settings.setSectionOrder(order); saved += str(R.string.settings_phone_section_order) }
             }
-            DOCK.forEach { section ->
-                // У доці — позначено; прихований і позначений (чи навпаки) — перемикаємо.
-                if ((f["dock_${section.route}"] == "on") == (section.route in current.hiddenDockSections)) {
-                    settings.toggleDockSection(section.route); saved += context.getString(section.titleRes)
-                }
-            }
             StreamingService.withPage.forEach { svc ->
                 val key = svc.key ?: return@forEach
                 if ((f["svc_$key"] == "on") == (key in current.hiddenServices)) { settings.toggleHiddenService(key); saved += svc.title }
@@ -355,8 +349,8 @@ class SettingsPhoneLink @Inject constructor(
         val sections = orderable(s)
         val sectionList = "<input type=\"hidden\" name=\"section_order\" value=\"${sections.joinToString(",") { it.route }}\">" +
             "<ul class=\"ord\" data-out=\"section_order\">" + sections.joinToString("") { sec ->
-                val box = if (sec in DOCK) check("dock_${sec.route}", sec.route !in s.hiddenDockSections) else "<span class=\"nb\"></span>"
-                "<li data-k=\"${sec.route}\"><label>$box${str(sec.titleRes)}</label>${moves()}</li>"
+                // Ховати розділи з Головної більше нема чим (ряд розділів сталий) — лише порядок.
+                "<li data-k=\"${sec.route}\"><label><span class=\"nb\"></span>${str(sec.titleRes)}</label>${moves()}</li>"
             } + "</ul>"
         val services = StreamingService.withPage.joinToString("") { svc ->
             val key = svc.key.orEmpty()
@@ -433,8 +427,6 @@ class SettingsPhoneLink @Inject constructor(
         const val ROWS_TIMEOUT_MS = 5_000L
         /** Перший ряд сервера — пул слайдера, не ряд постерів (CinemaViewModel). */
         const val SLIDER_ROW = "Слайдер"
-        /** Розділи, які можна прибрати з доку Головної, — ті самі, що в налаштуваннях на ТВ. */
-        val DOCK = listOf(LikhtarSection.CINEMA, LikhtarSection.LIVE_TV, LikhtarSection.REALITY, LikhtarSection.SEARCH, LikhtarSection.APPS)
         val PORTS = 8781..8785
     }
 }

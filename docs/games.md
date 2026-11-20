@@ -2,12 +2,21 @@
 
 **English** · [Українська](games.uk.md)
 
-The Games section is off by default. Turn it on in *Settings → Home → Games*.
+The Games section is on out of the box; if you don't need it, turn it off in *Settings → Home → Games*.
 
 ## Cloud gaming
 
-Boosteroid, Xbox Cloud Gaming, GeForce NOW and PS Remote Play sit in the first row. If an app is
-installed, OK opens it; if not, OK takes you to its store page.
+The section opens with a catalog of more than 2,900 Boosteroid, GeForce NOW and Xbox Cloud Gaming
+games, which the TV gathers itself from the services' public lists. *My games* comes first: what is
+free, what is in Game Pass and what you marked as owned. Below are *Playing now* and *Favourites*,
+and *All games* has rows for couch co-op, online co-op, free-to-play and more, with filters by
+service, store and genre.
+
+Every game has its own page: which service streams it and from which store, gamepad support,
+screenshots and a trailer. OK on a card opens that page, where *Play* starts the game in the
+service's app and *In browser* opens it on the web; hold OK on a card to play elsewhere or add the
+game to your lists. Tick *My services* to
+see only the services you use.
 
 ## Your own ROMs
 

@@ -17,7 +17,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=f14757ba">
+<link rel="stylesheet" href="style.css?v=c0672aa3">
 <script>document.documentElement.classList.add("js")</script>
 </head>
 <body>
@@ -54,13 +54,13 @@
   <div class="hero-copy">
     <p class="eyebrow">A home screen for any TV or box with Android TV or Google TV</p>
     <h1 id="hero-title" class="split">Films first. <em>Apps second.</em></h1>
-    <p class="lead">Turn on the TV, pick a mood, press OK. No sponsored banners, no tracking, no account — just tonight's film, your channels and your home.</p>
+    <p class="lead">Turn on the TV, pick a mood, press OK. No sponsored banners, no tracking, no account — just tonight's film, your games, your channels and your home.</p>
     <div class="cta">
       <a class="btn" href="https://github.com/Syvyj/likhtar-home/releases/latest/download/likhtar-home.apk" data-chime>Download the APK</a>
       <a class="btn btn-ghost" href="https://github.com/Syvyj/likhtar-home">Source on GitHub</a>
     </div>
     <ul class="facts" aria-label="At a glance">
-      <li>TVs & boxes</li><li>Android 7.0+</li><li>6.4 MB</li><li>GPL-3.0</li><li>No root</li><li>No computer</li>
+      <li>TVs & boxes</li><li>Android 7.0+</li><li>8 MB</li><li>GPL-3.0</li><li>No root</li><li>No computer</li>
     </ul>
   </div>
   <button class="lantern-hit" type="button" aria-label="Light the lantern" data-lantern></button>
@@ -85,8 +85,12 @@
       <figcaption><b>Cinema</b>What's new and trending where you live, and every service on its own page.</figcaption>
     </figure>
     <figure class="frame">
+      <img src="assets/18-games.webp" alt="Games: a cloud gaming catalog with My games first" width="1440" height="810" loading="lazy" decoding="async">
+      <figcaption><b>Games</b>Where to play, not only what to watch: 2,900+ cloud games and your own ROMs.</figcaption>
+    </figure>
+    <figure class="frame">
       <img src="assets/06-likhtaryk.webp" alt="Likhtaryk: format and mood picks with a row of suggestions" width="1440" height="810" loading="lazy" decoding="async">
-      <figcaption><b>Likhtaryk</b>Pick a format and a mood — get a selection of films and series for tonight.</figcaption>
+      <figcaption><b>Likhtaryk</b>Your shows, this week's episodes and a pick for tonight by format and mood.</figcaption>
     </figure>
   </div>
 </section>
@@ -119,15 +123,15 @@
     <p class="hint"><kbd>←</kbd> <kbd>→</kbd> Try it with the arrow keys.</p>
   </div>
   <div class="channels" role="tablist" aria-label="Sections">
-    <button role="tab" type="button" aria-selected="true" data-shot="06-likhtaryk" data-text="Pick a format and a mood — get a selection of films and series for tonight, without what you've already seen.">Likhtaryk</button>
+    <button role="tab" type="button" aria-selected="true" data-shot="06-likhtaryk" data-text="Your shows and what airs this week, a full calendar of premieres, and a pick for tonight by format and mood.">Likhtaryk</button>
     <button role="tab" type="button" aria-selected="false" data-shot="02-cinema-hero" data-text="What's new and trending in your country, genres, and a page for every streaming service.">Cinema</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="18-games" data-text="Where to play, not only what to watch: 2,900+ Boosteroid, GeForce NOW and Xbox Cloud games, with what's free or in Game Pass first, and your ROMs in the same rows.">Games</button>
+    <button role="tab" type="button" aria-selected="false" data-shot="19-game-page" data-text="Every game has its page: which service streams it and from which store, gamepad support, screenshots and a trailer.">Game page</button>
     <button role="tab" type="button" aria-selected="false" data-shot="08-title" data-text="One press opens the title itself in Netflix and your other apps, not their home screen. Plus episodes, trailers, similar titles and the whole franchise in order.">Title page</button>
     <button role="tab" type="button" aria-selected="false" data-shot="09-live-tv" data-text="Your provider's playlist as a channel grid, with logos, groups and what's on now.">Live TV</button>
     <button role="tab" type="button" aria-selected="false" data-shot="10-reality" data-text="The shows everyone talks about, on one shelf instead of five apps.">Reality</button>
     <button role="tab" type="button" aria-selected="false" data-shot="16-smart-home" data-text="Your Home Assistant rooms on the big screen — lights, blinds, the kettle, by remote or by voice.">Smart home</button>
     <button role="tab" type="button" aria-selected="false" data-shot="17-send-from-phone" data-text="Scan a QR and drop a film, a photo, an APK or a link onto the TV — no app, no cable, no cloud.">From your phone</button>
-    <button role="tab" type="button" aria-selected="false" data-shot="18-games" data-text="Boosteroid, Xbox Cloud, GeForce NOW and PS Remote Play in one row, and your ROMs with box art, one press to play. Turn it on in Settings.">Games</button>
-    <button role="tab" type="button" aria-selected="false" data-shot="11-apps" data-text="Your apps, grouped for you, with what's new inside each service right on the tile.">Apps</button>
   </div>
   <div class="tv">
     <div class="tv-screen">
@@ -179,7 +183,7 @@
   <ol class="steps">
     <li><span class="step-n">01</span><h3>Install and look around</h3><p>Open it like any app. Nothing on the TV changes until you ask.</p></li>
     <li><span class="step-n">02</span><h3>Make it your home screen</h3><p>One confirmation on the TV. The stock launcher is disabled, not removed — and your Wi‑Fi is checked first.</p></li>
-    <li><span class="step-n">03</span><h3>Changed your mind?</h3><p><i>Settings → Remote and startup → Bring back the stock home screen.</i> And if Likhtar ever crashes three times in five minutes, it hands the home screen back by itself. <b>Uninstalling? Press that button first</b> — otherwise the TV is left without a home screen (<a href="https://github.com/Syvyj/likhtar-home#uninstalled-it-and-got-a-black-screen">how to fix a black screen</a>).</p></li>
+    <li><span class="step-n">03</span><h3>Changed your mind?</h3><p><i>Settings → Home → HOME button → Bring back the stock home screen.</i> And if Likhtar ever crashes three times in five minutes, it hands the home screen back by itself. <b>Uninstalling? Press that button first</b> — otherwise the TV is left without a home screen (<a href="https://github.com/Syvyj/likhtar-home#uninstalled-it-and-got-a-black-screen">how to fix a black screen</a>).</p></li>
   </ol>
 </section>
 
@@ -204,6 +208,7 @@
     <li><time>Aug 11</time><p>The plugin hits the walls of someone else's app. The native launcher begins.</p></li>
     <li><time>Sep</time><p>Reality, title pages, franchises, a focus system rebuilt for the remote.</p></li>
     <li><time>Oct</time><p>A public build without a home server, settings from your phone, bring your own AI.</p></li>
+    <li><time>Nov</time><p><b>0.4.0</b>: a new look, a games catalog, a series tracker and calendar.</p></li>
   </ol>
   <p class="grew-note">Where it began is still public: <a href="https://github.com/Syvyj/studios_4lampa">the original plugin on GitHub</a>. The launcher's repository starts fresh with its first public release.</p>
 </section>
@@ -270,7 +275,7 @@
 <script src="vendor/gsap.min.js" defer></script>
 <script src="vendor/ScrollTrigger.min.js" defer></script>
 <script src="vendor/lenis.min.js" defer></script>
-<script src="sound.js?v=f14757ba" defer></script>
-<script src="motion.js?v=f14757ba" defer></script>
+<script src="sound.js?v=c0672aa3" defer></script>
+<script src="motion.js?v=c0672aa3" defer></script>
 </body>
 </html>
