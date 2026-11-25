@@ -422,11 +422,28 @@ enum class WatchCollection(
     }
 }
 
-/** Ряди за настроєм на добу [epochDay]: три постійні й «Ряд дня» — тема змінюється щодня. */
-fun moodCollections(epochDay: Long): List<WatchCollection> {
+/**
+ * Ряди за настроєм на одне відкриття Кінозалу: «Ряд дня» (тема змінюється щодня) і одна з трьох
+ * постійних навмання — усі чотири підряд відсували стрімінги надто далеко вниз.
+ */
+fun moodCollections(epochDay: Long, random: kotlin.random.Random = kotlin.random.Random.Default): List<WatchCollection> {
     val themes = WatchCollection.entries.filter { it.daily }
-    return listOf(WatchCollection.HIDDEN_GEMS, WatchCollection.UNDER_100, WatchCollection.TRUE_STORIES) +
-        themes[Math.floorMod(epochDay, themes.size.toLong()).toInt()]
+    return listOf(
+        themes[Math.floorMod(epochDay, themes.size.toLong()).toInt()],
+        listOf(WatchCollection.HIDDEN_GEMS, WatchCollection.UNDER_100, WatchCollection.TRUE_STORIES).random(random),
+    )
+}
+
+/**
+ * [moods] — між рядами стрімінгів (ряд, чий [SectionRow.openBrand] — плитка з [streamings]): по
+ * одному після першого, третього, п'ятого… Стрімінгових рядів немає (старий сервер) — після
+ * [fallbackAt] рядів, як було.
+ */
+fun withMoods(rows: List<SectionRow>, moods: List<SectionRow>, streamings: Set<String>, fallbackAt: Int): List<SectionRow> {
+    val streamingAt = rows.indices.filter { rows[it].openBrand in streamings }
+    if (streamingAt.isEmpty()) return rows.take(fallbackAt) + moods + rows.drop(fallbackAt)
+    val after = moods.indices.groupBy { i -> streamingAt.getOrElse(i * 2) { streamingAt.last() } }
+    return rows.flatMapIndexed { index, row -> listOf(row) + after[index].orEmpty().map(moods::get) }
 }
 
 /**

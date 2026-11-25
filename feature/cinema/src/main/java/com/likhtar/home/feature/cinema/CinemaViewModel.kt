@@ -17,6 +17,7 @@ import com.likhtar.home.core.catalog.FreshUaRepository
 import com.likhtar.home.core.catalog.ResumeCard
 import com.likhtar.home.core.catalog.openIn
 import com.likhtar.home.core.catalog.SectionRow
+import com.likhtar.home.core.catalog.withMoods
 import com.likhtar.home.core.data.AppsRepository
 import com.likhtar.home.core.catalog.TitleKind
 import com.likhtar.home.core.catalog.WatchProgressRepository
@@ -496,12 +497,12 @@ class CinemaViewModel @Inject constructor(
                 val base = current.rows.filterNot { it.key.startsWith("liked:") }
                 current.copy(rows = base.take(2) + liked + base.drop(2))
             }
-            // Ряди за настроєм (C3) — так само окремо, після шести рядів: вечірній вибір, не новинки.
+            // Ряди за настроєм (C3) — так само окремо, між рядами стрімінгів: вечірній вибір, не новинки.
             val moods = runCatching { catalog.moodRows() }.getOrDefault(emptyList())
             if (moods.isNotEmpty()) state.update { current ->
                 val keys = moods.map { it.key }.toSet()
                 val base = current.rows.filterNot { it.key in keys || it.key.startsWith("mood_") || it.key.startsWith("day_") }
-                current.copy(rows = base.take(MOOD_ROWS_AT) + moods + base.drop(MOOD_ROWS_AT))
+                current.copy(rows = withMoods(base, moods, current.brands.map { it.key }.toSet(), MOOD_ROWS_AT))
             }
         }
     }
@@ -523,7 +524,7 @@ class CinemaViewModel @Inject constructor(
     companion object {
         /** Рядок заміру «ряди Кінозалу» — один на процес. */
         @Volatile private var rowsLogged = false
-        /** Скільки рядів Кінозалу перед рядами за настроєм. */
+        /** Скільки рядів перед рядами за настроєм, коли сервер не дав рядів стрімінгів. */
         const val MOOD_ROWS_AT = 6
         /** Скільки екран лишається «свіжим» без повторного збирання. */
         private const val REFRESH_AFTER_MS = 30 * 60 * 1000L

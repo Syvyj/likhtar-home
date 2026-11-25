@@ -30,5 +30,26 @@ data class ChannelArchive(val type: String, val days: Int, val source: String) {
             }
             return if (playable) ChannelArchive(type, days, source) else null
         }
+
+        /** Останній сегмент потоку Flussonic — його прямий ефір; поруч лежить архів `index-<від>-<трив>.m3u8`. */
+        private val FLUSSONIC_LIVE = setOf("index.m3u8", "video.m3u8", "mono.m3u8", "mpegts")
+
+        /**
+         * Адреса хвилини архіву годину тому для потоку Flussonic [liveUrl]; `null` — потік не схожий на Flussonic.
+         * Для плейлистів без `catchup-*`: провайдер архів має, але не пише —
+         * інші плеєри вгадують Flussonic за адресою, ми ж питаємо сервер, чи шматок справді є.
+         */
+        fun flussonicProbe(liveUrl: String, nowSec: Long): String? {
+            val q = liveUrl.indexOf('?')
+            val path = if (q < 0) liveUrl else liveUrl.substring(0, q)
+            if (!path.startsWith("http") || path.substringAfterLast('/') !in FLUSSONIC_LIVE) return null
+            return path.substringBeforeLast('/') + "/index-${nowSec - 3600}-60.m3u8" + (if (q < 0) "" else liveUrl.substring(q))
+        }
+
+        /**
+         * Глибина, коли плейлист її не каже: тиждень — найчастіше в провайдерів Flussonic.
+         * ponytail: вгадана; старіша передача за межею просто не відкриється — питати сервер про глибину, якщо заважатиме.
+         */
+        const val GUESSED_DAYS = 7
     }
 }

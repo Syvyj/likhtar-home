@@ -102,6 +102,28 @@ class PlaylistTvSource @Inject constructor(
             logo = channel.logo,
             archive = ChannelArchive.of(channel.catchupType, channel.catchupDays, channel.catchupSource, channel.url),
         )
+    }.let(::withGuessedArchive)
+
+    /**
+     * Плейлист без жодного `catchup-*`, а сервер — Flussonic з архівом: архів усім його каналам.
+     * Одна проба на завантаження плейлиста (раз на пів години, 304 її не повторює). Плейлист, що
+     * оголошує архів хоч одному каналу, — як є: провайдер сказав, де архів є.
+     */
+    private fun withGuessedArchive(links: List<ChannelLink>): List<ChannelLink> {
+        if (links.any { it.archive != null }) return links
+        val now = System.currentTimeMillis() / 1000
+        val probe = links.firstNotNullOfOrNull { ChannelArchive.flussonicProbe(it.url, now) } ?: return links
+        val found = runCatching {
+            http(probe, TIMEOUT_MS / 2) { connection ->
+                connection.responseCode == HttpURLConnection.HTTP_OK &&
+                    connection.inputStream.bufferedReader().use { it.readLine() }?.trim()?.startsWith("#EXTM3U") == true
+            }
+        }.getOrDefault(false)
+        if (!found) return links
+        return links.map { link ->
+            if (ChannelArchive.flussonicProbe(link.url, now) == null) link
+            else link.copy(archive = ChannelArchive.of("flussonic", ChannelArchive.GUESSED_DAYS, "", link.url))
+        }
     }
 
     private companion object {

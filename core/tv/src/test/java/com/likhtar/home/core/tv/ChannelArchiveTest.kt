@@ -1,5 +1,6 @@
 package com.likhtar.home.core.tv
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -36,5 +37,16 @@ class ChannelArchiveTest {
     @Test
     fun `без днів архіву немає`() {
         assertNull(ChannelArchive.of("flussonic", 0, "", "http://h/ch/mpegts"))
+    }
+
+    @Test
+    fun `проба архіву Flussonic — хвилина годину тому, токен на місці`() {
+        assertEquals(
+            "http://s.h/1101/index-6400-60.m3u8?token=x",
+            ChannelArchive.flussonicProbe("http://s.h/1101/index.m3u8?token=x", 10_000),
+        )
+        assertEquals("http://h/ch/index-6400-60.m3u8", ChannelArchive.flussonicProbe("http://h/ch/mpegts", 10_000))
+        assertNull(ChannelArchive.flussonicProbe("http://h/ch/playlist.m3u8", 10_000))
+        assertNull(ChannelArchive.flussonicProbe("rtmp://h/ch/index.m3u8", 10_000))
     }
 }

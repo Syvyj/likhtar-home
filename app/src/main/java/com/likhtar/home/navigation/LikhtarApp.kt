@@ -144,17 +144,11 @@ fun LikhtarApp(
     val showHomeOnboarding by viewModel.homeOnboarding.collectAsStateWithLifecycle()
     val showFirstRun by viewModel.firstRun.collectAsStateWithLifecycle()
 
-    // «Назад» із кореня Кінозалу — це «скинути»: його сторінки тоді не зберігаємо.
-    var keepCinema by remember { mutableStateOf(true) }
     val navigateTo: (LikhtarSection) -> Unit = { section ->
         // `|| onDetailRoute` обов'язкове: для підсторінок (фільм, каталог) fromRoute віддає
         // null, і currentSection «схлопується» в HOME. Без цієї умови перехід на Головну
         // зі сторінки фільму вважався б переходом у самого себе й не робив нічого.
         if (section != currentSection || onDetailRoute) {
-            // Кінозал у стеку (сам чи з підсторінками)? getBackStackEntry кидає, якщо його там немає.
-            val leavingCinema = runCatching { navController.getBackStackEntry(LikhtarSection.CINEMA.route) }.isSuccess
-            val save = leavingCinema && keepCinema
-            keepCinema = true
             navController.navigate(section.route) {
                 // Стартовий розділ лежить на дні стека, над ним — рівно один розділ і його
                 // підсторінки: попереднього розділу не існує, тож Back веде на старт, а не
@@ -162,11 +156,11 @@ fun LikhtarApp(
                 // popUpTo не знаходить ціль і МОВЧКИ нічого не робить, розділи накопичуються
                 // й тримають свої дані в пам'яті (саме так лаунчер колись «важчав»).
                 //
-                // Кінозал, полишений заради іншого розділу, зберігає свої сторінки (добірку,
-                // фільм) і повертає їх, коли його відкрити знову — як вкладки в застосунках.
-                popUpTo(navController.graph.findStartDestination().id) { saveState = save }
+                // Стек розділу не зберігаємо: Кінозал після іншого розділу відкривається з
+                // початку, а не на фільмі, який дивились востаннє. Back зі сторінки фільму
+                // на його картку — це popBackStack і RailRestore, їх це не стосується.
+                popUpTo(navController.graph.findStartDestination().id)
                 launchSingleTop = true
-                restoreState = section == LikhtarSection.CINEMA
             }
         }
     }
@@ -230,10 +224,7 @@ fun LikhtarApp(
     BackHandler(enabled = true) {
         when {
             onDetailRoute -> navController.popBackStack()
-            currentSection != LikhtarSection.HOME -> {
-                keepCinema = currentSection != LikhtarSection.CINEMA
-                navigateTo(LikhtarSection.HOME)
-            }
+            currentSection != LikhtarSection.HOME -> navigateTo(LikhtarSection.HOME)
         }
     }
 
