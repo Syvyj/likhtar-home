@@ -7,7 +7,7 @@ import java.net.URLEncoder
 import org.json.JSONObject
 
 /** Вхід на сервер Jellyfin: як він себе називає, чий це вхід і токен. */
-data class JellyfinLogin(val serverName: String, val userId: String, val token: String)
+data class JellyfinLogin(val serverName: String, val userId: String, val token: String, val base: String)
 
 /**
  * Jellyfin через його REST API, без SDK. На відміну від DLNA, сервер сам знає, що за фільм у
@@ -25,7 +25,7 @@ internal object Jellyfin : MediaServer {
 
     /** Вхід логіном і паролем. Невдача — виняток із текстом для рядка в налаштуваннях. */
     fun login(address: String, user: String, password: String, deviceId: String): JellyfinLogin {
-        val base = normalize(address)
+        val base = resolve(address)
         val body = JSONObject().put("Username", user).put("Pw", password).toString()
         val reply = http(
             "$base/Users/AuthenticateByName", TIMEOUT_MS, method = "POST",
@@ -40,7 +40,17 @@ internal object Jellyfin : MediaServer {
         val userId = o.optJSONObject("User")?.optString("Id").orEmpty()
         if (token.isBlank() || userId.isBlank()) error(mediaText(R.string.catalog_media_err_no_token))
         val serverName = o.optString("ServerName").ifBlank { "Jellyfin" }
-        return JellyfinLogin(serverName, userId, token)
+        return JellyfinLogin(serverName, userId, token, base)
+    }
+
+    /** Перша з [MediaServer.candidates], де відповідає Jellyfin; ніде — остання, хай вхід скаже чому. */
+    private fun resolve(address: String): String {
+        val all = MediaServer.candidates(address)
+        return all.firstOrNull { base ->
+            runCatching {
+                http("$base/System/Info/Public", TIMEOUT_MS) { c -> c.responseCode == 200 && c.text().contains("\"Id\"") }
+            }.getOrDefault(false)
+        } ?: all.last()
     }
 
     override fun walk(source: MediaSource): List<LocalFile> {

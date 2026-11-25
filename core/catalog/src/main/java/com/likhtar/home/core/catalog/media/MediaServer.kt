@@ -31,9 +31,21 @@ internal interface MediaServer {
 
     companion object {
         /** Адреса як людина її набрала: «192.168.0.5:8096» → «http://192.168.0.5:8096». */
-        fun normalize(address: String): String {
-            val a = address.trim().trimEnd('/')
-            return if (a.startsWith("http://") || a.startsWith("https://")) a else "http://$a"
+        fun normalize(address: String): String = candidates(address).last()
+
+        /**
+         * Куди стукати, по черзі. Без схеми — спершу https, потім http: сервер за nginx на
+         * http віддає 301 на https, а `HttpURLConnection` переходу http→https не робить, і
+         * вхід падав із «HTTP 301». Адресу з браузера («…/web/#/home») зводимо до кореня,
+         * схему з великої літери («HTTPS://» з ТВ-клавіатури) — до малої.
+         */
+        fun candidates(address: String): List<String> {
+            val a = address.trim().substringBefore('#').replace(WEB_UI, "").trimEnd('/')
+            val scheme = SCHEME.find(a) ?: return listOf("https://$a", "http://$a")
+            return listOf(scheme.value.lowercase() + a.substring(scheme.value.length))
         }
+
+        private val SCHEME = Regex("^https?://", RegexOption.IGNORE_CASE)
+        private val WEB_UI = Regex("/web(/.*)?$", RegexOption.IGNORE_CASE)
     }
 }

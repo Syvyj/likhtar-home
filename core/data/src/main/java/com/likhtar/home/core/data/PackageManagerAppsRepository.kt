@@ -160,15 +160,15 @@ class PackageManagerAppsRepository @Inject constructor(
         // вибудовував вибір профілю й головну під роликом, і BACK вів туди, а не назад до
         // нас (три натискання). Так — один BACK, і ми на сторінці.
         if (parsed.data?.host?.endsWith("youtube.com") == true && parsed.data?.path == "/watch") {
-            context.startActivity(
-                parsed.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    .setPackage(
-                        packageName?.ifBlank { null }
-                            ?: YOUTUBE_PACKAGES.firstOrNull { runCatching { context.packageManager.getPackageInfo(it, 0) }.isSuccess },
-                    )
-                    .putExtra("finish_on_ended", true)
-                    .putExtra("force_fullscreen", true),
-            )
+            val video = parsed.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                .putExtra("finish_on_ended", true)
+                .putExtra("force_fullscreen", true)
+            // Застосунок — лише той, що справді відкриє посилання: вимкнений YouTube (його
+            // часто вимикають заради іншого клієнта) пакет має, а активності — ні.
+            // Нема такого — без пакета: система дасть інший клієнт чи браузер.
+            val target = (listOfNotNull(packageName?.ifBlank { null }) + YOUTUBE_PACKAGES)
+                .firstOrNull { Intent(video).setPackage(it).resolveActivity(context.packageManager) != null }
+            context.startActivity(video.setPackage(target))
             return true
         }
         // Картка TMDB («Відкрити будь-де») — без CLEAR_TASK: застосунок, що знає такі посилання,

@@ -186,7 +186,7 @@ class MediaLibrary @Inject constructor(
         runCatching {
             val id = newId()
             val login = Jellyfin.login(address, user, password, id)
-            MediaSource(id, MediaSource.Kind.JELLYFIN, login.serverName, MediaServer.normalize(address), login.userId, login.token)
+            MediaSource(id, MediaSource.Kind.JELLYFIN, login.serverName, login.base, login.userId, login.token)
         }
     }
 

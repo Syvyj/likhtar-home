@@ -38,6 +38,14 @@ class JellyfinParseTest {
     }
 
     @Test
+    fun `без схеми — спершу https, адреса з браузера — до кореня`() {
+        // Сервер за nginx: http дає 301 на https, а HttpURLConnection туди не переходить.
+        assertEquals(listOf("https://jf.example.net", "http://jf.example.net"), MediaServer.candidates("jf.example.net"))
+        assertEquals(listOf("https://jf.example.org"), MediaServer.candidates("HTTPS://jf.example.org/web/#/home.html"))
+        assertEquals(listOf("http://192.168.0.10:8096/jellyfin"), MediaServer.candidates("http://192.168.0.10:8096/jellyfin/web/index.html"))
+    }
+
+    @Test
     fun `посилання на файл — оригінал без перекодування`() {
         assertEquals(
             "http://192.168.0.10:8096/Videos/m1/stream?static=true&api_key=tok",
